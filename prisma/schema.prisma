@@ -1,0 +1,175 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Enums
+enum Status {
+  TO_CHECK
+  BAD
+  GOOD
+  DELETED
+}
+
+enum FileStatus {
+  TO_CHECK
+  BAD
+  GOOD
+  DELETED
+}
+
+enum Action {
+  NOTHING
+  REDOWNLOAD
+  CONVERT
+  ORGANIZE
+  REPAIR
+}
+
+enum ArrStatus {
+  MONITORED
+  UNMONITORED
+}
+
+enum TestStatus {
+  WORKS
+  FAILS
+  NOT_TESTED
+  NEEDS_TRANSCODING
+}
+
+enum ScanStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// TV Show Models
+model TVShow {
+  id        Int      @id @default(autoincrement())
+  title     String
+  year      Int?
+  tvdbId    String?  @unique
+  tmdbId    String?  @unique
+  plexId    String?  @unique
+  status    Status   @default(TO_CHECK)
+  notes     String?
+  
+  seasons   Season[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([title])
+}
+
+model Season {
+  id           Int      @id @default(autoincrement())
+  tvShowId     Int
+  tvShow       TVShow   @relation(fields: [tvShowId], references: [id], onDelete: Cascade)
+  seasonNumber Int
+  status       Status   @default(TO_CHECK)
+  notes        String?
+  
+  episodes     Episode[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([tvShowId, seasonNumber])
+  @@index([tvShowId])
+}
+
+model Episode {
+  id            Int      @id @default(autoincrement())
+  seasonId      Int
+  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  episodeNumber Int
+  title         String?
+  status        Status   @default(TO_CHECK)
+  notes         String?
+  
+  files         EpisodeFile[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([seasonId, episodeNumber])
+  @@index([seasonId])
+}
+
+model EpisodeFile {
+  id                Int      @id @default(autoincrement())
+  episodeId         Int
+  episode           Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  
+  filepath          String   @unique
+  filename          String
+  fileSize          BigInt
+  dateModified      DateTime
+  fileExists        Boolean  @default(true)
+  
+  status            FileStatus @default(TO_CHECK)
+  action            Action     @default(NOTHING)
+  arrStatus         ArrStatus  @default(MONITORED)
+  notes             String?
+  
+  codec             String?
+  resolution        String?
+  bitrate           Int?
+  container         String?
+  audioFormat       String?
+  hdrType           String?
+  duration          Int?
+  
+  metadataSource    String?
+  plexMatched       Boolean  @default(false)
+  
+  audioLanguages    String?
+  subtitleLanguages String?
+  
+  compatibilityTests CompatibilityTest[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([episodeId])
+  @@index([status])
+  @@index([action])
+}
+
+model CompatibilityTest {
+  id            Int      @id @default(autoincrement())
+  episodeFileId Int?
+  episodeFile   EpisodeFile? @relation(fields: [episodeFileId], references: [id], onDelete: Cascade)
+  
+  platform      String
+  status        TestStatus
+  notes         String?
+  testedAt      DateTime @default(now())
+  
+  @@index([episodeFileId])
+}
+
+model ScanHistory {
+  id            Int      @id @default(autoincrement())
+  scanType      String
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+  filesScanned  Int      @default(0)
+  filesAdded    Int      @default(0)
+  filesUpdated  Int      @default(0)
+  filesDeleted  Int      @default(0)
+  errors        String?
+  status        ScanStatus
+}

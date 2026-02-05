@@ -1,0 +1,24 @@
+services:
+  media-quality-tracker:
+    image: media-quality-tracker
+    container_name: media-quality-tracker
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/media-tracker.db
+      - TV_SHOWS_PATH=/media/TV Shows
+      - MOVIES_PATH=/media/Movies
+      - PLEX_DB_PATH=/plex-db
+    volumes:
+      - ./data:/app/data
+      #- ./logs:/app/logs
+      - ./media:/media/TV Shows:ro
+      #- /plex-db:/plex-db:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/tv-shows"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
