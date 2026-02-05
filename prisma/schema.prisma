@@ -173,3 +173,10 @@ model ScanHistory {
   errors        String?
   status        ScanStatus
 }
+
+// App Settings (single row with id=1)
+model Settings {
+  id          Int      @id @default(1)
+  dateFormat  String   @default("EU") // EU (DD/MM/YYYY), US (MM/DD/YYYY), ISO (YYYY-MM-DD)
+  updatedAt   DateTime @updatedAt
+}

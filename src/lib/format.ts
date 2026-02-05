@@ -2,6 +2,9 @@
  * Formatting utilities for display
  */
 
+import { getSettings } from './settings';
+import { formatDateWithFormat, formatDateTimeWithFormat } from './settings-shared';
+
 export function formatFileSize(bytes: bigint): string {
   const num = Number(bytes);
   if (num < 1024) return `${num} B`;
@@ -20,10 +23,24 @@ export function formatDuration(seconds: number): string {
   return `${minutes}m ${secs}s`;
 }
 
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString();
+/**
+ * Format a date using the app's configured date format
+ * Automatically fetches settings (cached per request)
+ */
+export async function formatDate(date: Date): Promise<string> {
+  const settings = await getSettings();
+  return formatDateWithFormat(date, settings.dateFormat);
 }
 
-export function formatDateTime(date: Date): string {
-  return date.toLocaleString();
+/**
+ * Format a datetime using the app's configured date format
+ * Automatically fetches settings (cached per request)
+ */
+export async function formatDateTime(date: Date): Promise<string> {
+  const settings = await getSettings();
+  return formatDateTimeWithFormat(date, settings.dateFormat);
 }
+
+// Re-export the sync versions for cases where format is already known
+export { formatDateWithFormat, formatDateTimeWithFormat } from './settings-shared';
+export type { DateFormat } from './settings-shared';

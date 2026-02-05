@@ -3,16 +3,20 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { getSettings } from '@/lib/settings';
 import { ScanControls } from './scan-controls';
 import { ScanHistoryTable } from './scan-history-table';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ScansPage() {
-  const scans = await prisma.scanHistory.findMany({
-    orderBy: { startedAt: 'desc' },
-    take: 50,
-  });
+  const [scans, settings] = await Promise.all([
+    prisma.scanHistory.findMany({
+      orderBy: { startedAt: 'desc' },
+      take: 50,
+    }),
+    getSettings(),
+  ]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,7 +34,7 @@ export default async function ScansPage() {
 
         <section>
           <h2 className="text-2xl font-bold mb-4">Scan History</h2>
-          <ScanHistoryTable initialScans={scans} />
+          <ScanHistoryTable initialScans={scans} dateFormat={settings.dateFormat} />
         </section>
       </div>
     </div>

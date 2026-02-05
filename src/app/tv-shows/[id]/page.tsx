@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getStatusVariant } from "@/lib/status";
+import { getSettings } from "@/lib/settings";
+import { formatDateWithFormat } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
@@ -13,7 +15,8 @@ interface Props {
 }
 
 export default async function ShowDetailPage({ params }: Props) {
-  const { id } = await params;
+  const [{ id }, settings] = await Promise.all([params, getSettings()]);
+  const dateFormat = settings.dateFormat;
   const showId = parseInt(id, 10);
 
   if (isNaN(showId)) {
@@ -94,7 +97,7 @@ export default async function ShowDetailPage({ params }: Props) {
           <CardContent className="p-6">
             <p className="text-muted-foreground text-sm mb-2">Last Updated</p>
             <p className="text-lg font-semibold">
-              {show.updatedAt.toLocaleDateString()}
+              {formatDateWithFormat(show.updatedAt, dateFormat)}
             </p>
           </CardContent>
         </Card>

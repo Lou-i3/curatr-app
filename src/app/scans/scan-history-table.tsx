@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 
 interface ScanHistory {
   id: number;
@@ -27,15 +28,16 @@ interface ScanHistory {
 
 interface Props {
   initialScans: ScanHistory[];
+  dateFormat: DateFormat;
 }
 
-export function ScanHistoryTable({ initialScans }: Props) {
+export function ScanHistoryTable({ initialScans, dateFormat }: Props) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return '-';
     const d = new Date(date);
-    return d.toLocaleString();
+    return formatDateTimeWithFormat(d, dateFormat);
   };
 
   const formatDuration = (start: Date | string, end: Date | string | null) => {

@@ -6,6 +6,9 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - TZ=Europe/Paris
+      - PUID=1020
+      - PGID=100
       - DATABASE_URL=file:/app/data/media-tracker.db
       - TV_SHOWS_PATH=/media/TV Shows
       - MOVIES_PATH=/media/Movies

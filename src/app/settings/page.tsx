@@ -1,30 +1,19 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSettings } from '@/lib/settings';
+import { SettingsForm } from './settings-form';
 
-export default function SettingsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function SettingsPage() {
+  const settings = await getSettings();
+
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Configure your media tracker</p>
+        <p className="text-muted-foreground">Configure application preferences</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Coming Soon</CardTitle>
-          <CardDescription>Settings will be available in a future update</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Planned settings include:
-          </p>
-          <ul className="mt-2 space-y-1 text-sm text-muted-foreground list-disc list-inside">
-            <li>Scanner configuration</li>
-            <li>Quality thresholds</li>
-            <li>Notification preferences</li>
-            <li>API integrations (Sonarr, Radarr)</li>
-          </ul>
-        </CardContent>
-      </Card>
+      <SettingsForm initialSettings={settings} />
     </div>
   );
 }

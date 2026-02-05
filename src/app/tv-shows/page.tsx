@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { getStatusVariant } from "@/lib/status";
+import { getSettings } from "@/lib/settings";
+import { formatDateWithFormat } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,11 @@ interface Props {
 }
 
 export default async function TVShowsPage({ searchParams }: Props) {
-  const { q, status, view = 'grid' } = await searchParams;
+  const [{ q, status, view = 'grid' }, settings] = await Promise.all([
+    searchParams,
+    getSettings(),
+  ]);
+  const dateFormat = settings.dateFormat;
 
   const shows = await prisma.tVShow.findMany({
     where: {
@@ -159,7 +165,7 @@ export default async function TVShowsPage({ searchParams }: Props) {
                     <div className="bg-muted p-3 rounded">
                       <p className="text-muted-foreground">Last Updated</p>
                       <p className="text-xs truncate">
-                        {show.updatedAt.toLocaleDateString()}
+                        {formatDateWithFormat(show.updatedAt, dateFormat)}
                       </p>
                     </div>
                   </div>

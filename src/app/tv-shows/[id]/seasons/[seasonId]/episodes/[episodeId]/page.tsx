@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatFileSize, formatDuration } from "@/lib/format";
+import { formatFileSize, formatDuration, formatDateWithFormat } from "@/lib/format";
 import { getStatusVariant } from "@/lib/status";
+import { getSettings } from "@/lib/settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, FileCheck, FileX, Clock, HardDrive } from "lucide-react";
@@ -14,7 +15,11 @@ interface Props {
 }
 
 export default async function EpisodeDetailPage({ params }: Props) {
-  const { id, seasonId, episodeId } = await params;
+  const [{ id, seasonId, episodeId }, settings] = await Promise.all([
+    params,
+    getSettings(),
+  ]);
+  const dateFormat = settings.dateFormat;
   const showId = parseInt(id, 10);
   const seasonNumber = parseInt(seasonId, 10);
   const episodeNumber = parseInt(episodeId, 10);
@@ -146,7 +151,7 @@ export default async function EpisodeDetailPage({ params }: Props) {
                       )}
                       <div className="bg-muted p-2 rounded">
                         <p className="text-muted-foreground text-xs">Modified</p>
-                        <p className="font-semibold text-xs">{file.dateModified.toLocaleDateString()}</p>
+                        <p className="font-semibold text-xs">{formatDateWithFormat(file.dateModified, dateFormat)}</p>
                       </div>
                     </div>
                   </div>
@@ -284,9 +289,9 @@ export default async function EpisodeDetailPage({ params }: Props) {
                   <div className="pt-3 border-t text-xs text-muted-foreground flex gap-4">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      Added: {file.createdAt.toLocaleDateString()}
+                      Added: {formatDateWithFormat(file.createdAt, dateFormat)}
                     </span>
-                    <span>Updated: {file.updatedAt.toLocaleDateString()}</span>
+                    <span>Updated: {formatDateWithFormat(file.updatedAt, dateFormat)}</span>
                   </div>
                 </CardContent>
               </Card>
