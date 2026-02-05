@@ -40,7 +40,7 @@ const yieldToEventLoop = (): Promise<void> =>
   new Promise((resolve) => setImmediate(resolve));
 
 /** How often to yield (every N files) */
-const YIELD_INTERVAL = 10;
+const YIELD_INTERVAL = 5;
 
 /**
  * Start a new scan operation

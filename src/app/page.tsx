@@ -1,34 +1,122 @@
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tv, Film, FileVideo, ScanSearch, ArrowRight } from "lucide-react";
 
-export default function Home() {
+async function getStats() {
+  const [showCount, episodeCount, fileCount, recentScans] = await Promise.all([
+    prisma.tVShow.count(),
+    prisma.episode.count(),
+    prisma.episodeFile.count(),
+    prisma.scanHistory.findMany({
+      orderBy: { startedAt: 'desc' },
+      take: 3,
+    }),
+  ]);
+
+  return { showCount, episodeCount, fileCount, recentScans };
+}
+
+export default async function Home() {
+  const { showCount, episodeCount, fileCount, recentScans } = await getStats();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-black">
-      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-        <div className="max-w-2xl space-y-8 text-center">
-          <div className="space-y-2">
-            <h1 className="text-5xl font-bold tracking-tight text-black dark:text-white">
-              Media Quality Tracker
-            </h1>
-            <p className="text-xl text-zinc-600 dark:text-zinc-400">
-              Track your Plex media library quality and compatibility
-            </p>
-          </div>
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">Overview of your media library</p>
+      </div>
 
-          <div className="flex flex-col gap-4 pt-8">
-            <Link
-              href="/tv-shows"
-              className="inline-block rounded-lg bg-blue-600 px-8 py-3 font-semibold text-white hover:bg-blue-700 transition-colors"
-            >
-              Browse TV Shows
-            </Link>
-            <Link
-              href="/scans"
-              className="inline-block rounded-lg bg-zinc-700 px-8 py-3 font-semibold text-white hover:bg-zinc-600 transition-colors"
-            >
-              Scan Library
-            </Link>
-          </div>
-        </div>
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-3 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">TV Shows</CardTitle>
+            <Tv className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{showCount}</div>
+            <p className="text-xs text-muted-foreground">shows in library</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Episodes</CardTitle>
+            <Film className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{episodeCount}</div>
+            <p className="text-xs text-muted-foreground">total episodes</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Media Files</CardTitle>
+            <FileVideo className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{fileCount}</div>
+            <p className="text-xs text-muted-foreground">files tracked</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-2 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <Button asChild variant="outline" className="justify-between">
+              <Link href="/tv-shows">
+                Browse TV Shows
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="justify-between">
+              <Link href="/scans">
+                <span className="flex items-center gap-2">
+                  <ScanSearch className="h-4 w-4" />
+                  Scan Library
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Scans</CardTitle>
+            <CardDescription>Latest scan activity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentScans.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No scans yet</p>
+            ) : (
+              <ul className="space-y-2">
+                {recentScans.map((scan) => (
+                  <li key={scan.id} className="flex items-center justify-between text-sm">
+                    <span className="capitalize">{scan.scanType} scan</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                      scan.status === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                      scan.status === 'FAILED' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                      scan.status === 'RUNNING' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                      'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                    }`}>
+                      {scan.status.toLowerCase()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
