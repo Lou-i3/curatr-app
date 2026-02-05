@@ -1,36 +1,194 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Media Quality Tracker
 
-## Getting Started
+A Next.js web application for tracking media file quality, playback compatibility, and maintenance status across a Plex media library.
 
-First, run the development server:
+## Features
+
+- **Library Scanner** - Scan TV show directories to discover and catalog media files
+- **Plex-style Parsing** - Automatically parse `Show Name (Year)/Season 01/S01E05.mkv` naming
+- **Quality Tracking** - Track codec, resolution, bitrate, HDR, audio formats
+- **Status Management** - Mark files as TO_CHECK, GOOD, BAD, or DELETED
+- **Real-time Progress** - Live scan progress with Server-Sent Events
+- **Dark Mode** - Automatic dark mode based on system preference
+
+## Quick Start
+
+### Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Generate Prisma client
+npx prisma generate
+
+# Run migrations (creates SQLite database)
+npx prisma migrate dev
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Docker (Production)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Build and run
+docker compose up --build
+```
 
-## Learn More
+## Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | - | SQLite database path |
+| `TV_SHOWS_PATH` | Yes* | - | Path to TV shows directory |
+| `MOVIES_PATH` | Yes* | - | Path to movies directory |
+| `FFPROBE_PATH` | No | `/usr/bin/ffprobe` | Path to ffprobe binary |
+| `SCAN_CONCURRENCY` | No | `4` | Parallel ffprobe processes |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+*At least one of `TV_SHOWS_PATH` or `MOVIES_PATH` is required.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Example .env
 
-## Deploy on Vercel
+```bash
+DATABASE_URL="file:./prisma/dev.db"
+TV_SHOWS_PATH="/media/TV Shows"
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Example docker-compose.yml
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```yaml
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/data/media-tracker.db
+      - TV_SHOWS_PATH=/media/TV Shows
+    volumes:
+      - ./data:/app/data
+      - /path/to/media:/media:ro
+```
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx                    # Home page
+│   ├── scans/
+│   │   └── page.tsx                # Scanner UI
+│   ├── tv-shows/
+│   │   ├── page.tsx                # TV Shows list
+│   │   └── [id]/                   # Show → Season → Episode pages
+│   └── api/
+│       └── scan/                   # Scanner API routes
+│           ├── route.ts            # POST: start, GET: list
+│           └── [id]/
+│               ├── route.ts        # GET: status
+│               ├── cancel/         # POST: cancel scan
+│               └── progress/       # GET: SSE stream
+├── lib/
+│   ├── prisma.ts                   # Prisma client
+│   └── scanner/                    # Scanner service
+│       ├── config.ts               # Environment config
+│       ├── filesystem.ts           # File discovery
+│       ├── parser.ts               # Filename parsing
+│       ├── database.ts             # DB operations
+│       ├── progress.ts             # Progress tracking
+│       └── scan.ts                 # Orchestrator
+├── components/
+│   └── ui/                         # shadcn/ui components
+└── generated/
+    └── prisma/                     # Generated Prisma types
+
+prisma/
+├── schema.prisma                   # Database schema
+└── migrations/                     # Migration history
+```
+
+## API Routes
+
+### Scanner
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/scan` | Start a new scan |
+| `GET` | `/api/scan` | List recent scans |
+| `GET` | `/api/scan/[id]` | Get scan status |
+| `POST` | `/api/scan/[id]/cancel` | Cancel running scan |
+| `GET` | `/api/scan/[id]/progress` | SSE progress stream |
+
+### Start Scan Request
+
+```json
+{
+  "scanType": "full",
+  "skipMetadata": true
+}
+```
+
+## Database Schema
+
+| Model | Description |
+|-------|-------------|
+| `TVShow` | TV series (title, year, external IDs) |
+| `Season` | Season within a show |
+| `Episode` | Episode within a season |
+| `EpisodeFile` | Media file with quality metadata |
+| `ScanHistory` | Scan operation logs |
+| `CompatibilityTest` | Playback test results |
+
+## Filename Parsing
+
+The scanner supports multiple naming conventions:
+
+```
+# Plex-style (recommended)
+/TV Shows/Breaking Bad (2008)/Season 1/Breaking Bad - S01E01 - Pilot.mkv
+
+# Standard SxxExx
+Breaking.Bad.S01E01.720p.BluRay.mkv
+
+# Alternative XxYY
+Breaking Bad 1x01.mkv
+```
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router, TypeScript)
+- **Database**: SQLite with Prisma ORM
+- **UI**: shadcn/ui (Radix + Tailwind CSS)
+- **Deployment**: Docker with multi-stage build
+
+## Development Commands
+
+```bash
+npm run dev          # Start dev server
+npm run build        # Production build
+npm start            # Start production server
+
+npx prisma studio    # Open DB viewer
+npx prisma migrate dev   # Run migrations
+npx prisma generate  # Generate client
+```
+
+## Roadmap
+
+- [x] TV Show hierarchy browser
+- [x] Library scanner with progress tracking
+- [x] Plex-style filename parsing
+- [x] shadcn/ui components
+- [x] Docker deployment
+- [ ] ffprobe metadata extraction
+- [ ] Movies support
+- [ ] Plex database sync
+- [ ] Bulk status operations
+- [ ] Sonarr/Radarr integration
+
+## License
+
+MIT
