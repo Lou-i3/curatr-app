@@ -26,8 +26,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init for proper signal handling and su-exec for user switching
+RUN apk add --no-cache dumb-init su-exec shadow
 
 # Copy package files for production
 COPY package*.json ./
@@ -48,18 +48,15 @@ RUN chmod +x ./docker-entrypoint.sh
 
 # Create directories for runtime
 RUN mkdir -p /app/data /app/logs
-# Avoid recursive chown of the whole /app (can fail on some files like wasm)
-# Set ownership only on runtime-writable directories and the entrypoint script.
-RUN chown -R node:node /app/data /app/logs || true
-RUN [ -f ./docker-entrypoint.sh ] && chown node:node ./docker-entrypoint.sh || true
 
 # Set environment
 ENV NODE_ENV=production
 ENV DATABASE_URL="file:/app/data/media-tracker.db"
 ENV PORT=3000
 
-# Switch to non-root user for security
-USER node
+# PUID/PGID for user mapping (like linuxserver.io)
+ENV PUID=1000
+ENV PGID=1000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

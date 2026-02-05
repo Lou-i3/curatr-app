@@ -48,6 +48,8 @@ docker compose up --build
 | `DATABASE_URL` | Yes | - | SQLite database path |
 | `TV_SHOWS_PATH` | Yes* | - | Path to TV shows directory |
 | `MOVIES_PATH` | Yes* | - | Path to movies directory |
+| `PUID` | No | `1000` | User ID for file permissions |
+| `PGID` | No | `1000` | Group ID for file permissions |
 | `FFPROBE_PATH` | No | `/usr/bin/ffprobe` | Path to ffprobe binary |
 | `SCAN_CONCURRENCY` | No | `4` | Parallel ffprobe processes |
 
@@ -65,10 +67,12 @@ TV_SHOWS_PATH="/media/TV Shows"
 ```yaml
 services:
   app:
-    build: .
+    image: ghcr.io/lou-i3/media-quality-tracker:latest
     ports:
       - "3000:3000"
     environment:
+      - PUID=1000
+      - PGID=1000
       - DATABASE_URL=file:/app/data/media-tracker.db
       - TV_SHOWS_PATH=/media/TV Shows
     volumes:
