@@ -26,7 +26,8 @@ import { TVShowsToolbar } from "./toolbar";
 import { TVShowDialog } from "./show-dialog";
 import { ShowStatusBadges } from "./show-status-badges";
 import { MonitorStatus } from "@/generated/prisma/client";
-import { Star, Film } from "lucide-react";
+import { Star, Film, HardDrive } from "lucide-react";
+import { formatFileSize } from "@/lib/format";
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,7 @@ export default async function TVShowsPage({ searchParams }: Props) {
           episodes: {
             include: {
               files: {
-                select: { quality: true },
+                select: { quality: true, fileSize: true },
               },
             },
           },
@@ -61,13 +62,23 @@ export default async function TVShowsPage({ searchParams }: Props) {
     orderBy: { title: 'asc' },
   });
 
-  // Compute quality status for each show
+  // Compute quality status and file stats for each show
   const showsWithQuality = shows.map((show) => {
+    let fileCount = 0;
+    let totalSize = BigInt(0);
+
     const seasonsWithQuality = show.seasons.map((season) => {
-      const episodesWithQuality = season.episodes.map((episode) => ({
-        ...episode,
-        qualityStatus: computeEpisodeQuality(episode.monitorStatus, episode.files),
-      }));
+      const episodesWithQuality = season.episodes.map((episode) => {
+        // Count files and sum sizes
+        fileCount += episode.files.length;
+        for (const file of episode.files) {
+          totalSize += file.fileSize;
+        }
+        return {
+          ...episode,
+          qualityStatus: computeEpisodeQuality(episode.monitorStatus, episode.files),
+        };
+      });
       return {
         ...season,
         episodes: episodesWithQuality,
@@ -83,6 +94,8 @@ export default async function TVShowsPage({ searchParams }: Props) {
       seasons: seasonsWithQuality,
       displayMonitorStatus,
       qualityStatus,
+      fileCount,
+      totalSize,
     };
   });
 
@@ -129,6 +142,8 @@ export default async function TVShowsPage({ searchParams }: Props) {
                   <TableHead>Rating</TableHead>
                   <TableHead>Seasons</TableHead>
                   <TableHead>Episodes</TableHead>
+                  <TableHead>Files</TableHead>
+                  <TableHead>Size</TableHead>
                   <TableHead>Monitor</TableHead>
                   <TableHead>Quality</TableHead>
                   <TableHead className="text-right">Action</TableHead>
@@ -164,6 +179,12 @@ export default async function TVShowsPage({ searchParams }: Props) {
                         (acc, season) => acc + season.episodes.length,
                         0
                       )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {show.fileCount}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                      {show.fileCount > 0 ? formatFileSize(show.totalSize) : '—'}
                     </TableCell>
                     <TableCell>
                       <ShowStatusBadges
@@ -264,7 +285,7 @@ export default async function TVShowsPage({ searchParams }: Props) {
                       )}
 
                       {/* Stats */}
-                      <div className="flex gap-4 text-sm">
+                      <div className="flex flex-wrap gap-3 text-sm">
                         <div className="bg-muted px-3 py-2 rounded">
                           <span className="text-muted-foreground">Seasons: </span>
                           <span className="font-semibold">{show.seasons.length}</span>
@@ -274,6 +295,16 @@ export default async function TVShowsPage({ searchParams }: Props) {
                           <span className="font-semibold">
                             {show.seasons.reduce((acc, season) => acc + season.episodes.length, 0)}
                           </span>
+                        </div>
+                        <div className="bg-muted px-3 py-2 rounded flex items-center gap-1">
+                          <HardDrive className="size-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">Files: </span>
+                          <span className="font-semibold">{show.fileCount}</span>
+                          {show.fileCount > 0 && (
+                            <span className="text-muted-foreground ml-1">
+                              ({formatFileSize(show.totalSize)})
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
