@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Loader2, Check, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Check, ExternalLink, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -56,7 +56,6 @@ export function TmdbMatchDialog({
   const [results, setResults] = useState<TMDBSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [matching, setMatching] = useState<number | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [checkingConfig, setCheckingConfig] = useState(false);
@@ -162,26 +161,6 @@ export function TmdbMatchDialog({
     }
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/tmdb/refresh/${showId}`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) throw new Error('Failed to refresh metadata');
-
-      setOpen(false);
-      onMatch?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Refresh failed');
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   const getConfidenceBadge = (confidence: number) => {
     if (confidence >= 80) return <Badge className="bg-green-600">High Match</Badge>;
     if (confidence >= 50) return <Badge variant="secondary">Possible</Badge>;
@@ -249,35 +228,18 @@ export function TmdbMatchDialog({
               <span className="text-sm">
                 Currently matched to TMDB ID: <strong>{currentTmdbId}</strong>
               </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={matching !== null || refreshing}
-                >
-                  {refreshing ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <>
-                      <RefreshCw className="size-4 mr-1" />
-                      Refresh
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleUnmatch}
-                  disabled={matching !== null || refreshing}
-                >
-                  {matching === -1 ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    'Unmatch'
-                  )}
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUnmatch}
+                disabled={matching !== null}
+              >
+                {matching === -1 ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  'Unmatch'
+                )}
+              </Button>
             </div>
           )}
 

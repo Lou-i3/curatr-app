@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TmdbMatchDialog } from '@/components/tmdb-match-dialog';
 import { TmdbImportDialog } from '@/components/tmdb-import-dialog';
+import { TmdbHelpDialog } from './tmdb-help-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,10 +71,13 @@ export function TmdbSection({
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Film className="size-5" />
-            TMDB Integration
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Film className="size-5" />
+              TMDB Integration
+            </CardTitle>
+            <TmdbHelpDialog />
+          </div>
           <div className="flex items-center gap-2">
             <Badge variant={isMatched ? 'default' : 'secondary'}>
               {isMatched ? (
