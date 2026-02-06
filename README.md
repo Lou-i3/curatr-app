@@ -2,6 +2,7 @@
 
 [![GitHub](https://img.shields.io/github/license/Lou-i3/media-quality-tracker)](https://github.com/Lou-i3/media-quality-tracker/blob/main/LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![Vibe Coded](https://img.shields.io/badge/vibe%20coded-Claude-blueviolet)](https://claude.ai)
 
 A Next.js web application for tracking media file quality, playback compatibility, and maintenance status across a Plex media library.
 
@@ -239,6 +240,10 @@ npx prisma generate  # Generate client
 - [ ] Plex database sync
 - [ ] Bulk status operations
 - [ ] Sonarr/Radarr integration
+
+## Disclaimer
+
+This project is vibe coded with [Claude](https://claude.ai).
 
 ## License
 
