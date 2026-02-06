@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { MonitorStatus } from '@/generated/prisma';
+import { MonitorStatus } from '@/generated/prisma/client';
 
 const VALID_MONITOR_STATUSES: MonitorStatus[] = ['WANTED', 'UNWANTED'];
 

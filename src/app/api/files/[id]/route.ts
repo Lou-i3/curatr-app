@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { FileQuality, Action } from '@/generated/prisma';
+import { FileQuality, Action } from '@/generated/prisma/client';
 
 const VALID_QUALITIES: FileQuality[] = ['UNVERIFIED', 'OK', 'BROKEN'];
 const VALID_ACTIONS: Action[] = ['NOTHING', 'REDOWNLOAD', 'CONVERT', 'ORGANIZE', 'REPAIR'];

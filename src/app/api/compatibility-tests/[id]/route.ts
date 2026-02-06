@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { TestStatus } from '@/generated/prisma';
+import { TestStatus } from '@/generated/prisma/client';
 
 const VALID_STATUSES: TestStatus[] = ['NOT_TESTED', 'WORKS', 'PLAYABLE', 'FAILS'];
 
