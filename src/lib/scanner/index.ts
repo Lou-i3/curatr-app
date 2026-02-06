@@ -11,4 +11,5 @@ export * from './filesystem';
 export * from './parser';
 export * from './database';
 export * from './progress';
-export * from './scan';
+export { startScan, cancelScan, isScanActive, getScanProgress } from './scan';
+export type { StartScanResult } from './scan';

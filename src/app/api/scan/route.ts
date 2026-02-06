@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
 
-    const scanId = await startScan({
+    const { scanId, taskId } = await startScan({
       scanType: body.scanType ?? 'full',
       skipMetadata: body.skipMetadata ?? true, // Skip ffprobe for now
       concurrency: body.concurrency ?? 4,
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       scanId,
+      taskId,
       status: 'started',
       message: 'Scan started successfully',
     });

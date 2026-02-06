@@ -1,11 +1,20 @@
 /**
- * Bulk refresh metadata for all matched shows
+ * Bulk refresh metadata for all matched shows (non-blocking)
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { refreshShowMetadata } from '@/lib/tmdb/service';
 import { TMDB_CONFIG } from '@/lib/tmdb/config';
+import {
+  createTmdbTask,
+  isCancelled,
+  yieldToEventLoop,
+  scheduleCleanup,
+  queueTaskRun,
+  type TaskProgressTracker,
+  type TmdbTaskProgress,
+} from '@/lib/tasks';
 
 export async function POST() {
   if (!TMDB_CONFIG.apiKey) {
@@ -24,44 +33,74 @@ export async function POST() {
 
     if (matchedShows.length === 0) {
       return NextResponse.json({
-        refreshed: 0,
-        failed: 0,
+        taskId: null,
         total: 0,
-        results: [],
+        message: 'No matched shows found',
       });
     }
 
-    const results: { showId: number; title: string; success: boolean; error?: string }[] = [];
-    let refreshed = 0;
-    let failed = 0;
+    // Create task tracker (may be pending if queue is full)
+    const tracker = createTmdbTask('tmdb-bulk-refresh');
+    tracker.setTotal(matchedShows.length);
 
-    // Process shows one at a time to respect rate limits
-    for (const show of matchedShows) {
-      try {
-        await refreshShowMetadata(show.id);
-        results.push({ showId: show.id, title: show.title, success: true });
-        refreshed++;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        results.push({ showId: show.id, title: show.title, success: false, error: errorMessage });
-        failed++;
-      }
+    const runTask = () => runBulkRefresh(tracker, matchedShows);
 
-      // Small delay to avoid rate limiting (TMDB allows 40 requests per 10 seconds)
-      await new Promise((resolve) => setTimeout(resolve, 300));
+    // Check if task is pending (queued) or can run now
+    const status = tracker.getProgress().status;
+    if (status === 'pending') {
+      queueTaskRun(tracker.getTaskId(), runTask);
+    } else {
+      runTask().catch((error) => {
+        console.error('Bulk refresh task failed:', error);
+        tracker.fail(error instanceof Error ? error.message : 'Unknown error');
+      });
     }
 
     return NextResponse.json({
-      refreshed,
-      failed,
+      taskId: tracker.getTaskId(),
+      status: status,
       total: matchedShows.length,
-      results,
+      message: status === 'pending' ? 'Bulk refresh queued' : 'Bulk refresh started',
     });
   } catch (error) {
     console.error('Bulk refresh failed:', error);
     return NextResponse.json(
-      { error: 'Failed to refresh metadata' },
+      { error: 'Failed to start bulk refresh' },
       { status: 500 }
     );
   }
+}
+
+/**
+ * Run bulk refresh in background
+ */
+async function runBulkRefresh(
+  tracker: TaskProgressTracker<TmdbTaskProgress>,
+  shows: Array<{ id: number; title: string }>
+): Promise<void> {
+  for (const show of shows) {
+    // Check for cancellation
+    if (isCancelled(tracker.getTaskId())) {
+      tracker.cancel();
+      scheduleCleanup(tracker.getTaskId());
+      return;
+    }
+
+    try {
+      await refreshShowMetadata(show.id);
+      tracker.incrementSuccess(show.title);
+    } catch (error) {
+      tracker.incrementFailed(
+        show.title,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    }
+
+    // Yield to event loop and rate limit (TMDB allows 40 requests per 10 seconds)
+    await yieldToEventLoop();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+
+  tracker.complete();
+  scheduleCleanup(tracker.getTaskId());
 }

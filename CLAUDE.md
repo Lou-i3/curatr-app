@@ -182,6 +182,28 @@ Every feature interface should help users understand what's happening:
 - Uses batch processing for database operations
 - Progress tracking via subscriber pattern
 
+### Task System
+- Located in `src/lib/tasks/`
+- Unified system for all long-running operations (scans, TMDB operations)
+- Non-blocking with real-time SSE progress updates
+- Queue system with configurable max parallel tasks
+- Task types: `scan`, `tmdb-bulk-match`, `tmdb-refresh-missing`, `tmdb-bulk-refresh`, `tmdb-import`
+
+```typescript
+// Creating a background task
+import { createTmdbTask, scheduleCleanup, queueTaskRun } from '@/lib/tasks';
+
+const tracker = createTmdbTask('tmdb-bulk-refresh');
+tracker.setTotal(count);
+
+const status = tracker.getProgress().status;
+if (status === 'pending') {
+  queueTaskRun(tracker.getTaskId(), runTask);
+} else {
+  runTask().catch((err) => tracker.fail(err.message));
+}
+```
+
 ### API Routes
 - RESTful conventions
 - Error format: `{ error: "message" }`
@@ -219,7 +241,8 @@ formatDateWithFormat(new Date(dateString), dateFormat);
 **Other Utilities**:
 - `src/lib/format.ts` - `formatFileSize()`, `formatDuration()`
 - `src/lib/status.ts` - `getStatusVariant()` (for Badge variants)
-- `src/lib/tmdb.ts` - `getPosterUrl()`, `getBackdropUrl()`, `getStillUrl()` (TMDB image URLs)
+- `src/lib/tmdb/images.ts` - `getPosterUrl()`, `getBackdropUrl()`, `getStillUrl()` (TMDB image URLs)
+  - **Important**: In client components, import from `@/lib/tmdb/images` not `@/lib/tmdb` (barrel re-exports Prisma)
 
 ---
 

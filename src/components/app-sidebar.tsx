@@ -5,10 +5,13 @@
  * Provides navigation with collapsible and mobile-responsive behavior
  */
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tv, ScanSearch, Plug, Settings, PanelLeftClose, PanelLeft, ChevronRight, Film } from 'lucide-react';
+import { Home, Tv, ScanSearch, Plug, Settings, PanelLeftClose, PanelLeft, ChevronRight, Film, ListTodo, Loader2 } from 'lucide-react';
 import packageJson from '../../package.json';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 import {
   Sidebar,
@@ -37,6 +40,13 @@ const navigation = [
   { name: 'Scans', href: '/scans', icon: ScanSearch },
 ];
 
+interface TaskCounts {
+  running: number;
+  pending: number;
+  total: number;
+  progress?: number; // Overall progress percentage
+}
+
 const integrationItems = [
   { name: 'TMDB', href: '/integrations/tmdb', icon: Film },
 ];
@@ -44,6 +54,40 @@ const integrationItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
+  const [taskCounts, setTaskCounts] = useState<TaskCounts>({ running: 0, pending: 0, total: 0 });
+
+  // Poll for task counts
+  useEffect(() => {
+    const fetchTaskCounts = async () => {
+      try {
+        const response = await fetch('/api/tasks');
+        if (response.ok) {
+          const data = await response.json();
+          const tasks = data.tasks || [];
+          const running = tasks.filter((t: { status: string }) => t.status === 'running').length;
+          const pending = tasks.filter((t: { status: string }) => t.status === 'pending').length;
+
+          // Calculate overall progress for running tasks
+          let progress: number | undefined;
+          const runningTasks = tasks.filter((t: { status: string }) => t.status === 'running');
+          if (runningTasks.length > 0) {
+            const totalProgress = runningTasks.reduce((sum: number, t: { processed: number; total: number }) => {
+              return sum + (t.total > 0 ? (t.processed / t.total) * 100 : 0);
+            }, 0);
+            progress = Math.round(totalProgress / runningTasks.length);
+          }
+
+          setTaskCounts({ running, pending, total: running + pending, progress });
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+
+    fetchTaskCounts();
+    const interval = setInterval(fetchTaskCounts, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Sidebar collapsible="icon">
@@ -126,6 +170,37 @@ export function AppSidebar() {
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
+
+
+          {/* Tasks with activity indicator */}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/tasks'}
+              tooltip={taskCounts.total > 0 ? `Tasks (${taskCounts.running} running, ${taskCounts.pending} queued)` : 'Tasks'}
+            >
+              <Link href="/tasks" className="relative">
+                {taskCounts.running > 0 ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <ListTodo />
+                )}
+                <span>Tasks</span>
+                {taskCounts.total > 0 && (
+                  <Badge variant="secondary" className="ml-auto h-5 min-w-5 px-1 text-xs">
+                    {taskCounts.total}
+                  </Badge>
+                )}
+              </Link>
+            </SidebarMenuButton>
+            {/* Progress bar when tasks are running */}
+            {taskCounts.running > 0 && taskCounts.progress !== undefined && (
+              <div className="px-3 pb-1 group-data-[collapsible=icon]:hidden">
+                <Progress value={taskCounts.progress} className="h-1" />
+              </div>
+            )}
+          </SidebarMenuItem>
+
         </SidebarMenu>
       </SidebarContent>
 

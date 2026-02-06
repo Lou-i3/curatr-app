@@ -25,9 +25,9 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { dateFormat } = body;
+    const { dateFormat, maxParallelTasks } = body;
 
-    const updateData: { dateFormat?: string } = {};
+    const updateData: { dateFormat?: string; maxParallelTasks?: number } = {};
 
     if (dateFormat !== undefined) {
       if (!VALID_DATE_FORMATS.includes(dateFormat)) {
@@ -37,6 +37,17 @@ export async function PATCH(request: NextRequest) {
         );
       }
       updateData.dateFormat = dateFormat;
+    }
+
+    if (maxParallelTasks !== undefined) {
+      const value = parseInt(maxParallelTasks, 10);
+      if (isNaN(value) || value < 1 || value > 10) {
+        return NextResponse.json(
+          { error: 'maxParallelTasks must be between 1 and 10' },
+          { status: 400 }
+        );
+      }
+      updateData.maxParallelTasks = value;
     }
 
     const settings = await prisma.settings.upsert({

@@ -33,7 +33,14 @@ A Next.js web application for tracking media file quality, playback compatibilit
   - Library overview with filterable show list (All/Unmatched/Needs Sync/Fully Synced)
   - Import seasons & episodes from TMDB with selective import and status options
   - Graceful handling when TMDB is not configured
-- **Settings** - Configurable date format (EU/US/ISO) stored in database
+- **Background Task System** - Non-blocking operations with real-time progress
+  - Tasks run in background without freezing UI
+  - Real-time SSE progress updates
+  - Cancel running tasks anytime
+  - Queue system with configurable max parallel tasks (1-10)
+  - Sidebar indicator shows running task count and progress
+  - Dedicated /tasks page for task management
+- **Settings** - Configurable date format (EU/US/ISO) and max parallel tasks
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **Dark Mode** - Full dark mode UI with system preference support
 - **Custom Theme** - Nunito font, green accent colors, consistent design
@@ -116,6 +123,8 @@ src/
 │   ├── layout.tsx                  # Root layout with sidebar
 │   ├── scans/
 │   │   └── page.tsx                # Scanner UI
+│   ├── tasks/
+│   │   └── page.tsx                # Background tasks management
 │   ├── settings/
 │   │   └── page.tsx                # Settings page
 │   ├── integrations/
@@ -167,6 +176,10 @@ src/
 │   │   ├── database.ts             # DB operations (batch processing)
 │   │   ├── progress.ts             # Progress tracking
 │   │   └── scan.ts                 # Orchestrator
+│   ├── tasks/                      # Background task system
+│   │   ├── types.ts                # Task types and interfaces
+│   │   ├── progress.ts             # Task tracker and queue
+│   │   └── index.ts                # Barrel export
 │   └── tmdb/                       # TMDB integration service
 │       ├── config.ts               # API configuration
 │       ├── types.ts                # TMDB API types
@@ -175,6 +188,7 @@ src/
 │       └── images.ts               # Poster/backdrop URL helpers
 ├── components/
 │   ├── app-sidebar.tsx             # Collapsible navigation sidebar
+│   ├── task-progress.tsx           # Real-time task progress display
 │   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
 │   ├── tmdb-import-dialog.tsx      # Import seasons/episodes from TMDB
 │   └── ui/                         # shadcn/ui components
@@ -226,6 +240,15 @@ prisma/
 | `GET` | `/api/scan/[id]` | Get scan status |
 | `POST` | `/api/scan/[id]/cancel` | Cancel running scan |
 | `GET` | `/api/scan/[id]/progress` | SSE progress stream |
+
+### Tasks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/tasks` | List all active and recent tasks |
+| `GET` | `/api/tasks/[taskId]` | Get task status |
+| `GET` | `/api/tasks/[taskId]/progress` | SSE progress stream |
+| `POST` | `/api/tasks/[taskId]/cancel` | Cancel running task |
 
 ### TMDB Integration
 
@@ -397,6 +420,10 @@ npx prisma generate  # Generate client
 - [ ] Plex database sync
 - [ ] Bulk status operations
 - [ ] Sonarr/Radarr integration
+- [ ] Task system improvements:
+  - [ ] Dismissible task dialogs with "you can close this" message
+  - [ ] Task persistence in database (survive app restart)
+  - [ ] Resume interrupted tasks after app crash/restart
 
 ## Disclaimer
 

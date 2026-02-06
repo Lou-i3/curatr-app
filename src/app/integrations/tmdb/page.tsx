@@ -5,7 +5,7 @@
  * Configuration, sync status, and bulk operations for TMDB metadata
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { TmdbMatchDialog } from '@/components/tmdb-match-dialog';
 import { TmdbIntegrationHelpDialog } from './tmdb-integration-help-dialog';
+import { TaskProgress } from '@/components/task-progress';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -64,13 +65,10 @@ interface LibraryShow {
 
 type LibraryFilter = 'all' | 'unmatched' | 'needs-sync' | 'fully-synced';
 
-interface BulkResult {
-  matched?: number;
-  skipped?: number;
-  synced?: number;
-  refreshed?: number;
-  failed?: number;
-  total: number;
+interface ActiveTask {
+  taskId: string;
+  type: 'auto-match' | 'refresh-missing' | 'bulk-refresh';
+  title: string;
 }
 
 export default function TmdbIntegrationPage() {
@@ -80,10 +78,7 @@ export default function TmdbIntegrationPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [autoMatching, setAutoMatching] = useState(false);
-  const [refreshingMissing, setRefreshingMissing] = useState(false);
-  const [bulkRefreshing, setBulkRefreshing] = useState(false);
-  const [bulkResult, setBulkResult] = useState<{ type: string; result: BulkResult } | null>(null);
+  const [activeTask, setActiveTask] = useState<ActiveTask | null>(null);
   const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
   const [activeFilter, setActiveFilter] = useState<LibraryFilter>('all');
   const [syncingShowId, setSyncingShowId] = useState<number | null>(null);
@@ -159,84 +154,100 @@ export default function TmdbIntegrationPage() {
     'fully-synced': shows.filter((s) => s.syncStatus === 'fully-synced').length,
   };
 
-  const handleAutoMatch = async () => {
-    setAutoMatching(true);
-    setBulkResult(null);
+  const handleAutoMatch = useCallback(async () => {
     setError(null);
 
     try {
       const response = await fetch('/api/tmdb/bulk-match', { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to run auto-match');
+      if (!response.ok) throw new Error('Failed to start auto-match');
 
       const data = await response.json();
-      setBulkResult({
-        type: 'auto-match',
-        result: { matched: data.matched, skipped: data.skipped, total: data.total },
-      });
-
-      await fetchData(true);
+      if (data.taskId) {
+        setActiveTask({
+          taskId: data.taskId,
+          type: 'auto-match',
+          title: 'Auto-Matching Shows',
+        });
+      } else {
+        // No shows to match
+        await fetchData(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Auto-match failed');
-    } finally {
-      setAutoMatching(false);
     }
-  };
+  }, []);
 
-  const handleRefreshMissing = async () => {
-    setRefreshingMissing(true);
-    setBulkResult(null);
+  const handleRefreshMissing = useCallback(async () => {
     setError(null);
 
     try {
       const response = await fetch('/api/tmdb/refresh-missing', { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to refresh missing metadata');
+      if (!response.ok) throw new Error('Failed to start refresh');
 
       const data = await response.json();
-      setBulkResult({
-        type: 'refresh-missing',
-        result: { synced: data.synced, failed: data.failed, total: data.total },
-      });
-
-      await fetchData(true);
+      if (data.taskId) {
+        setActiveTask({
+          taskId: data.taskId,
+          type: 'refresh-missing',
+          title: 'Syncing Missing Metadata',
+        });
+      } else {
+        // Nothing to sync
+        await fetchData(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Refresh missing failed');
-    } finally {
-      setRefreshingMissing(false);
     }
-  };
+  }, []);
 
-  const handleBulkRefresh = async () => {
-    setBulkRefreshing(true);
-    setBulkResult(null);
+  const handleBulkRefresh = useCallback(async () => {
     setError(null);
 
     try {
       const response = await fetch('/api/tmdb/bulk-refresh', { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to refresh metadata');
+      if (!response.ok) throw new Error('Failed to start refresh');
 
       const data = await response.json();
-      setBulkResult({
-        type: 'bulk-refresh',
-        result: { refreshed: data.refreshed, failed: data.failed, total: data.total },
-      });
-
-      await fetchData(true);
+      if (data.taskId) {
+        setActiveTask({
+          taskId: data.taskId,
+          type: 'bulk-refresh',
+          title: 'Refreshing All Metadata',
+        });
+      } else {
+        // Nothing to refresh
+        await fetchData(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bulk refresh failed');
-    } finally {
-      setBulkRefreshing(false);
     }
-  };
+  }, []);
+
+  const handleTaskComplete = useCallback(() => {
+    // Refresh data when task completes
+    fetchData(true);
+  }, []);
 
   const handleSyncShow = async (showId: number) => {
+    if (syncingShowId === showId) return;
     setSyncingShowId(showId);
     try {
       const response = await fetch(`/api/tmdb/refresh/${showId}`, { method: 'POST' });
       if (!response.ok) throw new Error('Failed to sync show');
+      const data = await response.json();
+      // Task started in background - visible in sidebar
+      // Refresh data after a delay to show updated metadata
+      if (data.taskId) {
+        setTimeout(() => {
+          fetchData(true);
+          setSyncingShowId(null);
+        }, 2000);
+        return; // Don't clear syncingShowId yet, wait for timeout
+      }
       await fetchData(true);
+      setSyncingShowId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed');
-    } finally {
       setSyncingShowId(null);
     }
   };
@@ -467,87 +478,44 @@ export default function TmdbIntegrationPage() {
               <CardDescription>Operations for syncing metadata across your library</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Active task progress */}
+              {activeTask && (
+                <TaskProgress
+                  taskId={activeTask.taskId}
+                  title={activeTask.title}
+                  onComplete={handleTaskComplete}
+                  onClose={() => setActiveTask(null)}
+                />
+              )}
+
+              {/* Action buttons - disabled when task is running */}
               <div className="flex flex-wrap gap-3">
                 <Button
                   onClick={handleAutoMatch}
-                  disabled={status.shows.unmatched === 0 || autoMatching}
+                  disabled={status.shows.unmatched === 0 || !!activeTask}
                 >
-                  {autoMatching ? (
-                    <Loader2 className="size-4 mr-2 animate-spin" />
-                  ) : (
-                    <Zap className="size-4 mr-2" />
-                  )}
-                  {autoMatching
-                    ? 'Matching...'
-                    : `Auto-Match Unmatched (${status.shows.unmatched})`}
+                  <Zap className="size-4 mr-2" />
+                  Auto-Match Unmatched ({status.shows.unmatched})
                 </Button>
 
                 <Button
                   variant="outline"
                   onClick={handleRefreshMissing}
-                  disabled={status.shows.needsSync === 0 || refreshingMissing}
+                  disabled={status.shows.needsSync === 0 || !!activeTask}
                 >
-                  {refreshingMissing ? (
-                    <Loader2 className="size-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-4 mr-2" />
-                  )}
-                  {refreshingMissing
-                    ? 'Syncing...'
-                    : `Refresh Missing Metadata (${status.shows.needsSync})`}
+                  <RefreshCw className="size-4 mr-2" />
+                  Refresh Missing Metadata ({status.shows.needsSync})
                 </Button>
 
                 <Button
                   variant="outline"
                   onClick={handleBulkRefresh}
-                  disabled={status.shows.matched === 0 || bulkRefreshing}
+                  disabled={status.shows.matched === 0 || !!activeTask}
                 >
-                  {bulkRefreshing ? (
-                    <Loader2 className="size-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-4 mr-2" />
-                  )}
-                  {bulkRefreshing
-                    ? 'Refreshing...'
-                    : `Refresh All Metadata (${status.shows.matched})`}
+                  <RefreshCw className="size-4 mr-2" />
+                  Refresh All Metadata ({status.shows.matched})
                 </Button>
               </div>
-
-              {bulkResult && (
-                <div className="rounded-lg border bg-muted/50 p-4">
-                  <p className="font-medium text-green-600">
-                    {bulkResult.type === 'auto-match' && 'Auto-match complete!'}
-                    {bulkResult.type === 'refresh-missing' && 'Missing metadata sync complete!'}
-                    {bulkResult.type === 'bulk-refresh' && 'Metadata refresh complete!'}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {bulkResult.type === 'auto-match' && (
-                      <>
-                        Matched {bulkResult.result.matched} of {bulkResult.result.total} shows.
-                        {(bulkResult.result.skipped ?? 0) > 0 && (
-                          <> {bulkResult.result.skipped} skipped (low confidence).</>
-                        )}
-                      </>
-                    )}
-                    {bulkResult.type === 'refresh-missing' && (
-                      <>
-                        Synced {bulkResult.result.synced} of {bulkResult.result.total} shows.
-                        {(bulkResult.result.failed ?? 0) > 0 && (
-                          <> {bulkResult.result.failed} failed.</>
-                        )}
-                      </>
-                    )}
-                    {bulkResult.type === 'bulk-refresh' && (
-                      <>
-                        Refreshed {bulkResult.result.refreshed} of {bulkResult.result.total} shows.
-                        {(bulkResult.result.failed ?? 0) > 0 && (
-                          <> {bulkResult.result.failed} failed.</>
-                        )}
-                      </>
-                    )}
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -595,7 +563,7 @@ export default function TmdbIntegrationPage() {
                       <div className="w-10 h-14 rounded bg-muted flex-shrink-0 overflow-hidden">
                         {show.posterPath ? (
                           <img
-                            src={getPosterUrl(show.posterPath, 'w92')}
+                            src={getPosterUrl(show.posterPath, 'w92') ?? undefined}
                             alt={show.title}
                             className="w-full h-full object-cover"
                           />

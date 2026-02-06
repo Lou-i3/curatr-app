@@ -1,11 +1,20 @@
 /**
  * TMDB bulk match API route
- * POST /api/tmdb/bulk-match - Start auto-matching unmatched shows
+ * POST /api/tmdb/bulk-match - Start auto-matching unmatched shows (non-blocking)
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { autoMatchShow, matchShow, isTmdbConfigured } from '@/lib/tmdb';
+import {
+  createTmdbTask,
+  isCancelled,
+  yieldToEventLoop,
+  scheduleCleanup,
+  queueTaskRun,
+  type TaskProgressTracker,
+  type TmdbTaskProgress,
+} from '@/lib/tasks';
 
 export async function POST() {
   if (!isTmdbConfigured()) {
@@ -24,78 +33,84 @@ export async function POST() {
 
     if (unmatchedShows.length === 0) {
       return NextResponse.json({
-        success: true,
-        matched: 0,
-        skipped: 0,
+        taskId: null,
         total: 0,
-        results: [],
+        message: 'No unmatched shows found',
       });
     }
 
-    const results: {
-      showId: number;
-      title: string;
-      status: 'matched' | 'skipped' | 'error';
-      tmdbId?: number;
-      tmdbTitle?: string;
-      confidence?: number;
-      error?: string;
-    }[] = [];
+    // Create task tracker (may be pending if queue is full)
+    const tracker = createTmdbTask('tmdb-bulk-match');
+    tracker.setTotal(unmatchedShows.length);
 
-    let matched = 0;
-    let skipped = 0;
+    const runTask = () => runBulkMatch(tracker, unmatchedShows);
 
-    for (const show of unmatchedShows) {
-      try {
-        const match = await autoMatchShow(show.title, show.year ?? undefined);
-
-        if (match) {
-          // High confidence match - apply it (don't sync seasons in bulk, user can run "Refresh Missing" later)
-          await matchShow(show.id, match.tmdbShow.id, false);
-          matched++;
-          results.push({
-            showId: show.id,
-            title: show.title,
-            status: 'matched',
-            tmdbId: match.tmdbShow.id,
-            tmdbTitle: match.tmdbShow.name,
-            confidence: match.confidence,
-          });
-        } else {
-          // No confident match found
-          skipped++;
-          results.push({
-            showId: show.id,
-            title: show.title,
-            status: 'skipped',
-          });
-        }
-      } catch (error) {
-        skipped++;
-        results.push({
-          showId: show.id,
-          title: show.title,
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-
-      // Small delay to respect rate limits
-      await new Promise((resolve) => setTimeout(resolve, 100));
+    // Check if task is pending (queued) or can run now
+    const status = tracker.getProgress().status;
+    if (status === 'pending') {
+      // Queue the run function for later
+      queueTaskRun(tracker.getTaskId(), runTask);
+    } else {
+      // Start background processing immediately (fire and forget)
+      runTask().catch((error) => {
+        console.error('Bulk match task failed:', error);
+        tracker.fail(error instanceof Error ? error.message : 'Unknown error');
+      });
     }
 
     return NextResponse.json({
-      success: true,
-      matched,
-      skipped,
+      taskId: tracker.getTaskId(),
+      status: status,
       total: unmatchedShows.length,
-      results,
+      message: status === 'pending' ? 'Bulk match queued' : 'Bulk match started',
     });
   } catch (error) {
     console.error('Bulk match error:', error);
     return NextResponse.json(
-      { error: 'Failed to run bulk match' },
+      { error: 'Failed to start bulk match' },
       { status: 500 }
     );
   }
+}
+
+/**
+ * Run bulk matching in background
+ */
+async function runBulkMatch(
+  tracker: TaskProgressTracker<TmdbTaskProgress>,
+  shows: Array<{ id: number; title: string; year: number | null }>
+): Promise<void> {
+  for (const show of shows) {
+    // Check for cancellation
+    if (isCancelled(tracker.getTaskId())) {
+      tracker.cancel();
+      scheduleCleanup(tracker.getTaskId());
+      return;
+    }
+
+    try {
+      const match = await autoMatchShow(show.title, show.year ?? undefined);
+
+      if (match) {
+        // High confidence match - apply it
+        await matchShow(show.id, match.tmdbShow.id, false);
+        tracker.incrementSuccess(show.title);
+      } else {
+        // No confident match found - count as failed (skipped)
+        tracker.incrementFailed(show.title, 'No confident match found');
+      }
+    } catch (error) {
+      tracker.incrementFailed(
+        show.title,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    }
+
+    // Yield to event loop and rate limit
+    await yieldToEventLoop();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  tracker.complete();
+  scheduleCleanup(tracker.getTaskId());
 }

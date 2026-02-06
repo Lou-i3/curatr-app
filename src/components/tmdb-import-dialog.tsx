@@ -381,12 +381,23 @@ export function TmdbImportDialog({
         throw new Error(err.error || 'Failed to import');
       }
 
+      const result = await response.json();
+
+      // Task started in background - close dialog, visible in sidebar
       setOpen(false);
-      onImport?.();
-      router.refresh();
+      setImporting(false);
+      if (result.taskId) {
+        // Refresh after a delay to show imported data
+        setTimeout(() => {
+          onImport?.();
+          router.refresh();
+        }, 1500);
+      } else {
+        onImport?.();
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import');
-    } finally {
       setImporting(false);
     }
   };

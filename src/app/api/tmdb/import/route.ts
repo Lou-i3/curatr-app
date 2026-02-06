@@ -1,11 +1,18 @@
 /**
- * TMDB Import API
- * Creates selected seasons and episodes in database
+ * TMDB Import API (non-blocking)
+ * Creates selected seasons and episodes in database as a background task
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { ImportRequest, ImportResult } from '@/lib/tmdb/types';
+import {
+  createTmdbTask,
+  scheduleCleanup,
+  queueTaskRun,
+  type TaskProgressTracker,
+  type TmdbTaskProgress,
+} from '@/lib/tasks';
 
 export async function POST(request: Request) {
   try {
@@ -22,64 +29,117 @@ export async function POST(request: Request) {
     // Verify show exists
     const show = await prisma.tVShow.findUnique({
       where: { id: showId },
+      select: { id: true, title: true },
     });
 
     if (!show) {
       return NextResponse.json({ error: 'Show not found' }, { status: 404 });
     }
 
-    let seasonsCreated = 0;
-    let seasonsUpdated = 0;
-    let episodesCreated = 0;
-    let episodesUpdated = 0;
+    // Count total episodes to import
+    const totalEpisodes = items.reduce((sum, s) => sum + s.episodes.length, 0);
 
-    // Use transaction for atomicity
-    await prisma.$transaction(async (tx) => {
-      for (const seasonData of items) {
-        // Upsert season
-        const existingSeason = await tx.season.findUnique({
-          where: {
-            tvShowId_seasonNumber: {
-              tvShowId: showId,
-              seasonNumber: seasonData.seasonNumber,
-            },
-          },
-        });
+    if (totalEpisodes === 0) {
+      return NextResponse.json({
+        taskId: null,
+        total: 0,
+        message: 'No episodes to import',
+      });
+    }
 
-        const season = await tx.season.upsert({
-          where: {
-            tvShowId_seasonNumber: {
-              tvShowId: showId,
-              seasonNumber: seasonData.seasonNumber,
-            },
-          },
-          create: {
+    // Create task tracker
+    const tracker = createTmdbTask('tmdb-import');
+    tracker.setTotal(totalEpisodes);
+
+    const runTask = () => runImport(tracker, showId, show.title, items);
+
+    // Check if task is pending (queued) or can run now
+    const status = tracker.getProgress().status;
+    if (status === 'pending') {
+      queueTaskRun(tracker.getTaskId(), runTask);
+    } else {
+      runTask().catch((error) => {
+        console.error('Import task failed:', error);
+        tracker.fail(error instanceof Error ? error.message : 'Unknown error');
+      });
+    }
+
+    return NextResponse.json({
+      taskId: tracker.getTaskId(),
+      status: status,
+      total: totalEpisodes,
+      message: status === 'pending' ? 'Import queued' : 'Import started',
+    });
+  } catch (error) {
+    console.error('Failed to start import:', error);
+    return NextResponse.json(
+      { error: 'Failed to start import' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Run import in background
+ */
+async function runImport(
+  tracker: TaskProgressTracker<TmdbTaskProgress>,
+  showId: number,
+  showTitle: string,
+  items: ImportRequest['items']
+): Promise<void> {
+  let seasonsCreated = 0;
+  let seasonsUpdated = 0;
+  let episodesCreated = 0;
+  let episodesUpdated = 0;
+
+  try {
+    for (const seasonData of items) {
+      // Upsert season
+      const existingSeason = await prisma.season.findUnique({
+        where: {
+          tvShowId_seasonNumber: {
             tvShowId: showId,
             seasonNumber: seasonData.seasonNumber,
-            name: seasonData.name,
-            tmdbSeasonId: seasonData.tmdbSeasonId,
-            posterPath: seasonData.posterPath,
-            description: seasonData.description,
-            airDate: seasonData.airDate ? new Date(seasonData.airDate) : null,
           },
-          update: {
-            name: seasonData.name,
-            tmdbSeasonId: seasonData.tmdbSeasonId,
-            posterPath: seasonData.posterPath,
-            description: seasonData.description,
-            airDate: seasonData.airDate ? new Date(seasonData.airDate) : null,
+        },
+      });
+
+      const season = await prisma.season.upsert({
+        where: {
+          tvShowId_seasonNumber: {
+            tvShowId: showId,
+            seasonNumber: seasonData.seasonNumber,
           },
-        });
+        },
+        create: {
+          tvShowId: showId,
+          seasonNumber: seasonData.seasonNumber,
+          name: seasonData.name,
+          tmdbSeasonId: seasonData.tmdbSeasonId,
+          posterPath: seasonData.posterPath,
+          description: seasonData.description,
+          airDate: seasonData.airDate ? new Date(seasonData.airDate) : null,
+        },
+        update: {
+          name: seasonData.name,
+          tmdbSeasonId: seasonData.tmdbSeasonId,
+          posterPath: seasonData.posterPath,
+          description: seasonData.description,
+          airDate: seasonData.airDate ? new Date(seasonData.airDate) : null,
+        },
+      });
 
-        if (existingSeason) {
-          seasonsUpdated++;
-        } else {
-          seasonsCreated++;
-        }
+      if (existingSeason) {
+        seasonsUpdated++;
+      } else {
+        seasonsCreated++;
+      }
 
-        // Upsert episodes
-        for (const episodeData of seasonData.episodes) {
-          const existingEpisode = await tx.episode.findUnique({
+      // Upsert episodes
+      for (const episodeData of seasonData.episodes) {
+        try {
+          const existingEpisode = await prisma.episode.findUnique({
             where: {
               seasonId_episodeNumber: {
                 seasonId: season.id,
@@ -88,7 +148,7 @@ export async function POST(request: Request) {
             },
           });
 
-          await tx.episode.upsert({
+          await prisma.episode.upsert({
             where: {
               seasonId_episodeNumber: {
                 seasonId: season.id,
@@ -115,7 +175,7 @@ export async function POST(request: Request) {
               airDate: episodeData.airDate ? new Date(episodeData.airDate) : null,
               runtime: episodeData.runtime,
               voteAverage: episodeData.voteAverage,
-              // Don't override monitorStatus if episode already exists (user may have set it)
+              // Don't override monitorStatus if episode already exists
               ...(existingEpisode ? {} : { monitorStatus: episodeData.monitorStatus }),
             },
           });
@@ -125,23 +185,21 @@ export async function POST(request: Request) {
           } else {
             episodesCreated++;
           }
+
+          tracker.incrementSuccess(`S${seasonData.seasonNumber}E${episodeData.episodeNumber}`);
+        } catch (error) {
+          tracker.incrementFailed(
+            `S${seasonData.seasonNumber}E${episodeData.episodeNumber}`,
+            error instanceof Error ? error.message : 'Unknown error'
+          );
         }
       }
-    });
+    }
 
-    const result: ImportResult = {
-      seasonsCreated,
-      seasonsUpdated,
-      episodesCreated,
-      episodesUpdated,
-    };
-
-    return NextResponse.json(result);
+    tracker.complete();
   } catch (error) {
-    console.error('Failed to import seasons/episodes:', error);
-    return NextResponse.json(
-      { error: 'Failed to import seasons/episodes' },
-      { status: 500 }
-    );
+    tracker.fail(error instanceof Error ? error.message : 'Import failed');
   }
+
+  scheduleCleanup(tracker.getTaskId());
 }

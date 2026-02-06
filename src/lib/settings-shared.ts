@@ -7,8 +7,12 @@ export type DateFormat = 'EU' | 'US' | 'ISO';
 export interface AppSettings {
   id: number;
   dateFormat: DateFormat;
+  maxParallelTasks: number;
   updatedAt: Date;
 }
+
+/** Default max parallel tasks */
+export const DEFAULT_MAX_PARALLEL_TASKS = 5;
 
 /**
  * Format a date according to the specified format

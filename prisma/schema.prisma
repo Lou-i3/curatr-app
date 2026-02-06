@@ -203,7 +203,8 @@ model ScanHistory {
 
 // App Settings (single row with id=1)
 model Settings {
-  id          Int      @id @default(1)
-  dateFormat  String   @default("EU") // EU (DD/MM/YYYY), US (MM/DD/YYYY), ISO (YYYY-MM-DD)
-  updatedAt   DateTime @updatedAt
+  id               Int      @id @default(1)
+  dateFormat       String   @default("EU") // EU (DD/MM/YYYY), US (MM/DD/YYYY), ISO (YYYY-MM-DD)
+  maxParallelTasks Int      @default(5) // Maximum number of concurrent tasks
+  updatedAt        DateTime @updatedAt
 }

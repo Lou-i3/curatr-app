@@ -45,13 +45,19 @@ const BATCH_SIZE = 100;
 /** How often to yield during discovery (every N files) */
 const YIELD_INTERVAL = 10;
 
+/** Result of starting a scan */
+export interface StartScanResult {
+  scanId: number;
+  taskId: string;
+}
+
 /**
  * Start a new scan operation
  *
  * @param options - Scan configuration options
- * @returns Scan ID that can be used to track progress
+ * @returns Scan ID and Task ID for tracking progress
  */
-export async function startScan(options: ScanOptions = {}): Promise<number> {
+export async function startScan(options: ScanOptions = {}): Promise<StartScanResult> {
   // Validate configuration
   const config = getConfig();
 
@@ -59,12 +65,18 @@ export async function startScan(options: ScanOptions = {}): Promise<number> {
   const scanType = options.scanType ?? 'full';
   const scanId = await createScanHistory(scanType);
 
+  // Create progress tracker (also registers with task system)
+  const tracker = new ScanProgressTracker(scanId);
+  activeScanners.set(scanId, tracker);
+  const taskId = tracker.getTaskId();
+
   // Start scan in background (don't await)
-  runScan(scanId, config, options).catch((error) => {
+  runScan(scanId, config, options, tracker).catch((error) => {
     console.error(`Scan ${scanId} failed:`, error);
+    tracker.fail(error.message || 'Unknown error');
   });
 
-  return scanId;
+  return { scanId, taskId };
 }
 
 /**
@@ -74,10 +86,9 @@ export async function startScan(options: ScanOptions = {}): Promise<number> {
 async function runScan(
   scanId: number,
   config: ScannerConfig,
-  options: ScanOptions
+  options: ScanOptions,
+  tracker: ScanProgressTracker
 ): Promise<ScanResult> {
-  const tracker = new ScanProgressTracker(scanId);
-  activeScanners.set(scanId, tracker);
 
   const errors: ScanError[] = [];
   const stats: ScanStats = {
@@ -211,8 +222,15 @@ async function runScan(
     tracker.setPhase('cleanup');
     stats.filesDeleted = await markMissingFilesAsDeleted(existingFilepaths);
 
+    // Update final stats on tracker
+    tracker.updateStats({
+      filesAdded: stats.filesAdded,
+      filesUpdated: stats.filesUpdated,
+      filesDeleted: stats.filesDeleted,
+    });
+
     // Complete
-    tracker.setPhase('complete');
+    tracker.complete();
 
     await updateScanHistory(scanId, {
       status: ScanStatus.COMPLETED,
@@ -229,6 +247,13 @@ async function runScan(
     // Fatal error - mark scan as failed
     const errorMessage =
       error instanceof Error ? error.message : String(error);
+
+    // Mark tracker as cancelled or failed
+    if (cancelledScans.has(scanId)) {
+      tracker.cancel();
+    } else {
+      tracker.fail(errorMessage);
+    }
 
     await updateScanHistory(scanId, {
       status: ScanStatus.FAILED,

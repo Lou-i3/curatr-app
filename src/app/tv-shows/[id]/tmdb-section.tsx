@@ -48,7 +48,7 @@ export function TmdbSection({
   };
 
   const handleRefresh = async () => {
-    if (!tmdbId) return;
+    if (!tmdbId || refreshing) return;
 
     setRefreshing(true);
     try {
@@ -56,11 +56,23 @@ export function TmdbSection({
         method: 'POST',
       });
       if (response.ok) {
+        const data = await response.json();
+        // Task started in background - visible in sidebar
+        // Refresh page after a delay to show updated metadata
+        if (data.taskId) {
+          setTimeout(() => {
+            router.refresh();
+            setRefreshing(false);
+          }, 2000);
+          return; // Don't set refreshing=false yet, wait for timeout
+        }
         router.refresh();
+        setRefreshing(false);
+      } else {
+        setRefreshing(false);
       }
     } catch (error) {
       console.error('Failed to refresh metadata:', error);
-    } finally {
       setRefreshing(false);
     }
   };
