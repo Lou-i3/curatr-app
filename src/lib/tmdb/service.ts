@@ -179,7 +179,7 @@ export async function matchShow(
 /**
  * Sync season and episode metadata for a matched show
  */
-async function syncShowSeasons(localShowId: number, tmdbId: number): Promise<void> {
+export async function syncShowSeasons(localShowId: number, tmdbId: number): Promise<void> {
   // Get local seasons
   const localSeasons = await prisma.season.findMany({
     where: { tvShowId: localShowId },
@@ -291,6 +291,115 @@ export async function getIntegrationStatus(): Promise<{
       ? { title: lastSynced.title, syncedAt: lastSynced.lastMetadataSync }
       : null,
   };
+}
+
+/**
+ * Enhanced integration status with season/episode counts
+ */
+export interface EnhancedIntegrationStatus {
+  configured: boolean;
+  shows: {
+    total: number;
+    matched: number;
+    unmatched: number;
+    needsSync: number;
+    fullySynced: number;
+  };
+  seasons: {
+    total: number;
+    withMetadata: number;
+  };
+  episodes: {
+    total: number;
+    withMetadata: number;
+  };
+  lastSyncedShow: { title: string; syncedAt: Date } | null;
+}
+
+/**
+ * Get enhanced integration status with season/episode breakdown
+ */
+export async function getEnhancedIntegrationStatus(): Promise<EnhancedIntegrationStatus> {
+  const [
+    totalShows,
+    matchedShows,
+    totalSeasons,
+    seasonsWithMetadata,
+    totalEpisodes,
+    episodesWithMetadata,
+    lastSynced,
+  ] = await Promise.all([
+    prisma.tVShow.count(),
+    prisma.tVShow.count({ where: { tmdbId: { not: null } } }),
+    prisma.season.count(),
+    prisma.season.count({ where: { tmdbSeasonId: { not: null } } }),
+    prisma.episode.count(),
+    prisma.episode.count({ where: { tmdbEpisodeId: { not: null } } }),
+    prisma.tVShow.findFirst({
+      where: { lastMetadataSync: { not: null } },
+      orderBy: { lastMetadataSync: 'desc' },
+      select: { title: true, lastMetadataSync: true },
+    }),
+  ]);
+
+  // Count shows needing sync (matched but have seasons/episodes without TMDB IDs)
+  const showsNeedingSync = await prisma.tVShow.count({
+    where: {
+      tmdbId: { not: null },
+      OR: [
+        { seasons: { some: { tmdbSeasonId: null } } },
+        { seasons: { some: { episodes: { some: { tmdbEpisodeId: null } } } } },
+      ],
+    },
+  });
+
+  const fullySynced = matchedShows - showsNeedingSync;
+
+  return {
+    configured: true, // Will be checked at API level
+    shows: {
+      total: totalShows,
+      matched: matchedShows,
+      unmatched: totalShows - matchedShows,
+      needsSync: showsNeedingSync,
+      fullySynced: Math.max(0, fullySynced),
+    },
+    seasons: {
+      total: totalSeasons,
+      withMetadata: seasonsWithMetadata,
+    },
+    episodes: {
+      total: totalEpisodes,
+      withMetadata: episodesWithMetadata,
+    },
+    lastSyncedShow: lastSynced?.lastMetadataSync
+      ? { title: lastSynced.title, syncedAt: lastSynced.lastMetadataSync }
+      : null,
+  };
+}
+
+/**
+ * Get shows that need season/episode metadata sync
+ */
+export async function getShowsNeedingSync(): Promise<
+  Array<{ id: number; title: string; tmdbId: number }>
+> {
+  const shows = await prisma.tVShow.findMany({
+    where: {
+      tmdbId: { not: null },
+      OR: [
+        { seasons: { some: { tmdbSeasonId: null } } },
+        { seasons: { some: { episodes: { some: { tmdbEpisodeId: null } } } } },
+      ],
+    },
+    select: { id: true, title: true, tmdbId: true },
+  });
+
+  return shows.map((s) => ({
+    id: s.id,
+    title: s.title,
+    tmdbId: s.tmdbId!,
+  }));
 }
 
 /**

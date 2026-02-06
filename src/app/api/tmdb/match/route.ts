@@ -31,7 +31,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const { showId, tmdbId, syncSeasons = true } = body;
+  // syncSeasons defaults to false - caller should explicitly opt-in
+  // The match dialog passes syncSeasons: true for immediate sync
+  const { showId, tmdbId, syncSeasons = false } = body;
 
   if (typeof showId !== 'number') {
     return NextResponse.json(

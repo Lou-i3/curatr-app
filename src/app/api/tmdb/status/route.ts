@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getIntegrationStatus, isTmdbConfigured } from '@/lib/tmdb';
+import { getEnhancedIntegrationStatus, isTmdbConfigured } from '@/lib/tmdb';
 
 export async function GET() {
   const configured = isTmdbConfigured();
@@ -12,19 +12,19 @@ export async function GET() {
   if (!configured) {
     return NextResponse.json({
       configured: false,
-      totalShows: 0,
-      matchedShows: 0,
-      unmatchedShows: 0,
+      shows: { total: 0, matched: 0, unmatched: 0, needsSync: 0, fullySynced: 0 },
+      seasons: { total: 0, withMetadata: 0 },
+      episodes: { total: 0, withMetadata: 0 },
       lastSyncedShow: null,
     });
   }
 
   try {
-    const status = await getIntegrationStatus();
+    const status = await getEnhancedIntegrationStatus();
 
     return NextResponse.json({
-      configured: true,
       ...status,
+      configured: true,
     });
   } catch (error) {
     console.error('TMDB status error:', error);

@@ -34,7 +34,12 @@ export {
   getShowDetails,
   getSeasonDetails,
   matchShow,
+  syncShowSeasons,
   refreshShowMetadata,
   getIntegrationStatus,
+  getEnhancedIntegrationStatus,
+  getShowsNeedingSync,
   unmatchShow,
 } from './service';
+
+export type { EnhancedIntegrationStatus } from './service';

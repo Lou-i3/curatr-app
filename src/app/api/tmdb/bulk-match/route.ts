@@ -50,8 +50,8 @@ export async function POST() {
         const match = await autoMatchShow(show.title, show.year ?? undefined);
 
         if (match) {
-          // High confidence match - apply it
-          await matchShow(show.id, match.tmdbShow.id, true);
+          // High confidence match - apply it (don't sync seasons in bulk, user can run "Refresh Missing" later)
+          await matchShow(show.id, match.tmdbShow.id, false);
           matched++;
           results.push({
             showId: show.id,

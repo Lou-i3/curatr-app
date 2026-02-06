@@ -8,62 +8,101 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, RefreshCw, Zap, ExternalLink, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  RefreshCw,
+  Zap,
+  ExternalLink,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  AlertTriangle,
+  Loader2,
+} from 'lucide-react';
 import { TmdbMatchDialog } from '@/components/tmdb-match-dialog';
+import { TmdbIntegrationHelpDialog } from './tmdb-integration-help-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateWithFormat, type DateFormat } from '@/lib/settings-shared';
+import { getPosterUrl } from '@/lib/tmdb/images';
 
-interface IntegrationStatus {
+interface EnhancedIntegrationStatus {
   configured: boolean;
-  totalShows: number;
-  matchedShows: number;
-  unmatchedShows: number;
+  shows: {
+    total: number;
+    matched: number;
+    unmatched: number;
+    needsSync: number;
+    fullySynced: number;
+  };
+  seasons: {
+    total: number;
+    withMetadata: number;
+  };
+  episodes: {
+    total: number;
+    withMetadata: number;
+  };
   lastSyncedShow: { title: string; syncedAt: string } | null;
 }
 
-interface UnmatchedShow {
+interface LibraryShow {
   id: number;
   title: string;
   year: number | null;
+  tmdbId: number | null;
+  posterPath: string | null;
+  seasonCount: number;
+  seasonsWithMetadata: number;
+  episodeCount: number;
+  episodesWithMetadata: number;
+  syncStatus: 'unmatched' | 'needs-sync' | 'fully-synced';
 }
 
-interface BulkMatchResult {
-  matched: number;
-  skipped: number;
+type LibraryFilter = 'all' | 'unmatched' | 'needs-sync' | 'fully-synced';
+
+interface BulkResult {
+  matched?: number;
+  skipped?: number;
+  synced?: number;
+  refreshed?: number;
+  failed?: number;
   total: number;
 }
 
 export default function TmdbIntegrationPage() {
   const router = useRouter();
-  const [status, setStatus] = useState<IntegrationStatus | null>(null);
-  const [unmatchedShows, setUnmatchedShows] = useState<UnmatchedShow[]>([]);
+  const [status, setStatus] = useState<EnhancedIntegrationStatus | null>(null);
+  const [shows, setShows] = useState<LibraryShow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoMatching, setAutoMatching] = useState(false);
+  const [refreshingMissing, setRefreshingMissing] = useState(false);
   const [bulkRefreshing, setBulkRefreshing] = useState(false);
-  const [bulkResult, setBulkResult] = useState<BulkMatchResult | null>(null);
-  const [refreshResult, setRefreshResult] = useState<{ refreshed: number; failed: number; total: number } | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ type: string; result: BulkResult } | null>(null);
   const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
+  const [activeFilter, setActiveFilter] = useState<LibraryFilter>('all');
+  const [syncingShowId, setSyncingShowId] = useState<number | null>(null);
 
-  const fetchStatus = async (isRefresh = false) => {
+  const fetchData = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
     }
     try {
-      // Fetch status and settings in parallel
-      const [statusResponse, settingsResponse] = await Promise.all([
+      // Fetch status, settings, and shows in parallel
+      const [statusResponse, settingsResponse, showsResponse] = await Promise.all([
         fetch('/api/tmdb/status'),
         fetch('/api/settings'),
+        fetch('/api/tv-shows?includeStats=true&limit=100'),
       ]);
 
       if (!statusResponse.ok) throw new Error('Failed to fetch status');
-      const data = await statusResponse.json();
-      setStatus(data);
+      const statusData = await statusResponse.json();
+      setStatus(statusData);
       setError(null);
 
       if (settingsResponse.ok) {
@@ -71,13 +110,9 @@ export default function TmdbIntegrationPage() {
         setDateFormat(settingsData.dateFormat || 'EU');
       }
 
-      // Fetch unmatched shows if configured
-      if (data.configured && data.unmatchedShows > 0) {
-        const showsResponse = await fetch('/api/tv-shows?unmatched=true&limit=10');
-        if (showsResponse.ok) {
-          const showsData = await showsResponse.json();
-          setUnmatchedShows(showsData.shows || []);
-        }
+      if (showsResponse.ok) {
+        const showsData = await showsResponse.json();
+        setShows(showsData.shows || []);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -88,12 +123,41 @@ export default function TmdbIntegrationPage() {
   };
 
   useEffect(() => {
-    fetchStatus();
+    fetchData();
   }, []);
 
-  const matchPercentage = status?.totalShows
-    ? Math.round((status.matchedShows / status.totalShows) * 100)
+  // Calculate percentages
+  const showMatchPercent = status?.shows.total
+    ? Math.round((status.shows.matched / status.shows.total) * 100)
     : 0;
+  const seasonSyncPercent = status?.seasons.total
+    ? Math.round((status.seasons.withMetadata / status.seasons.total) * 100)
+    : 0;
+  const episodeSyncPercent = status?.episodes.total
+    ? Math.round((status.episodes.withMetadata / status.episodes.total) * 100)
+    : 0;
+
+  // Filter shows based on active filter
+  const filteredShows = shows.filter((show) => {
+    switch (activeFilter) {
+      case 'unmatched':
+        return show.syncStatus === 'unmatched';
+      case 'needs-sync':
+        return show.syncStatus === 'needs-sync';
+      case 'fully-synced':
+        return show.syncStatus === 'fully-synced';
+      default:
+        return true;
+    }
+  });
+
+  // Filter counts
+  const filterCounts = {
+    all: shows.length,
+    unmatched: shows.filter((s) => s.syncStatus === 'unmatched').length,
+    'needs-sync': shows.filter((s) => s.syncStatus === 'needs-sync').length,
+    'fully-synced': shows.filter((s) => s.syncStatus === 'fully-synced').length,
+  };
 
   const handleAutoMatch = async () => {
     setAutoMatching(true);
@@ -106,13 +170,11 @@ export default function TmdbIntegrationPage() {
 
       const data = await response.json();
       setBulkResult({
-        matched: data.matched,
-        skipped: data.skipped,
-        total: data.total,
+        type: 'auto-match',
+        result: { matched: data.matched, skipped: data.skipped, total: data.total },
       });
 
-      // Refresh status after matching
-      await fetchStatus(true);
+      await fetchData(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Auto-match failed');
     } finally {
@@ -120,9 +182,32 @@ export default function TmdbIntegrationPage() {
     }
   };
 
+  const handleRefreshMissing = async () => {
+    setRefreshingMissing(true);
+    setBulkResult(null);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/tmdb/refresh-missing', { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to refresh missing metadata');
+
+      const data = await response.json();
+      setBulkResult({
+        type: 'refresh-missing',
+        result: { synced: data.synced, failed: data.failed, total: data.total },
+      });
+
+      await fetchData(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Refresh missing failed');
+    } finally {
+      setRefreshingMissing(false);
+    }
+  };
+
   const handleBulkRefresh = async () => {
     setBulkRefreshing(true);
-    setRefreshResult(null);
+    setBulkResult(null);
     setError(null);
 
     try {
@@ -130,14 +215,12 @@ export default function TmdbIntegrationPage() {
       if (!response.ok) throw new Error('Failed to refresh metadata');
 
       const data = await response.json();
-      setRefreshResult({
-        refreshed: data.refreshed,
-        failed: data.failed,
-        total: data.total,
+      setBulkResult({
+        type: 'bulk-refresh',
+        result: { refreshed: data.refreshed, failed: data.failed, total: data.total },
       });
 
-      // Refresh status after bulk refresh
-      await fetchStatus(true);
+      await fetchData(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bulk refresh failed');
     } finally {
@@ -145,11 +228,23 @@ export default function TmdbIntegrationPage() {
     }
   };
 
+  const handleSyncShow = async (showId: number) => {
+    setSyncingShowId(showId);
+    try {
+      const response = await fetch(`/api/tmdb/refresh/${showId}`, { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to sync show');
+      await fetchData(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sync failed');
+    } finally {
+      setSyncingShowId(null);
+    }
+  };
+
   // Loading skeleton
   if (loading) {
     return (
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/integrations">
@@ -164,26 +259,17 @@ export default function TmdbIntegrationPage() {
           </div>
         </div>
 
-        {/* Loading skeletons */}
         <Card>
           <CardHeader>
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-4 w-64 mt-2" />
           </CardHeader>
           <CardContent className="space-y-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-4 w-48 mt-2" />
-          </CardHeader>
-          <CardContent className="space-y-4">
             <Skeleton className="h-2 w-full" />
-            <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-2 w-full" />
+            <div className="grid gap-4 md:grid-cols-4">
+              <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
@@ -209,7 +295,8 @@ export default function TmdbIntegrationPage() {
             Enrich your library with metadata from The Movie Database
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => fetchStatus(true)} disabled={refreshing}>
+        <TmdbIntegrationHelpDialog />
+        <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
           {refreshing ? (
             <Loader2 className="size-4 mr-2 animate-spin" />
           ) : (
@@ -247,14 +334,13 @@ export default function TmdbIntegrationPage() {
               </Badge>
             )}
           </CardTitle>
-          <CardDescription>
-            TMDB API key status and configuration
-          </CardDescription>
+          <CardDescription>TMDB API key status and configuration</CardDescription>
         </CardHeader>
         <CardContent>
           {status?.configured ? (
             <p className="text-sm text-muted-foreground">
-              Your TMDB API key is configured and working. You can now match shows and sync metadata.
+              Your TMDB API key is configured and working. You can now match shows and sync
+              metadata.
             </p>
           ) : (
             <div className="space-y-4">
@@ -300,36 +386,67 @@ export default function TmdbIntegrationPage() {
         </CardContent>
       </Card>
 
-      {/* Sync Status */}
+      {/* Library Completeness */}
       {status?.configured && (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Sync Status</CardTitle>
-              <CardDescription>
-                Overview of matched shows in your library
-              </CardDescription>
+              <CardTitle>Library Completeness</CardTitle>
+              <CardDescription>TMDB matching and metadata sync status</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span>
-                  {status.matchedShows} of {status.totalShows} shows matched
-                </span>
-                <span className="font-medium">{matchPercentage}%</span>
-              </div>
-              <Progress value={matchPercentage} className="h-2" />
+            <CardContent className="space-y-6">
+              {/* Progress bars */}
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span>Shows Matched</span>
+                    <span>
+                      {status.shows.matched} / {status.shows.total}{' '}
+                      <span className="text-muted-foreground">({showMatchPercent}%)</span>
+                    </span>
+                  </div>
+                  <Progress value={showMatchPercent} className="h-2" />
+                </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span>Seasons with Metadata</span>
+                    <span>
+                      {status.seasons.withMetadata} / {status.seasons.total}{' '}
+                      <span className="text-muted-foreground">({seasonSyncPercent}%)</span>
+                    </span>
+                  </div>
+                  <Progress value={seasonSyncPercent} className="h-2" />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span>Episodes with Metadata</span>
+                    <span>
+                      {status.episodes.withMetadata} / {status.episodes.total}{' '}
+                      <span className="text-muted-foreground">({episodeSyncPercent}%)</span>
+                    </span>
+                  </div>
+                  <Progress value={episodeSyncPercent} className="h-2" />
+                </div>
+              </div>
+
+              {/* Stats grid */}
+              <div className="grid gap-4 md:grid-cols-4">
                 <div className="rounded-lg border p-4 text-center">
-                  <div className="text-2xl font-bold">{status.totalShows}</div>
+                  <div className="text-2xl font-bold">{status.shows.total}</div>
                   <div className="text-sm text-muted-foreground">Total Shows</div>
                 </div>
                 <div className="rounded-lg border p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{status.matchedShows}</div>
-                  <div className="text-sm text-muted-foreground">Matched</div>
+                  <div className="text-2xl font-bold text-green-600">{status.shows.fullySynced}</div>
+                  <div className="text-sm text-muted-foreground">Fully Synced</div>
                 </div>
                 <div className="rounded-lg border p-4 text-center">
-                  <div className="text-2xl font-bold text-amber-600">{status.unmatchedShows}</div>
+                  <div className="text-2xl font-bold text-amber-600">{status.shows.needsSync}</div>
+                  <div className="text-sm text-muted-foreground">Needs Sync</div>
+                </div>
+                <div className="rounded-lg border p-4 text-center">
+                  <div className="text-2xl font-bold text-red-600">{status.shows.unmatched}</div>
                   <div className="text-sm text-muted-foreground">Unmatched</div>
                 </div>
               </div>
@@ -346,133 +463,234 @@ export default function TmdbIntegrationPage() {
           {/* Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
-              <CardDescription>
-                Bulk operations for syncing metadata
-              </CardDescription>
+              <CardTitle>Bulk Actions</CardTitle>
+              <CardDescription>Operations for syncing metadata across your library</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-3">
                 <Button
                   onClick={handleAutoMatch}
-                  disabled={status.unmatchedShows === 0 || autoMatching}
+                  disabled={status.shows.unmatched === 0 || autoMatching}
                 >
                   {autoMatching ? (
                     <Loader2 className="size-4 mr-2 animate-spin" />
                   ) : (
                     <Zap className="size-4 mr-2" />
                   )}
-                  {autoMatching ? 'Matching...' : `Auto-Match Unmatched (${status.unmatchedShows})`}
+                  {autoMatching
+                    ? 'Matching...'
+                    : `Auto-Match Unmatched (${status.shows.unmatched})`}
                 </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={handleRefreshMissing}
+                  disabled={status.shows.needsSync === 0 || refreshingMissing}
+                >
+                  {refreshingMissing ? (
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="size-4 mr-2" />
+                  )}
+                  {refreshingMissing
+                    ? 'Syncing...'
+                    : `Refresh Missing Metadata (${status.shows.needsSync})`}
+                </Button>
+
                 <Button
                   variant="outline"
                   onClick={handleBulkRefresh}
-                  disabled={status.matchedShows === 0 || bulkRefreshing}
+                  disabled={status.shows.matched === 0 || bulkRefreshing}
                 >
                   {bulkRefreshing ? (
                     <Loader2 className="size-4 mr-2 animate-spin" />
                   ) : (
                     <RefreshCw className="size-4 mr-2" />
                   )}
-                  {bulkRefreshing ? 'Refreshing...' : `Refresh All Metadata (${status.matchedShows})`}
+                  {bulkRefreshing
+                    ? 'Refreshing...'
+                    : `Refresh All Metadata (${status.shows.matched})`}
                 </Button>
               </div>
 
               {bulkResult && (
                 <div className="rounded-lg border bg-muted/50 p-4">
                   <p className="font-medium text-green-600">
-                    Auto-match complete!
+                    {bulkResult.type === 'auto-match' && 'Auto-match complete!'}
+                    {bulkResult.type === 'refresh-missing' && 'Missing metadata sync complete!'}
+                    {bulkResult.type === 'bulk-refresh' && 'Metadata refresh complete!'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Matched {bulkResult.matched} of {bulkResult.total} shows.
-                    {bulkResult.skipped > 0 && (
-                      <> {bulkResult.skipped} skipped (low confidence or errors).</>
+                    {bulkResult.type === 'auto-match' && (
+                      <>
+                        Matched {bulkResult.result.matched} of {bulkResult.result.total} shows.
+                        {(bulkResult.result.skipped ?? 0) > 0 && (
+                          <> {bulkResult.result.skipped} skipped (low confidence).</>
+                        )}
+                      </>
+                    )}
+                    {bulkResult.type === 'refresh-missing' && (
+                      <>
+                        Synced {bulkResult.result.synced} of {bulkResult.result.total} shows.
+                        {(bulkResult.result.failed ?? 0) > 0 && (
+                          <> {bulkResult.result.failed} failed.</>
+                        )}
+                      </>
+                    )}
+                    {bulkResult.type === 'bulk-refresh' && (
+                      <>
+                        Refreshed {bulkResult.result.refreshed} of {bulkResult.result.total} shows.
+                        {(bulkResult.result.failed ?? 0) > 0 && (
+                          <> {bulkResult.result.failed} failed.</>
+                        )}
+                      </>
                     )}
                   </p>
                 </div>
               )}
-
-              {refreshResult && (
-                <div className="rounded-lg border bg-muted/50 p-4">
-                  <p className="font-medium text-green-600">
-                    Metadata refresh complete!
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Refreshed {refreshResult.refreshed} of {refreshResult.total} shows.
-                    {refreshResult.failed > 0 && (
-                      <> {refreshResult.failed} failed.</>
-                    )}
-                  </p>
-                </div>
-              )}
-
-              <p className="text-sm text-muted-foreground">
-                Auto-match will attempt to find TMDB matches for shows based on title and year.
-                Shows with low confidence matches will be skipped and can be matched manually.
-              </p>
             </CardContent>
           </Card>
 
-          {/* Unmatched Shows */}
-          {status.unmatchedShows > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Unmatched Shows ({status.unmatchedShows})</CardTitle>
-                <CardDescription>
-                  These shows need to be matched to TMDB manually or via auto-match
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {unmatchedShows.length > 0 ? (
-                  <div className="space-y-2">
-                    {unmatchedShows.map((show) => (
-                      <div
-                        key={show.id}
-                        className="flex items-center justify-between rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => router.push(`/tv-shows/${show.id}`)}
-                      >
-                        <div>
-                          <span className="font-medium">{show.title}</span>
+          {/* Library Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Library Overview</CardTitle>
+              <CardDescription>View and manage TMDB matching for all shows</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Filter tabs */}
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { key: 'all', label: 'All' },
+                    { key: 'unmatched', label: 'Unmatched' },
+                    { key: 'needs-sync', label: 'Needs Sync' },
+                    { key: 'fully-synced', label: 'Fully Synced' },
+                  ] as const
+                ).map(({ key, label }) => (
+                  <Button
+                    key={key}
+                    variant={activeFilter === key ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveFilter(key)}
+                  >
+                    {label} ({filterCounts[key]})
+                  </Button>
+                ))}
+              </div>
+
+              {/* Show list */}
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {filteredShows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No shows match this filter
+                  </p>
+                ) : (
+                  filteredShows.map((show) => (
+                    <div
+                      key={show.id}
+                      className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                    >
+                      {/* Poster */}
+                      <div className="w-10 h-14 rounded bg-muted flex-shrink-0 overflow-hidden">
+                        {show.posterPath ? (
+                          <img
+                            src={getPosterUrl(show.posterPath, 'w92')}
+                            alt={show.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                            ?
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{show.title}</div>
+                        <div className="flex items-center gap-2 text-sm">
                           {show.year && (
-                            <span className="text-muted-foreground ml-2">({show.year})</span>
+                            <span className="text-muted-foreground">{show.year}</span>
+                          )}
+
+                          {show.syncStatus === 'unmatched' && (
+                            <Badge variant="destructive" className="text-xs">
+                              <XCircle className="size-3 mr-1" />
+                              Not Matched
+                            </Badge>
+                          )}
+                          {show.syncStatus === 'needs-sync' && (
+                            <Badge variant="warning" className="text-xs">
+                              <AlertTriangle className="size-3 mr-1" />
+                              {show.seasonsWithMetadata}/{show.seasonCount} seasons ·{' '}
+                              {show.episodesWithMetadata}/{show.episodeCount} episodes
+                            </Badge>
+                          )}
+                          {show.syncStatus === 'fully-synced' && (
+                            <Badge className="bg-green-600 text-xs">
+                              <CheckCircle2 className="size-3 mr-1" />
+                              Synced
+                            </Badge>
                           )}
                         </div>
-                        <div onClick={(e) => e.stopPropagation()}>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        {show.syncStatus === 'unmatched' && (
                           <TmdbMatchDialog
                             showId={show.id}
                             showTitle={show.title}
                             showYear={show.year}
-                            onMatch={() => fetchStatus(true)}
+                            onMatch={() => fetchData(true)}
                             trigger={
                               <Button variant="outline" size="sm">
                                 Match
                               </Button>
                             }
                           />
-                        </div>
+                        )}
+                        {show.syncStatus === 'needs-sync' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSyncShow(show.id)}
+                            disabled={syncingShowId === show.id}
+                          >
+                            {syncingShowId === show.id ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <>
+                                <RefreshCw className="size-4 mr-1" />
+                                Sync
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/tv-shows/${show.id}`)}
+                        >
+                          View
+                        </Button>
                       </div>
-                    ))}
-                    {status.unmatchedShows > unmatchedShows.length && (
-                      <p className="text-sm text-muted-foreground text-center pt-2">
-                        And {status.unmatchedShows - unmatchedShows.length} more...{' '}
-                        <Link href="/tv-shows?filter=unmatched" className="text-primary underline">
-                          View all
-                        </Link>
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Visit the{' '}
-                    <Link href="/tv-shows" className="text-primary underline">
-                      TV Shows page
-                    </Link>{' '}
-                    to match individual shows to TMDB.
-                  </p>
+                    </div>
+                  ))
                 )}
-              </CardContent>
-            </Card>
-          )}
+              </div>
+
+              {shows.length > 100 && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Showing first 100 shows.{' '}
+                  <Link href="/tv-shows" className="text-primary underline">
+                    View all on TV Shows page
+                  </Link>
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
