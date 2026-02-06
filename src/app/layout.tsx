@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Nunito, Lora, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -33,10 +34,18 @@ export default function RootLayout({
       <body
         className={`${nunito.variable} ${lora.variable} ${geistMono.variable} antialiased`}
       >
-        <Sidebar />
-        <main className="ml-64 min-h-screen bg-background">
-          {children}
-        </main>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
+              <SidebarTrigger />
+              <span className="font-semibold">Media Tracker</span>
+            </header>
+            <main className="flex-1 p-4 md:p-6">
+              {children}
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
       </body>
     </html>
   );

@@ -17,8 +17,9 @@ A Next.js web application for tracking media file quality, playback compatibilit
 - **Real-time Progress** - Live scan progress with percentage and file count
 - **TV Show Management** - Full CRUD operations with search, filter, and grid/table views
 - **Settings** - Configurable date format (EU/US/ISO) stored in database
-- **Sidebar Navigation** - Easy navigation with version display and GitHub link
+- **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **Dark Mode** - Full dark mode UI with system preference support
+- **Custom Theme** - Nunito font, green accent colors, consistent design
 
 ## Quick Start
 
@@ -129,7 +130,7 @@ src/
 │       ├── progress.ts             # Progress tracking
 │       └── scan.ts                 # Orchestrator
 ├── components/
-│   ├── sidebar.tsx                 # Navigation sidebar
+│   ├── app-sidebar.tsx             # Collapsible navigation sidebar
 │   └── ui/                         # shadcn/ui components
 └── generated/
     └── prisma/                     # Generated Prisma types
@@ -230,7 +231,7 @@ npx prisma generate  # Generate client
 - [x] Smart folder-based show detection
 - [x] shadcn/ui components
 - [x] Docker deployment
-- [x] Sidebar navigation with version display
+- [x] Collapsible sidebar with mobile drawer
 - [x] TV Shows CRUD (create, edit, delete)
 - [x] Search & filter toolbar
 - [x] Grid/Table view toggle
