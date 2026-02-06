@@ -9,6 +9,8 @@ import type {
   TMDBShowDetails,
   TMDBSeasonDetails,
   TMDBErrorResponse,
+  TMDBEpisodeGroupsResponse,
+  TMDBEpisodeGroupDetails,
 } from './types';
 
 /** Rate limiter to respect TMDB's 40 requests per 10 seconds limit */
@@ -148,4 +150,20 @@ export async function getSeasonDetails(
   seasonNumber: number
 ): Promise<TMDBSeasonDetails> {
   return tmdbFetch<TMDBSeasonDetails>(`/tv/${tmdbId}/season/${seasonNumber}`);
+}
+
+/**
+ * Get available episode groups (alternative orderings) for a TV show
+ * @param tmdbId - TMDB show ID
+ */
+export async function getEpisodeGroups(tmdbId: number): Promise<TMDBEpisodeGroupsResponse> {
+  return tmdbFetch<TMDBEpisodeGroupsResponse>(`/tv/${tmdbId}/episode_groups`);
+}
+
+/**
+ * Get detailed information about a specific episode group
+ * @param groupId - Episode group ID (string format)
+ */
+export async function getEpisodeGroupDetails(groupId: string): Promise<TMDBEpisodeGroupDetails> {
+  return tmdbFetch<TMDBEpisodeGroupDetails>(`/tv/episode_group/${groupId}`);
 }

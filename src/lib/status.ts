@@ -14,7 +14,11 @@ export function getStatusVariant(status: string): BadgeVariant {
       return "destructive";
     case "TO_CHECK":
     case "NEEDS_TRANSCODING":
+    case "MISSING":
       return "secondary";
+    case "UNWANTED":
+    case "DELETED":
+      return "outline";
     default:
       return "outline";
   }

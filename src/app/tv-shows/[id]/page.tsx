@@ -31,10 +31,30 @@ export default async function ShowDetailPage({ params }: Props) {
     include: {
       seasons: {
         orderBy: { seasonNumber: "asc" },
-        include: {
+        select: {
+          id: true,
+          seasonNumber: true,
+          tmdbSeasonId: true,
+          name: true,
+          status: true,
+          notes: true,
+          posterPath: true,
+          description: true,
+          airDate: true,
           episodes: {
             orderBy: { episodeNumber: "asc" },
-            include: {
+            select: {
+              id: true,
+              episodeNumber: true,
+              tmdbEpisodeId: true,
+              title: true,
+              status: true,
+              notes: true,
+              description: true,
+              airDate: true,
+              runtime: true,
+              stillPath: true,
+              voteAverage: true,
               files: {
                 select: { id: true },
               },

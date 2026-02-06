@@ -19,6 +19,8 @@ enum Status {
   BAD
   GOOD
   DELETED
+  MISSING      // Episode exists in TMDB but no file on disk
+  UNWANTED     // User explicitly doesn't want this episode
 }
 
 enum FileStatus {
@@ -93,6 +95,7 @@ model Season {
   tvShowId     Int
   tvShow       TVShow   @relation(fields: [tvShowId], references: [id], onDelete: Cascade)
   seasonNumber Int
+  name         String?   // Season name from TMDB (e.g., "Specials", "Season 1: The Beginning")
   status       Status   @default(TO_CHECK)
   notes        String?
 

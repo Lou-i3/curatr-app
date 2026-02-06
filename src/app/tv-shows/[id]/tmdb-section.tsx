@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TmdbMatchDialog } from '@/components/tmdb-match-dialog';
+import { TmdbImportDialog } from '@/components/tmdb-import-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ import {
   Download,
   Loader2,
 } from 'lucide-react';
-import { formatDateWithFormat, type DateFormat } from '@/lib/settings-shared';
+import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 
 interface TmdbSectionProps {
   showId: number;
@@ -102,7 +103,7 @@ export function TmdbSection({
             <p className="text-muted-foreground">Last Sync</p>
             <p className="font-medium">
               {lastMetadataSync
-                ? formatDateWithFormat(lastMetadataSync, dateFormat)
+                ? formatDateTimeWithFormat(lastMetadataSync, dateFormat)
                 : <span className="text-muted-foreground">Never</span>}
             </p>
           </div>
@@ -155,10 +156,18 @@ export function TmdbSection({
               />
 
               {/* Import Seasons & Episodes */}
-              <Button variant="outline" size="sm" disabled>
-                <Download className="size-4 mr-1" />
-                Import Seasons & Episodes
-              </Button>
+              <TmdbImportDialog
+                showId={showId}
+                showTitle={showTitle}
+                tmdbId={tmdbId}
+                onImport={handleMatch}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Download className="size-4 mr-1" />
+                    Import Seasons & Episodes
+                  </Button>
+                }
+              />
             </>
           ) : (
             <>

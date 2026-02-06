@@ -7,6 +7,7 @@
 
 import Link from 'next/link';
 import { getStatusVariant } from '@/lib/status';
+import { getPosterUrl } from '@/lib/tmdb/images';
 import {
   Accordion,
   AccordionContent,
@@ -25,20 +26,34 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ChevronRight } from 'lucide-react';
+import { SeasonDialog } from './season-dialog';
+import { EpisodeDialog } from './episode-dialog';
 
 interface Episode {
   id: number;
   episodeNumber: number;
+  tmdbEpisodeId: number | null;
   title: string | null;
   status: string;
+  notes: string | null;
+  description: string | null;
+  airDate: Date | null;
+  runtime: number | null;
+  stillPath: string | null;
+  voteAverage: number | null;
   files: { id: number }[];
 }
 
 interface Season {
   id: number;
   seasonNumber: number;
+  tmdbSeasonId: number | null;
+  name: string | null;
   status: string;
   notes: string | null;
+  posterPath: string | null;
+  description: string | null;
+  airDate: Date | null;
   episodes: Episode[];
 }
 
@@ -66,28 +81,47 @@ export function SeasonsList({ showId, seasons }: SeasonsListProps) {
           value={`season-${season.id}`}
           className="border rounded-lg bg-card"
         >
-          <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-accent/50 rounded-lg data-[state=open]:rounded-b-none">
-            <div className="flex items-center justify-between w-full pr-4">
-              <div className="flex items-center gap-4">
-                <h3 className="text-lg font-semibold">
-                  Season {season.seasonNumber}
-                </h3>
-                {season.notes && (
-                  <span className="text-sm text-muted-foreground line-clamp-1 max-w-md">
-                    {season.notes}
+          <div className="flex items-center">
+            <AccordionTrigger className="flex-1 px-4 py-3 items-center hover:no-underline hover:bg-accent/50 rounded-lg data-[state=open]:rounded-b-none [&[data-state=open]>svg]:rotate-180">
+              <span className="flex items-center justify-between w-full pr-2">
+                <span className="flex items-center gap-3">
+                  {season.posterPath ? (
+                    <img
+                      src={getPosterUrl(season.posterPath, 'w92') || ''}
+                      alt=""
+                      className="w-10 h-14 rounded object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-14 rounded bg-muted flex-shrink-0" />
+                  )}
+                  <span className="text-lg font-semibold">
+                    {season.name || `Season ${season.seasonNumber}`}
+                    {season.name && (
+                      <span className="text-muted-foreground font-normal ml-2">
+                        (Season {season.seasonNumber})
+                      </span>
+                    )}
+                    {season.tmdbSeasonId && (
+                      <span className="text-xs text-muted-foreground font-normal ml-2">
+                        #{season.tmdbSeasonId}
+                      </span>
+                    )}
                   </span>
-                )}
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">
-                  {season.episodes.length} episodes
                 </span>
-                <Badge variant={getStatusVariant(season.status)}>
-                  {season.status}
-                </Badge>
-              </div>
+                <span className="flex items-center gap-4">
+                  <span className="text-sm text-muted-foreground">
+                    {season.episodes.length} episodes
+                  </span>
+                  <Badge variant={getStatusVariant(season.status)}>
+                    {season.status}
+                  </Badge>
+                </span>
+              </span>
+            </AccordionTrigger>
+            <div className="pr-4">
+              <SeasonDialog season={season} />
             </div>
-          </AccordionTrigger>
+          </div>
           <AccordionContent className="px-0 pb-0">
             {season.episodes.length === 0 ? (
               <div className="p-6 text-center border-t">
@@ -98,10 +132,11 @@ export function SeasonsList({ showId, seasons }: SeasonsListProps) {
                 <TableHeader>
                   <TableRow className="border-t">
                     <TableHead className="w-20">Episode</TableHead>
+                    <TableHead className="w-24">TMDB</TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead className="w-28">Status</TableHead>
                     <TableHead className="w-20">Files</TableHead>
-                    <TableHead className="w-20 text-right">Action</TableHead>
+                    <TableHead className="w-24 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -109,6 +144,9 @@ export function SeasonsList({ showId, seasons }: SeasonsListProps) {
                     <TableRow key={episode.id}>
                       <TableCell className="font-medium font-mono">
                         E{String(episode.episodeNumber).padStart(2, '0')}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs font-mono">
+                        {episode.tmdbEpisodeId ? `#${episode.tmdbEpisodeId}` : '—'}
                       </TableCell>
                       <TableCell>{episode.title || '—'}</TableCell>
                       <TableCell>
@@ -120,11 +158,17 @@ export function SeasonsList({ showId, seasons }: SeasonsListProps) {
                         {episode.files.length}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/tv-shows/${showId}/episodes/${episode.id}`}>
-                            <ChevronRight className="size-4" />
-                          </Link>
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <EpisodeDialog
+                            episode={episode}
+                            seasonNumber={season.seasonNumber}
+                          />
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/tv-shows/${showId}/episodes/${episode.id}`}>
+                              <ChevronRight className="size-4" />
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

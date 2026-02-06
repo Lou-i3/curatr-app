@@ -195,6 +195,7 @@ async function syncShowSeasons(localShowId: number, tmdbId: number): Promise<voi
         where: { id: localSeason.id },
         data: {
           tmdbSeasonId: tmdbSeason.id,
+          name: tmdbSeason.name || null,
           posterPath: tmdbSeason.poster_path,
           description: tmdbSeason.overview,
           airDate: tmdbSeason.air_date ? new Date(tmdbSeason.air_date) : null,
@@ -203,9 +204,27 @@ async function syncShowSeasons(localShowId: number, tmdbId: number): Promise<voi
 
       // Update episode metadata
       for (const localEpisode of localSeason.episodes) {
-        const tmdbEpisode = tmdbSeason.episodes.find(
-          (e) => e.episode_number === localEpisode.episodeNumber
-        );
+        // Match in order of priority:
+        // 1. By existing tmdbEpisodeId (if already matched)
+        // 2. By episode number
+        // 3. By episode name (for cases where numbering differs between orderings)
+        let tmdbEpisode = localEpisode.tmdbEpisodeId
+          ? tmdbSeason.episodes.find((e) => e.id === localEpisode.tmdbEpisodeId)
+          : null;
+
+        if (!tmdbEpisode) {
+          tmdbEpisode = tmdbSeason.episodes.find(
+            (e) => e.episode_number === localEpisode.episodeNumber
+          ) ?? null;
+        }
+
+        if (!tmdbEpisode && localEpisode.title) {
+          // Try matching by episode name (case-insensitive)
+          const localTitle = localEpisode.title.toLowerCase().trim();
+          tmdbEpisode = tmdbSeason.episodes.find(
+            (e) => e.name.toLowerCase().trim() === localTitle
+          ) ?? null;
+        }
 
         if (tmdbEpisode) {
           await prisma.episode.update({
