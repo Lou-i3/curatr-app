@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getStatusVariant } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
 import { formatDateWithFormat } from "@/lib/format";
 import { getPosterUrl } from "@/lib/tmdb";
-import { Card, CardContent } from "@/components/ui/card";
+import { getStatusVariant } from "@/lib/status";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Star } from "lucide-react";
-import { TmdbActions } from "./tmdb-actions";
+import { ChevronRight, Star, Calendar, Tv, Film } from "lucide-react";
+import { TmdbSection } from "./tmdb-section";
 import { ShowEditButton } from "./show-edit-button";
+import { SeasonsList } from "./seasons-list";
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +34,11 @@ export default async function ShowDetailPage({ params }: Props) {
         include: {
           episodes: {
             orderBy: { episodeNumber: "asc" },
+            include: {
+              files: {
+                select: { id: true },
+              },
+            },
           },
         },
       },
@@ -109,12 +114,6 @@ export default async function ShowDetailPage({ params }: Props) {
                   posterPath: show.posterPath,
                   backdropPath: show.backdropPath,
                 }} />
-                <TmdbActions
-                  showId={show.id}
-                  showTitle={show.title}
-                  showYear={show.year}
-                  tmdbId={show.tmdbId}
-                />
                 <Badge variant={getStatusVariant(show.status)} className="text-sm">
                   {show.status}
                 </Badge>
@@ -131,96 +130,52 @@ export default async function ShowDetailPage({ params }: Props) {
             )}
 
             {/* Description */}
-            {show.description ? (
+            {show.description && (
               <p className="text-muted-foreground max-w-2xl">{show.description}</p>
-            ) : show.notes ? (
-              <p className="text-muted-foreground max-w-2xl">{show.notes}</p>
-            ) : null}
+            )}
+
+            {/* Personal Notes */}
+            {show.notes && (
+              <div className="mt-3 max-w-2xl rounded-md bg-muted/50 px-3 py-2">
+                <p className="text-sm italic text-muted-foreground">{show.notes}</p>
+              </div>
+            )}
+
+            {/* Mini Stats */}
+            <div className="flex flex-wrap gap-4 mt-4 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Tv className="size-4" />
+                <span><strong className="text-foreground">{show.seasons.length}</strong> seasons</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Film className="size-4" />
+                <span><strong className="text-foreground">{totalEpisodes}</strong> episodes</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="size-4" />
+                <span>Updated {formatDateWithFormat(show.updatedAt, dateFormat)}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground text-sm mb-2">Seasons</p>
-            <p className="text-3xl font-bold">{show.seasons.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground text-sm mb-2">Episodes</p>
-            <p className="text-3xl font-bold">{totalEpisodes}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground text-sm mb-2">Last Updated</p>
-            <p className="text-lg font-semibold">
-              {formatDateWithFormat(show.updatedAt, dateFormat)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground text-sm mb-2">TMDB Sync</p>
-            <p className="text-lg font-semibold">
-              {show.lastMetadataSync
-                ? formatDateWithFormat(show.lastMetadataSync, dateFormat)
-                : <span className="text-muted-foreground">Not synced</span>}
-            </p>
-          </CardContent>
-        </Card>
+      {/* TMDB Integration */}
+      <div className="mb-8">
+        <TmdbSection
+          showId={show.id}
+          showTitle={show.title}
+          showYear={show.year}
+          tmdbId={show.tmdbId}
+          lastMetadataSync={show.lastMetadataSync}
+          dateFormat={dateFormat}
+        />
       </div>
 
       {/* Seasons */}
       <div>
         <h2 className="text-2xl font-bold mb-6">Seasons</h2>
-        {show.seasons.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">No seasons found.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {show.seasons.map((season) => (
-              <Link
-                key={season.id}
-                href={`/tv-shows/${show.id}/seasons/${season.id}`}
-                className="block"
-              >
-                <Card className="hover:bg-accent/50 transition-colors">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-1">
-                          Season {season.seasonNumber}
-                        </h3>
-                        {season.notes && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {season.notes}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">Episodes</p>
-                          <p className="text-2xl font-bold">{season.episodes.length}</p>
-                        </div>
-                        <Badge variant={getStatusVariant(season.status)}>
-                          {season.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
+        <SeasonsList showId={show.id} seasons={show.seasons} />
       </div>
     </div>
   );

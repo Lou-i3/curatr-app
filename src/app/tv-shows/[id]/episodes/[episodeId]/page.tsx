@@ -11,25 +11,24 @@ import { ChevronRight, FileCheck, FileX, Clock, HardDrive } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 interface Props {
-  params: Promise<{ id: string; seasonId: string; episodeId: string }>;
+  params: Promise<{ id: string; episodeId: string }>;
 }
 
 export default async function EpisodeDetailPage({ params }: Props) {
-  const [{ id, seasonId, episodeId }, settings] = await Promise.all([
+  const [{ id, episodeId }, settings] = await Promise.all([
     params,
     getSettings(),
   ]);
   const dateFormat = settings.dateFormat;
   const showId = parseInt(id, 10);
-  const seasonNumber = parseInt(seasonId, 10);
-  const episodeNumber = parseInt(episodeId, 10);
+  const episodeIdNum = parseInt(episodeId, 10);
 
-  if (isNaN(showId) || isNaN(seasonNumber) || isNaN(episodeNumber)) {
+  if (isNaN(showId) || isNaN(episodeIdNum)) {
     notFound();
   }
 
   const episode = await prisma.episode.findUnique({
-    where: { id: episodeNumber },
+    where: { id: episodeIdNum },
     include: {
       season: {
         include: {
@@ -44,7 +43,7 @@ export default async function EpisodeDetailPage({ params }: Props) {
     },
   });
 
-  if (!episode || episode.season.tvShow.id !== showId || episode.season.id !== seasonNumber) {
+  if (!episode || episode.season.tvShow.id !== showId) {
     notFound();
   }
 
@@ -60,15 +59,8 @@ export default async function EpisodeDetailPage({ params }: Props) {
           {episode.season.tvShow.title}
         </Link>
         <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        <Link
-          href={`/tv-shows/${id}/seasons/${seasonId}`}
-          className="text-primary hover:underline whitespace-nowrap"
-        >
-          Season {episode.season.seasonNumber}
-        </Link>
-        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <span className="text-muted-foreground whitespace-nowrap">
-          Episode {episode.episodeNumber}
+          S{String(episode.season.seasonNumber).padStart(2, "0")}E{String(episode.episodeNumber).padStart(2, "0")}
         </span>
       </div>
 
@@ -77,10 +69,10 @@ export default async function EpisodeDetailPage({ params }: Props) {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold">
-              E{String(episode.episodeNumber).padStart(2, "0")}: {episode.title || "Untitled"}
+              S{String(episode.season.seasonNumber).padStart(2, "0")}E{String(episode.episodeNumber).padStart(2, "0")}: {episode.title || "Untitled"}
             </h1>
             <p className="text-lg text-muted-foreground mt-2">
-              {episode.season.tvShow.title} • Season {episode.season.seasonNumber}
+              {episode.season.tvShow.title}
             </p>
           </div>
           <Badge variant={getStatusVariant(episode.status)} className="text-sm">
