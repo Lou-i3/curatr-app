@@ -1,16 +1,16 @@
 {
-  "name": "media-quality-tracker",
+  "name": "curatr-app",
   "version": "0.3.2",
   "description": "Track media file quality, playback compatibility, and maintenance status for Plex libraries",
   "author": "Lou-i3",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git@github.com:Lou-i3/media-quality-tracker.git"
+    "url": "git@github.com:Lou-i3/curatr-app.git"
   },
-  "homepage": "https://github.com/Lou-i3/media-quality-tracker",
+  "homepage": "https://github.com/Lou-i3/curatr-app",
   "bugs": {
-    "url": "https://github.com/Lou-i3/media-quality-tracker/issues"
+    "url": "https://github.com/Lou-i3/curatr-app/issues"
   },
   "keywords": [
     "plex",

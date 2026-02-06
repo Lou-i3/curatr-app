@@ -1,4 +1,4 @@
-# Media Quality Tracker - Specifications
+# Curatr App - Specifications
 
 This document tracks **unimplemented features** and future enhancements. For implemented features, see the README.
 

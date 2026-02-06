@@ -1,6 +1,6 @@
-# Media Quality Tracker
+# Curatr App
 
-[![GitHub](https://img.shields.io/github/license/Lou-i3/media-quality-tracker)](https://github.com/Lou-i3/media-quality-tracker/blob/main/LICENSE)
+[![GitHub](https://img.shields.io/github/license/Lou-i3/curatr-app)](https://github.com/Lou-i3/curatr-app/blob/main/LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![Vibe Coded](https://img.shields.io/badge/vibe%20coded-Claude-blueviolet)](https://claude.ai)
 
@@ -89,7 +89,7 @@ TV_SHOWS_PATH="/media/TV Shows"
 ```yaml
 services:
   app:
-    image: ghcr.io/lou-i3/media-quality-tracker:latest
+    image: ghcr.io/lou-i3/curatr-app:latest
     ports:
       - "3000:3000"
     environment:

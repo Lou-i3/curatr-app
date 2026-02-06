@@ -1,7 +1,7 @@
 # Claude Code Instructions
 
 ## Project Overview
-Media Quality Tracker - A Next.js web application for tracking media file quality, playback compatibility, and maintenance status across a Plex media library.
+Curatr App - A Next.js web application for tracking media file quality, playback compatibility, and maintenance status across a Plex media library.
 
 **Tech Stack:**
 - Next.js 16 (App Router, TypeScript, standalone output)

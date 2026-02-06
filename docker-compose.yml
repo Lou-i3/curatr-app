@@ -1,7 +1,7 @@
 services:
-  media-quality-tracker:
-    image: media-quality-tracker
-    container_name: media-quality-tracker
+  curatr-app:
+    image: curatr-app
+    container_name: curatr-app
     ports:
       - "3000:3000"
     environment:

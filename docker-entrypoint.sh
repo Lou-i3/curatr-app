@@ -5,7 +5,7 @@ set -e
 VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "unknown")
 
 echo "╔════════════════════════════════════════════╗"
-echo "║     Media Quality Tracker v${VERSION}          ║"
+echo "║     Curatr App v${VERSION}          ║"
 echo "╚════════════════════════════════════════════╝"
 echo ""
 

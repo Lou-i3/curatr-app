@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Media Quality Tracker",
+  title: "Curatr App",
   description: "Track media file quality, playback compatibility, and maintenance status",
 };
 
@@ -39,7 +39,7 @@ export default function RootLayout({
           <SidebarInset>
             <header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
               <SidebarTrigger />
-              <span className="font-semibold">Media Tracker</span>
+              <span className="font-semibold">Curatr App</span>
             </header>
             <main className="flex-1 p-4 md:p-6">
               {children}
