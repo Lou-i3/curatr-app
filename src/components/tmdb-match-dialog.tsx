@@ -6,7 +6,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Search, Loader2, Check, ExternalLink, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Loader2, Check, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -57,6 +58,32 @@ export function TmdbMatchDialog({
   const [matching, setMatching] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [checkingConfig, setCheckingConfig] = useState(false);
+
+  // Check if TMDB is configured when dialog opens
+  useEffect(() => {
+    if (!open) return;
+
+    const checkConfig = async () => {
+      setCheckingConfig(true);
+      try {
+        const response = await fetch('/api/tmdb/status');
+        if (response.ok) {
+          const data = await response.json();
+          setConfigured(data.configured);
+        } else {
+          setConfigured(false);
+        }
+      } catch {
+        setConfigured(false);
+      } finally {
+        setCheckingConfig(false);
+      }
+    };
+
+    checkConfig();
+  }, [open]);
 
   // Search when dialog opens or query changes
   useEffect(() => {
@@ -179,16 +206,42 @@ export function TmdbMatchDialog({
         </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-          {/* Search input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search TMDB..."
-              className="pl-10"
-            />
-          </div>
+          {/* Loading config check */}
+          {checkingConfig && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {/* Not configured message */}
+          {!checkingConfig && configured === false && (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <AlertCircle className="size-12 text-amber-500 mb-4" />
+              <h3 className="font-medium text-lg mb-2">TMDB Not Configured</h3>
+              <p className="text-muted-foreground mb-4 max-w-sm">
+                To search and match shows, you need to configure your TMDB API key first.
+              </p>
+              <Button asChild>
+                <Link href="/integrations/tmdb" onClick={() => setOpen(false)}>
+                  Configure TMDB
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {/* Search UI (only when configured) */}
+          {!checkingConfig && configured && (
+            <>
+              {/* Search input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search TMDB..."
+                  className="pl-10"
+                />
+              </div>
 
           {/* Current match */}
           {currentTmdbId && (
@@ -314,6 +367,8 @@ export function TmdbMatchDialog({
               </div>
             ) : null}
           </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
