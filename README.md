@@ -12,10 +12,16 @@ A Next.js web application for tracking media file quality, playback compatibilit
 - **Batch Processing** - Optimized database operations for fast scanning of large libraries
 - **Plex-style Parsing** - Automatically parse `Show Name (Year)/Season 01/S01E05.mkv` naming
 - **Smart Show Detection** - Extracts show names from folder structure for reliable matching
+- **Folder-based Matching** - Preserves original folder names to prevent duplicates when titles are customized
 - **Quality Tracking** - Track codec, resolution, bitrate, HDR, audio formats
 - **Status Management** - Mark files as TO_CHECK, GOOD, BAD, or DELETED
 - **Real-time Progress** - Live scan progress with percentage and file count
 - **TV Show Management** - Full CRUD operations with search, filter, and grid/table views
+- **TMDB Integration** - Enrich shows with posters, descriptions, ratings, and air dates from The Movie Database
+  - Auto-match shows by title and year with confidence scoring
+  - Manual search and match for unmatched shows
+  - Bulk refresh metadata for all matched shows
+  - Display posters, backdrops, genres, and ratings on show pages
 - **Settings** - Configurable date format (EU/US/ISO) stored in database
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **Dark Mode** - Full dark mode UI with system preference support
@@ -55,6 +61,7 @@ docker compose up --build
 | `DATABASE_URL` | Yes | - | SQLite database path |
 | `TV_SHOWS_PATH` | Yes* | - | Path to TV shows directory |
 | `MOVIES_PATH` | Yes* | - | Path to movies directory |
+| `TMDB_API_KEY` | No | - | TMDB API Read Access Token for metadata integration |
 | `TZ` | No | `UTC` | Timezone for date display (e.g., `Europe/Paris`, `America/New_York`) |
 | `PUID` | No | `1000` | User ID for file permissions |
 | `PGID` | No | `1000` | Group ID for file permissions |
@@ -100,6 +107,9 @@ src/
 │   │   └── page.tsx                # Scanner UI
 │   ├── settings/
 │   │   └── page.tsx                # Settings page
+│   ├── integrations/
+│   │   ├── page.tsx                # Integrations hub
+│   │   └── tmdb/page.tsx           # TMDB integration config & status
 │   ├── tv-shows/
 │   │   ├── page.tsx                # TV Shows list (grid/table)
 │   │   ├── toolbar.tsx             # Search, filter, view toggle
@@ -110,27 +120,41 @@ src/
 │       ├── tv-shows/               # TV Shows CRUD
 │       │   ├── route.ts            # POST: create
 │       │   └── [id]/route.ts       # PATCH: update, DELETE: delete
-│       └── scan/                   # Scanner API routes
-│           ├── route.ts            # POST: start, GET: list
-│           └── [id]/
-│               ├── route.ts        # GET: status
-│               ├── cancel/         # POST: cancel scan
-│               └── progress/       # GET: SSE stream
+│       ├── scan/                   # Scanner API routes
+│       │   ├── route.ts            # POST: start, GET: list
+│       │   └── [id]/
+│       │       ├── route.ts        # GET: status
+│       │       ├── cancel/         # POST: cancel scan
+│       │       └── progress/       # GET: SSE stream
+│       └── tmdb/                   # TMDB integration API
+│           ├── search/route.ts     # Search TMDB
+│           ├── match/route.ts      # Match show to TMDB
+│           ├── status/route.ts     # Integration status
+│           ├── bulk-match/route.ts # Auto-match all unmatched
+│           ├── bulk-refresh/route.ts # Refresh all metadata
+│           └── refresh/[showId]/   # Refresh single show
 ├── lib/
 │   ├── prisma.ts                   # Prisma client
 │   ├── settings.ts                 # Settings utilities (server)
 │   ├── settings-shared.ts          # Settings types (client-safe)
 │   ├── format.ts                   # Formatting utilities
 │   ├── status.ts                   # Status badge helpers
-│   └── scanner/                    # Scanner service
-│       ├── config.ts               # Environment config
-│       ├── filesystem.ts           # File discovery
-│       ├── parser.ts               # Filename parsing
-│       ├── database.ts             # DB operations (batch processing)
-│       ├── progress.ts             # Progress tracking
-│       └── scan.ts                 # Orchestrator
+│   ├── scanner/                    # Scanner service
+│   │   ├── config.ts               # Environment config
+│   │   ├── filesystem.ts           # File discovery
+│   │   ├── parser.ts               # Filename parsing
+│   │   ├── database.ts             # DB operations (batch processing)
+│   │   ├── progress.ts             # Progress tracking
+│   │   └── scan.ts                 # Orchestrator
+│   └── tmdb/                       # TMDB integration service
+│       ├── config.ts               # API configuration
+│       ├── types.ts                # TMDB API types
+│       ├── client.ts               # HTTP client with rate limiting
+│       ├── service.ts              # Match, sync, refresh operations
+│       └── images.ts               # Poster/backdrop URL helpers
 ├── components/
 │   ├── app-sidebar.tsx             # Collapsible navigation sidebar
+│   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
 │   └── ui/                         # shadcn/ui components
 └── generated/
     └── prisma/                     # Generated Prisma types
@@ -167,6 +191,17 @@ prisma/
 | `POST` | `/api/scan/[id]/cancel` | Cancel running scan |
 | `GET` | `/api/scan/[id]/progress` | SSE progress stream |
 
+### TMDB Integration
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/tmdb/search?q=title&year=2020` | Search TMDB for shows |
+| `GET` | `/api/tmdb/status` | Get integration status (matched/unmatched counts) |
+| `POST` | `/api/tmdb/match` | Match a show to TMDB ID |
+| `POST` | `/api/tmdb/bulk-match` | Auto-match all unmatched shows |
+| `POST` | `/api/tmdb/bulk-refresh` | Refresh metadata for all matched shows |
+| `POST` | `/api/tmdb/refresh/[showId]` | Refresh metadata for a single show |
+
 ### Start Scan Request
 
 ```json
@@ -180,9 +215,9 @@ prisma/
 
 | Model | Description |
 |-------|-------------|
-| `TVShow` | TV series (title, year, external IDs) |
-| `Season` | Season within a show |
-| `Episode` | Episode within a season |
+| `TVShow` | TV series (title, year, folderName, TMDB metadata) |
+| `Season` | Season within a show (TMDB poster, overview, air date) |
+| `Episode` | Episode within a season (TMDB still, overview, runtime) |
 | `EpisodeFile` | Media file with quality metadata |
 | `ScanHistory` | Scan operation logs |
 | `CompatibilityTest` | Playback test results |
@@ -236,6 +271,7 @@ npx prisma generate  # Generate client
 - [x] Search & filter toolbar
 - [x] Grid/Table view toggle
 - [x] Date format settings (EU/US/ISO)
+- [x] TMDB integration (metadata, posters, auto-match)
 - [ ] ffprobe metadata extraction
 - [ ] Movies support
 - [ ] Plex database sync
