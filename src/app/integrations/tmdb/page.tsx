@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateWithFormat, type DateFormat } from '@/lib/settings-shared';
 
 interface IntegrationStatus {
   configured: boolean;
@@ -28,23 +29,42 @@ interface UnmatchedShow {
   year: number | null;
 }
 
+interface BulkMatchResult {
+  matched: number;
+  skipped: number;
+  total: number;
+}
+
 export default function TmdbIntegrationPage() {
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const [unmatchedShows, setUnmatchedShows] = useState<UnmatchedShow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoMatching, setAutoMatching] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkMatchResult | null>(null);
+  const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
 
   const fetchStatus = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
     }
     try {
-      const response = await fetch('/api/tmdb/status');
-      if (!response.ok) throw new Error('Failed to fetch status');
-      const data = await response.json();
+      // Fetch status and settings in parallel
+      const [statusResponse, settingsResponse] = await Promise.all([
+        fetch('/api/tmdb/status'),
+        fetch('/api/settings'),
+      ]);
+
+      if (!statusResponse.ok) throw new Error('Failed to fetch status');
+      const data = await statusResponse.json();
       setStatus(data);
       setError(null);
+
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        setDateFormat(settingsData.dateFormat || 'EU');
+      }
 
       // Fetch unmatched shows if configured
       if (data.configured && data.unmatchedShows > 0) {
@@ -69,6 +89,31 @@ export default function TmdbIntegrationPage() {
   const matchPercentage = status?.totalShows
     ? Math.round((status.matchedShows / status.totalShows) * 100)
     : 0;
+
+  const handleAutoMatch = async () => {
+    setAutoMatching(true);
+    setBulkResult(null);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/tmdb/bulk-match', { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to run auto-match');
+
+      const data = await response.json();
+      setBulkResult({
+        matched: data.matched,
+        skipped: data.skipped,
+        total: data.total,
+      });
+
+      // Refresh status after matching
+      await fetchStatus(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Auto-match failed');
+    } finally {
+      setAutoMatching(false);
+    }
+  };
 
   // Loading skeleton
   if (loading) {
@@ -262,7 +307,7 @@ export default function TmdbIntegrationPage() {
               {status.lastSyncedShow && (
                 <p className="text-sm text-muted-foreground">
                   Last synced: <strong>{status.lastSyncedShow.title}</strong> on{' '}
-                  {new Date(status.lastSyncedShow.syncedAt).toLocaleDateString()}
+                  {formatDateWithFormat(new Date(status.lastSyncedShow.syncedAt), dateFormat)}
                 </p>
               )}
             </CardContent>
@@ -278,15 +323,37 @@ export default function TmdbIntegrationPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-4">
-                <Button disabled={status.unmatchedShows === 0}>
-                  <Zap className="size-4 mr-2" />
-                  Auto-Match Unmatched ({status.unmatchedShows})
+                <Button
+                  onClick={handleAutoMatch}
+                  disabled={status.unmatchedShows === 0 || autoMatching}
+                >
+                  {autoMatching ? (
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="size-4 mr-2" />
+                  )}
+                  {autoMatching ? 'Matching...' : `Auto-Match Unmatched (${status.unmatchedShows})`}
                 </Button>
                 <Button variant="outline" disabled={status.matchedShows === 0}>
                   <RefreshCw className="size-4 mr-2" />
                   Refresh All Metadata
                 </Button>
               </div>
+
+              {bulkResult && (
+                <div className="rounded-lg border bg-muted/50 p-4">
+                  <p className="font-medium text-green-600">
+                    Auto-match complete!
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Matched {bulkResult.matched} of {bulkResult.total} shows.
+                    {bulkResult.skipped > 0 && (
+                      <> {bulkResult.skipped} skipped (low confidence or errors).</>
+                    )}
+                  </p>
+                </div>
+              )}
+
               <p className="text-sm text-muted-foreground">
                 Auto-match will attempt to find TMDB matches for shows based on title and year.
                 Shows with low confidence matches will be skipped and can be matched manually.

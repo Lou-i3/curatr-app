@@ -193,7 +193,33 @@ Every feature interface should help users understand what's happening:
 - Template: `.env.example` (committed)
 - Required: `DATABASE_URL`
 - Scanner: `TV_SHOWS_PATH`, `MOVIES_PATH`
-- TMDB (upcoming): `TMDB_API_KEY`
+- TMDB: `TMDB_API_KEY`
+
+### Key Lib Utilities
+Always use these utilities instead of native JS methods:
+
+**Date Formatting** (never use `toLocaleDateString()`):
+- `src/lib/format.ts` - `formatDate()`, `formatDateTime()` (async, for server components)
+- `src/lib/settings-shared.ts` - `formatDateWithFormat()`, `formatDateTimeWithFormat()` (sync, for client components)
+
+```typescript
+// Server Component
+import { getSettings } from '@/lib/settings';
+import { formatDateWithFormat } from '@/lib/format';
+const settings = await getSettings();
+formatDateWithFormat(date, settings.dateFormat);
+
+// Client Component
+import { formatDateWithFormat, type DateFormat } from '@/lib/settings-shared';
+const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
+// Fetch from /api/settings, then:
+formatDateWithFormat(new Date(dateString), dateFormat);
+```
+
+**Other Utilities**:
+- `src/lib/format.ts` - `formatFileSize()`, `formatDuration()`
+- `src/lib/status.ts` - `getStatusVariant()` (for Badge variants)
+- `src/lib/tmdb.ts` - `getPosterUrl()`, `getBackdropUrl()`, `getStillUrl()` (TMDB image URLs)
 
 ---
 

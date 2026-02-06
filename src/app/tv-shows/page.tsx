@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getStatusVariant } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
 import { formatDateWithFormat } from "@/lib/format";
+import { getPosterUrl } from "@/lib/tmdb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import {
 import { TVShowsToolbar } from "./toolbar";
 import { TVShowDialog } from "./show-dialog";
 import { Status } from "@/generated/prisma/client";
+import { Star, Film } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -87,6 +89,7 @@ export default async function TVShowsPage({ searchParams }: Props) {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Year</TableHead>
+                  <TableHead>Rating</TableHead>
                   <TableHead>Seasons</TableHead>
                   <TableHead>Episodes</TableHead>
                   <TableHead>Status</TableHead>
@@ -96,9 +99,26 @@ export default async function TVShowsPage({ searchParams }: Props) {
               <TableBody>
                 {shows.map((show) => (
                   <TableRow key={show.id}>
-                    <TableCell className="font-medium">{show.title}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{show.title}</span>
+                        {show.tmdbId && (
+                          <Badge variant="outline" className="text-xs">TMDB</Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {show.year ?? '—'}
+                    </TableCell>
+                    <TableCell>
+                      {show.voteAverage ? (
+                        <span className="flex items-center gap-1 text-amber-500">
+                          <Star className="size-3 fill-current" />
+                          {show.voteAverage.toFixed(1)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>{show.seasons.length}</TableCell>
                     <TableCell>
@@ -133,50 +153,74 @@ export default async function TVShowsPage({ searchParams }: Props) {
             <div key={show.id} className="block">
               <Card className="hover:bg-accent/50 transition-colors">
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <Link href={`/tv-shows/${show.id}`} className="flex-1">
-                      <h2 className="text-xl font-semibold hover:underline">{show.title}</h2>
-                      {show.year && (
-                        <p className="text-sm text-muted-foreground">
-                          {show.year}
-                        </p>
+                  <div className="flex gap-4">
+                    {/* Poster */}
+                    <Link href={`/tv-shows/${show.id}`} className="flex-shrink-0">
+                      {show.posterPath ? (
+                        <div className="w-20 h-30 rounded overflow-hidden bg-muted">
+                          <img
+                            src={getPosterUrl(show.posterPath, 'w154') || ''}
+                            alt={show.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-30 rounded bg-muted flex items-center justify-center">
+                          <Film className="size-8 text-muted-foreground" />
+                        </div>
                       )}
                     </Link>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getStatusVariant(show.status)}>
-                        {show.status}
-                      </Badge>
-                      <TVShowDialog show={show} />
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <Link href={`/tv-shows/${show.id}`} className="flex-1 min-w-0">
+                          <h2 className="text-xl font-semibold hover:underline truncate">{show.title}</h2>
+                          <div className="flex items-center gap-2 mt-1">
+                            {show.year && (
+                              <span className="text-sm text-muted-foreground">{show.year}</span>
+                            )}
+                            {show.voteAverage && (
+                              <span className="flex items-center gap-1 text-amber-500 text-sm">
+                                <Star className="size-3 fill-current" />
+                                {show.voteAverage.toFixed(1)}
+                              </span>
+                            )}
+                            {show.tmdbId && (
+                              <Badge variant="outline" className="text-xs">TMDB</Badge>
+                            )}
+                          </div>
+                        </Link>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge variant={getStatusVariant(show.status)}>
+                            {show.status}
+                          </Badge>
+                          <TVShowDialog show={show} />
+                        </div>
+                      </div>
+
+                      {/* Description or Notes */}
+                      {(show.description || show.notes) && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                          {show.description || show.notes}
+                        </p>
+                      )}
+
+                      {/* Stats */}
+                      <div className="flex gap-4 text-sm">
+                        <div className="bg-muted px-3 py-2 rounded">
+                          <span className="text-muted-foreground">Seasons: </span>
+                          <span className="font-semibold">{show.seasons.length}</span>
+                        </div>
+                        <div className="bg-muted px-3 py-2 rounded">
+                          <span className="text-muted-foreground">Episodes: </span>
+                          <span className="font-semibold">
+                            {show.seasons.reduce((acc, season) => acc + season.episodes.length, 0)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="bg-muted p-3 rounded">
-                      <p className="text-muted-foreground">Seasons</p>
-                      <p className="text-2xl font-bold">{show.seasons.length}</p>
-                    </div>
-                    <div className="bg-muted p-3 rounded">
-                      <p className="text-muted-foreground">Episodes</p>
-                      <p className="text-2xl font-bold">
-                        {show.seasons.reduce(
-                          (acc, season) => acc + season.episodes.length,
-                          0
-                        )}
-                      </p>
-                    </div>
-                    <div className="bg-muted p-3 rounded">
-                      <p className="text-muted-foreground">Last Updated</p>
-                      <p className="text-xs truncate">
-                        {formatDateWithFormat(show.updatedAt, dateFormat)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {show.notes && (
-                    <p className="mt-4 text-sm text-muted-foreground line-clamp-2">
-                      {show.notes}
-                    </p>
-                  )}
                 </CardContent>
               </Card>
             </div>

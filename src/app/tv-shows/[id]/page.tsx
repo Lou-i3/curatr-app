@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { getStatusVariant } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
 import { formatDateWithFormat } from "@/lib/format";
+import { getPosterUrl } from "@/lib/tmdb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Star } from "lucide-react";
+import { TmdbActions } from "./tmdb-actions";
 
 export const dynamic = 'force-dynamic';
 
@@ -62,21 +64,68 @@ export default async function ShowDetailPage({ params }: Props) {
 
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold">{show.title}</h1>
-            {show.year && (
-              <p className="text-lg text-muted-foreground">{show.year}</p>
-            )}
-          </div>
-          <Badge variant={getStatusVariant(show.status)} className="text-sm">
-            {show.status}
-          </Badge>
-        </div>
+        <div className="flex gap-6">
+          {/* Poster */}
+          {show.posterPath ? (
+            <div className="w-32 h-48 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+              <img
+                src={getPosterUrl(show.posterPath, 'w185') || ''}
+                alt={show.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : null}
 
-        {show.notes && (
-          <p className="text-muted-foreground max-w-2xl">{show.notes}</p>
-        )}
+          {/* Info */}
+          <div className="flex-1">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h1 className="text-3xl font-bold">{show.title}</h1>
+                <div className="flex items-center gap-3 mt-1">
+                  {show.year && (
+                    <span className="text-lg text-muted-foreground">{show.year}</span>
+                  )}
+                  {show.voteAverage && (
+                    <span className="flex items-center gap-1 text-amber-500">
+                      <Star className="size-4 fill-current" />
+                      {show.voteAverage.toFixed(1)}
+                    </span>
+                  )}
+                  {show.networkStatus && (
+                    <Badge variant="outline">{show.networkStatus}</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <TmdbActions
+                  showId={show.id}
+                  showTitle={show.title}
+                  showYear={show.year}
+                  tmdbId={show.tmdbId}
+                />
+                <Badge variant={getStatusVariant(show.status)} className="text-sm">
+                  {show.status}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Genres */}
+            {show.genres && (
+              <div className="flex gap-2 mb-3">
+                {JSON.parse(show.genres).map((genre: string) => (
+                  <Badge key={genre} variant="secondary">{genre}</Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Description */}
+            {show.description ? (
+              <p className="text-muted-foreground max-w-2xl">{show.description}</p>
+            ) : show.notes ? (
+              <p className="text-muted-foreground max-w-2xl">{show.notes}</p>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {/* Stats */}
