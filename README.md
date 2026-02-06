@@ -24,10 +24,14 @@ A Next.js web application for tracking media file quality, playback compatibilit
   - Edit poster/backdrop paths directly in show dialog
   - Personal notes displayed with styled background
 - **TMDB Integration** - Enrich shows with posters, descriptions, ratings, and air dates from The Movie Database
-  - Dedicated TMDB section on show pages with match status, sync controls
+  - Dedicated TMDB section on show pages with match status, sync controls, and help dialog
   - Auto-match shows by title and year with confidence scoring
   - Manual search and match with TMDB ID display in results
-  - Bulk refresh metadata for all matched shows
+  - Library completeness tracking with progress bars for shows, seasons, and episodes
+  - Separated matching from syncing for better control over metadata operations
+  - Bulk actions: Auto-match unmatched, Refresh missing metadata, Refresh all
+  - Library overview with filterable show list (All/Unmatched/Needs Sync/Fully Synced)
+  - Import seasons & episodes from TMDB with selective import and status options
   - Graceful handling when TMDB is not configured
 - **Settings** - Configurable date format (EU/US/ISO) stored in database
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
@@ -116,7 +120,9 @@ src/
 │   │   └── page.tsx                # Settings page
 │   ├── integrations/
 │   │   ├── page.tsx                # Integrations hub
-│   │   └── tmdb/page.tsx           # TMDB integration config & status
+│   │   └── tmdb/
+│   │       ├── page.tsx            # TMDB integration config & status
+│   │       └── tmdb-integration-help-dialog.tsx # Help documentation
 │   ├── tv-shows/
 │   │   ├── page.tsx                # TV Shows list (grid/table)
 │   │   ├── toolbar.tsx             # Search, filter, view toggle
@@ -125,6 +131,7 @@ src/
 │   │       ├── page.tsx            # Show detail with expandable seasons
 │   │       ├── seasons-list.tsx    # Accordion seasons with episode tables
 │   │       ├── tmdb-section.tsx    # TMDB integration controls
+│   │       ├── tmdb-help-dialog.tsx # TMDB features help
 │   │       └── episodes/[episodeId]/ # Episode detail page
 │   └── api/
 │       ├── settings/route.ts       # Settings API
@@ -140,10 +147,13 @@ src/
 │       └── tmdb/                   # TMDB integration API
 │           ├── search/route.ts     # Search TMDB
 │           ├── match/route.ts      # Match show to TMDB
-│           ├── status/route.ts     # Integration status
+│           ├── status/route.ts     # Enhanced integration status
 │           ├── bulk-match/route.ts # Auto-match all unmatched
+│           ├── refresh-missing/route.ts # Sync shows needing metadata
 │           ├── bulk-refresh/route.ts # Refresh all metadata
-│           └── refresh/[showId]/   # Refresh single show
+│           ├── refresh/[showId]/   # Refresh single show
+│           ├── import-preview/[showId]/ # Preview import data
+│           └── import/route.ts     # Import seasons/episodes
 ├── lib/
 │   ├── prisma.ts                   # Prisma client
 │   ├── settings.ts                 # Settings utilities (server)
@@ -166,6 +176,7 @@ src/
 ├── components/
 │   ├── app-sidebar.tsx             # Collapsible navigation sidebar
 │   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
+│   ├── tmdb-import-dialog.tsx      # Import seasons/episodes from TMDB
 │   └── ui/                         # shadcn/ui components
 └── generated/
     └── prisma/                     # Generated Prisma types
@@ -221,11 +232,14 @@ prisma/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/tmdb/search?q=title&year=2020` | Search TMDB for shows |
-| `GET` | `/api/tmdb/status` | Get integration status (matched/unmatched counts) |
-| `POST` | `/api/tmdb/match` | Match a show to TMDB ID |
-| `POST` | `/api/tmdb/bulk-match` | Auto-match all unmatched shows |
-| `POST` | `/api/tmdb/bulk-refresh` | Refresh metadata for all matched shows |
+| `GET` | `/api/tmdb/status` | Get integration status (shows/seasons/episodes counts) |
+| `POST` | `/api/tmdb/match` | Match a show to TMDB ID (syncSeasons: false by default) |
+| `POST` | `/api/tmdb/bulk-match` | Auto-match all unmatched shows (match only, no season sync) |
+| `POST` | `/api/tmdb/refresh-missing` | Sync metadata for shows that need it |
+| `POST` | `/api/tmdb/bulk-refresh` | Refresh all metadata for all matched shows |
 | `POST` | `/api/tmdb/refresh/[showId]` | Refresh metadata for a single show |
+| `GET` | `/api/tmdb/import-preview/[showId]` | Preview seasons/episodes available for import |
+| `POST` | `/api/tmdb/import` | Import selected seasons/episodes from TMDB |
 
 ### Start Scan Request
 
