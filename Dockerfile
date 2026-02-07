@@ -22,15 +22,16 @@ RUN npx prisma generate
 # Build Next.js (standalone output)
 RUN npm run build
 
-# Prisma dependencies stage - install only what's needed for migrations
+# Prisma dependencies stage - install only what's needed for migrations and workers
 FROM node:22-alpine AS prisma-deps
 
 WORKDIR /prisma-deps
 
-# Create a minimal package.json for prisma CLI
-RUN echo '{"name":"prisma-deps","private":true,"dependencies":{"prisma":"7.3.0","dotenv":"16.4.7"}}' > package.json
+# Create a minimal package.json for prisma CLI and worker dependencies
+# Workers need @prisma/client and @prisma/adapter-better-sqlite3 at runtime
+RUN echo '{"name":"prisma-deps","private":true,"dependencies":{"prisma":"7.3.0","@prisma/client":"7.3.0","@prisma/adapter-better-sqlite3":"7.3.0","better-sqlite3":"11.9.1","dotenv":"16.4.7"}}' > package.json
 
-# Install prisma CLI and its dependencies
+# Install prisma CLI and worker dependencies
 RUN npm install --production && npm cache clean --force
 
 # Runtime stage - minimal image
@@ -65,6 +66,9 @@ COPY --from=prisma-deps /prisma-deps/node_modules ./node_modules
 
 # Copy package.json for version display
 COPY package.json ./
+
+# Copy worker script for background tasks
+COPY src/lib/tasks/task-worker.js ./task-worker.js
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./

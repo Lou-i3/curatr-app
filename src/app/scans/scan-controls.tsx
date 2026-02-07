@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScanHelpDialog } from './scan-help-dialog';
+import { useTasks } from '@/lib/contexts/task-context';
 
 interface ScanProgress {
   scanId: number;
@@ -22,15 +23,67 @@ interface ScanControlsProps {
 }
 
 export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
+  const { tasks, refresh: refreshTasks } = useTasks();
   const [isScanning, setIsScanning] = useState(false);
   const [scanId, setScanId] = useState<number | null>(null);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Track if we started the scan (vs observing existing one)
+  const startedByUsRef = useRef(false);
+
+  // Sync with task context for running scans
+  useEffect(() => {
+    const runningScan = tasks.find(
+      (t) => t.type === 'scan' && (t.status === 'running' || t.status === 'pending')
+    );
+
+    if (runningScan && runningScan.scanId) {
+      // There's a running scan - show its progress from task data
+      if (!isScanning) {
+        setIsScanning(true);
+        setScanId(runningScan.scanId);
+        // Only try SSE if we started the scan (otherwise just use task context data)
+        if (startedByUsRef.current) {
+          subscribeToProgress(runningScan.scanId);
+        }
+      }
+      // Always update progress from task data
+      setProgress({
+        scanId: runningScan.scanId,
+        phase: runningScan.phase || 'saving',
+        totalFiles: runningScan.total,
+        processedFiles: runningScan.processed,
+        currentFile: runningScan.currentItem,
+        errors: runningScan.errors.map((e) => ({
+          filepath: e.item,
+          error: e.error,
+          phase: 'saving',
+        })),
+      });
+    } else if (isScanning && !runningScan) {
+      // Scan completed - task context no longer has it as running
+      setIsScanning(false);
+      setProgress(null);
+      startedByUsRef.current = false;
+      // Reload to show updated scan history
+      window.location.reload();
+    }
+  }, [tasks, isScanning]);
+
+  // Cleanup event source on unmount
+  useEffect(() => {
+    return () => {
+      eventSourceRef.current?.close();
+    };
+  }, []);
 
   const startScan = async () => {
     setError(null);
     setIsScanning(true);
     setProgress(null);
+    startedByUsRef.current = true;
 
     try {
       const response = await fetch('/api/scan', {
@@ -47,16 +100,24 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
       const data = await response.json();
       setScanId(data.scanId);
 
+      // Refresh task context to show new task in sidebar
+      await refreshTasks();
+
       // Start listening for progress updates
       subscribeToProgress(data.scanId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start scan');
       setIsScanning(false);
+      startedByUsRef.current = false;
     }
   };
 
   const subscribeToProgress = (id: number) => {
+    // Close existing connection if any
+    eventSourceRef.current?.close();
+
     const eventSource = new EventSource(`/api/scan/${id}/progress`);
+    eventSourceRef.current = eventSource;
 
     eventSource.onmessage = (event) => {
       const data: ScanProgress = JSON.parse(event.data);
@@ -64,6 +125,7 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
 
       if (data.phase === 'complete') {
         eventSource.close();
+        eventSourceRef.current = null;
         setIsScanning(false);
         // Reload the page to show updated scan history
         window.location.reload();
@@ -72,6 +134,7 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
 
     eventSource.onerror = () => {
       eventSource.close();
+      eventSourceRef.current = null;
       // Poll for status instead
       pollStatus(id);
     };
@@ -106,6 +169,7 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
     }
   };
 
+  const isIndeterminate = progress?.phase === 'discovering' || progress?.phase === 'cleanup';
   const progressPercent = progress && progress.totalFiles > 0
     ? Math.round((progress.processedFiles / progress.totalFiles) * 100)
     : 0;
@@ -119,12 +183,26 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
       case 'saving':
         return 'Saving to database';
       case 'cleanup':
-        return 'Cleaning up';
+        return 'Cleaning up deleted files';
       case 'complete':
         return 'Complete';
       default:
         return phase.replace('_', ' ');
     }
+  };
+
+  const getProgressText = (): string => {
+    if (!progress) return '';
+    if (progress.phase === 'discovering') {
+      return 'Scanning directories...';
+    }
+    if (progress.phase === 'cleanup') {
+      return 'Checking for removed files...';
+    }
+    if (progress.totalFiles === 0) {
+      return 'Preparing...';
+    }
+    return `${progressPercent}% (${progress.processedFiles} / ${progress.totalFiles} files)`;
   };
 
   return (
@@ -152,13 +230,16 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
             <div className="flex items-center justify-between text-sm">
               <span>{getPhaseLabel(progress.phase)}...</span>
               <span className="font-medium">
-                {progressPercent}% ({progress.processedFiles} / {progress.totalFiles} files)
+                {getProgressText()}
               </span>
             </div>
 
-            <Progress value={progressPercent} className="h-2" />
+            <Progress
+              value={isIndeterminate ? undefined : progressPercent}
+              className={`h-2 ${isIndeterminate ? 'animate-pulse' : ''}`}
+            />
 
-            {progress.currentFile && (
+            {progress.currentFile && !isIndeterminate && (
               <p className="text-xs text-muted-foreground truncate">
                 {progress.currentFile}
               </p>

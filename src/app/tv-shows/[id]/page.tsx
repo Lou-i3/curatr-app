@@ -76,6 +76,17 @@ export default async function ShowDetailPage({ params }: Props) {
     0
   );
 
+  // Calculate TMDB sync stats
+  const syncStats = {
+    totalSeasons: show.seasons.length,
+    syncedSeasons: show.seasons.filter((s) => s.tmdbSeasonId !== null).length,
+    totalEpisodes,
+    syncedEpisodes: show.seasons.reduce(
+      (acc, season) => acc + season.episodes.filter((e) => e.tmdbEpisodeId !== null).length,
+      0
+    ),
+  };
+
   return (
     <div className="p-8">
       {/* Breadcrumb */}
@@ -195,6 +206,7 @@ export default async function ShowDetailPage({ params }: Props) {
           tmdbId={show.tmdbId}
           lastMetadataSync={show.lastMetadataSync}
           dateFormat={dateFormat}
+          syncStats={syncStats}
         />
       </div>
 

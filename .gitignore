@@ -41,6 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Compiled worker (built from TypeScript)
+/src/lib/tasks/task-worker.js
+
 # Prisma
 /src/generated/prisma
 

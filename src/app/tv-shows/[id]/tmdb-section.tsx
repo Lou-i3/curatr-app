@@ -22,6 +22,14 @@ import {
   Loader2,
 } from 'lucide-react';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
+import { useTasks } from '@/lib/contexts/task-context';
+
+interface SyncStats {
+  totalSeasons: number;
+  syncedSeasons: number;
+  totalEpisodes: number;
+  syncedEpisodes: number;
+}
 
 interface TmdbSectionProps {
   showId: number;
@@ -30,6 +38,7 @@ interface TmdbSectionProps {
   tmdbId?: number | null;
   lastMetadataSync?: Date | null;
   dateFormat: DateFormat;
+  syncStats?: SyncStats;
 }
 
 export function TmdbSection({
@@ -39,16 +48,41 @@ export function TmdbSection({
   tmdbId,
   lastMetadataSync,
   dateFormat,
+  syncStats,
 }: TmdbSectionProps) {
   const router = useRouter();
+  const { tasks, refresh: refreshTasks } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Check if there's a running/pending sync task for this show
+  const activeSyncTask = tasks.find(
+    (t) =>
+      (t.status === 'running' || t.status === 'pending') &&
+      t.title?.includes(showTitle) &&
+      t.type !== 'tmdb-import'
+  );
+  const isSyncActive = !!activeSyncTask;
+  const isSyncQueued = activeSyncTask?.status === 'pending';
+
+  // Check if there's a running/pending import task for this show
+  const activeImportTask = tasks.find(
+    (t) =>
+      (t.status === 'running' || t.status === 'pending') &&
+      t.type === 'tmdb-import' &&
+      t.title?.includes(showTitle)
+  );
+  const isImportActive = !!activeImportTask;
+  const isImportQueued = activeImportTask?.status === 'pending';
+
+  // Any task active for this show
+  const isTaskActive = isSyncActive || isImportActive;
 
   const handleMatch = () => {
     router.refresh();
   };
 
   const handleRefresh = async () => {
-    if (!tmdbId || refreshing) return;
+    if (!tmdbId || refreshing || isTaskActive) return;
 
     setRefreshing(true);
     try {
@@ -57,22 +91,16 @@ export function TmdbSection({
       });
       if (response.ok) {
         const data = await response.json();
-        // Task started in background - visible in sidebar
-        // Refresh page after a delay to show updated metadata
         if (data.taskId) {
-          setTimeout(() => {
-            router.refresh();
-            setRefreshing(false);
-          }, 2000);
-          return; // Don't set refreshing=false yet, wait for timeout
+          // Refresh task context to show new task
+          await refreshTasks();
         }
+        // Always refresh to show current state
         router.refresh();
-        setRefreshing(false);
-      } else {
-        setRefreshing(false);
       }
     } catch (error) {
       console.error('Failed to refresh metadata:', error);
+    } finally {
       setRefreshing(false);
     }
   };
@@ -117,63 +145,87 @@ export function TmdbSection({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         {isMatched ? (
-          <div className="flex items-center justify-between gap-4">
-            {/* Actions */}
-            <div className="flex flex-wrap gap-2">
-              {/* Sync Metadata */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={refreshing}
-              >
-                {refreshing ? (
-                  <Loader2 className="size-4 mr-1 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-4 mr-1" />
-                )}
-                Sync Metadata
-              </Button>
+          <>
+            {/* Sync Stats */}
+            {syncStats && (syncStats.totalSeasons > 0 || syncStats.totalEpisodes > 0) && (
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Seasons:</span>
+                  <span className={syncStats.syncedSeasons === syncStats.totalSeasons ? 'text-green-600' : 'text-amber-600'}>
+                    {syncStats.syncedSeasons}/{syncStats.totalSeasons} synced
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Episodes:</span>
+                  <span className={syncStats.syncedEpisodes === syncStats.totalEpisodes ? 'text-green-600' : 'text-amber-600'}>
+                    {syncStats.syncedEpisodes}/{syncStats.totalEpisodes} synced
+                  </span>
+                </div>
+              </div>
+            )}
 
-              {/* Fix Match */}
-              <TmdbMatchDialog
-                showId={showId}
-                showTitle={showTitle}
-                showYear={showYear}
-                currentTmdbId={tmdbId}
-                onMatch={handleMatch}
-                trigger={
-                  <Button variant="ghost" size="sm">
-                    <Link2 className="size-4 mr-1" />
-                    Fix Match
-                  </Button>
-                }
-              />
+            <div className="flex items-center justify-between gap-4">
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2">
+                {/* Sync Metadata */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={refreshing || isTaskActive}
+                >
+                  {(refreshing || isSyncActive) ? (
+                    <Loader2 className="size-4 mr-1 animate-spin" />
+                  ) : (
+                    <RefreshCw className="size-4 mr-1" />
+                  )}
+                  {isSyncQueued ? 'Queued...' : isSyncActive ? 'Syncing...' : 'Sync Metadata'}
+                </Button>
 
-              {/* Import Seasons & Episodes */}
-              <TmdbImportDialog
-                showId={showId}
-                showTitle={showTitle}
-                tmdbId={tmdbId}
-                onImport={handleMatch}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Download className="size-4 mr-1" />
-                    Import Seasons & Episodes
-                  </Button>
-                }
-              />
+                {/* Fix Match */}
+                <TmdbMatchDialog
+                  showId={showId}
+                  showTitle={showTitle}
+                  showYear={showYear}
+                  currentTmdbId={tmdbId}
+                  onMatch={handleMatch}
+                  trigger={
+                    <Button variant="ghost" size="sm">
+                      <Link2 className="size-4 mr-1" />
+                      Fix Match
+                    </Button>
+                  }
+                />
+
+                {/* Import Seasons & Episodes */}
+                <TmdbImportDialog
+                  showId={showId}
+                  showTitle={showTitle}
+                  tmdbId={tmdbId}
+                  onImport={handleMatch}
+                  trigger={
+                    <Button variant="outline" size="sm" disabled={isTaskActive}>
+                      {isImportActive ? (
+                        <Loader2 className="size-4 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="size-4 mr-1" />
+                      )}
+                      {isImportQueued ? 'Queued...' : isImportActive ? 'Importing...' : 'Import Seasons & Episodes'}
+                    </Button>
+                  }
+                />
+              </div>
+
+              {/* Last Sync */}
+              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                {lastMetadataSync
+                  ? `Last synced on ${formatDateTimeWithFormat(lastMetadataSync, dateFormat)}`
+                  : 'Never synced'}
+              </p>
             </div>
-
-            {/* Last Sync */}
-            <p className="text-xs text-muted-foreground whitespace-nowrap">
-              {lastMetadataSync
-                ? `Last synced on ${formatDateTimeWithFormat(lastMetadataSync, dateFormat)}`
-                : 'Never synced'}
-            </p>
-          </div>
+          </>
         ) : (
           <div className="flex items-center gap-2">
             {/* Match to TMDB */}

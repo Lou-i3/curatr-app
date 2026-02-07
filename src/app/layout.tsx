@@ -3,6 +3,8 @@ import { Nunito, Lora, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
+import { TaskProvider } from "@/lib/contexts/task-context";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -35,17 +37,20 @@ export default function RootLayout({
         className={`${nunito.variable} ${lora.variable} ${geistMono.variable} antialiased`}
       >
         <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
-              <SidebarTrigger />
-              <span className="font-semibold">Curatr App</span>
-            </header>
-            <main className="flex-1 p-4 md:p-6">
-              {children}
-            </main>
-          </SidebarInset>
+          <TaskProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
+                <SidebarTrigger />
+                <span className="font-semibold">Curatr App</span>
+              </header>
+              <main className="flex-1 p-4 md:p-6">
+                {children}
+              </main>
+            </SidebarInset>
+          </TaskProvider>
         </SidebarProvider>
+        <Toaster />
       </body>
     </html>
   );

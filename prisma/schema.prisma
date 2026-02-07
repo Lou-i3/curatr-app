@@ -9,6 +9,11 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+// Secondary generator for worker threads (JavaScript, default location)
+generator workerClient {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "sqlite"
 }
@@ -205,6 +210,6 @@ model ScanHistory {
 model Settings {
   id               Int      @id @default(1)
   dateFormat       String   @default("EU") // EU (DD/MM/YYYY), US (MM/DD/YYYY), ISO (YYYY-MM-DD)
-  maxParallelTasks Int      @default(5) // Maximum number of concurrent tasks
+  maxParallelTasks Int      @default(2) // Maximum number of concurrent tasks
   updatedAt        DateTime @updatedAt
 }

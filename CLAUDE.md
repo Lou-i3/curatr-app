@@ -112,6 +112,9 @@ When uncertain about implementation:
 - **Custom CSS**: Prefer for non-shadcn styling needs (in `globals.css` or CSS modules)
 - Check `src/components/ui/` for installed components; see [shadcn/ui docs](https://ui.shadcn.com/docs/components) for full list
 
+**Component Gotchas:**
+- **CollapsibleTrigger + SidebarMenuButton with tooltip**: Causes hydration errors due to complex nesting. Remove the `tooltip` prop from buttons inside `CollapsibleTrigger asChild`.
+
 ### UX Patterns
 - **Toast notifications**: Use for success/error feedback on user actions
 - **Loading indicators**: Show for any operation that takes > 200ms
@@ -185,9 +188,33 @@ Every feature interface should help users understand what's happening:
 ### Task System
 - Located in `src/lib/tasks/`
 - Unified system for all long-running operations (scans, TMDB operations)
-- Non-blocking with real-time SSE progress updates
+- **Worker threads** for TMDB operations (keeps main thread responsive)
 - Queue system with configurable max parallel tasks
+- Task retention: 1 hour (configurable via `TASK_RETENTION_MS`)
 - Task types: `scan`, `tmdb-bulk-match`, `tmdb-refresh-missing`, `tmdb-bulk-refresh`, `tmdb-import`
+
+**Critical: Global Singleton Pattern**
+
+Next.js can create different module instances for different API routes in dev mode. The task system uses `globalThis` with a Symbol key to share state across all routes:
+
+```typescript
+const STATE_KEY = Symbol.for('media-quality-tracker.taskState');
+
+function getGlobalState(): TaskGlobalState {
+  const g = globalThis as typeof globalThis & { [STATE_KEY]?: TaskGlobalState };
+  if (!g[STATE_KEY]) {
+    g[STATE_KEY] = { activeTasks: new Map(), /* ... */ };
+  }
+  return g[STATE_KEY];
+}
+
+export const activeTasks = getGlobalState().activeTasks;
+```
+
+**Worker Compilation:**
+- Source: `src/lib/tasks/task-worker.ts` (TypeScript)
+- Output: `src/lib/tasks/task-worker.js` (compiled, gitignored)
+- Build: `npm run build:worker` (uses esbuild, runs automatically with dev/build)
 
 ```typescript
 // Creating a background task
@@ -203,6 +230,20 @@ if (status === 'pending') {
   runTask().catch((err) => tracker.fail(err.message));
 }
 ```
+
+**Task Context (Client):**
+```typescript
+// Shared polling and toast notifications
+import { useTasks, useTaskCounts } from '@/lib/contexts/task-context';
+
+const { tasks, loading, refresh } = useTasks();
+const { running, pending, total } = useTaskCounts();
+```
+
+**Single-Show vs Bulk Tasks:**
+- Bulk tasks (auto-match, refresh-missing, bulk-refresh) have NO custom title
+- Single-show tasks have a custom title like `"TMDB Refresh: Show Name"`
+- Use `t.title` to differentiate in UI (null = bulk, has value = single-show)
 
 ### API Routes
 - RESTful conventions

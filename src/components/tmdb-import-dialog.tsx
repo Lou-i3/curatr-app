@@ -38,6 +38,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useTasks } from '@/lib/contexts/task-context';
 import type {
   ImportPreviewResponse,
   ImportPreviewSeason,
@@ -76,6 +77,7 @@ export function TmdbImportDialog({
   onImport,
 }: TmdbImportDialogProps) {
   const router = useRouter();
+  const { refresh: refreshTasks } = useTasks();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -387,6 +389,8 @@ export function TmdbImportDialog({
       setOpen(false);
       setImporting(false);
       if (result.taskId) {
+        // Refresh task context to show new task in sidebar
+        await refreshTasks();
         // Refresh after a delay to show imported data
         setTimeout(() => {
           onImport?.();

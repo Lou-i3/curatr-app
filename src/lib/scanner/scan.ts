@@ -31,6 +31,7 @@ import {
   activeScanners,
   removeProgressTracker,
 } from './progress';
+import { ensureSettingsLoaded } from '@/lib/tasks';
 
 /** Track cancelled scans */
 const cancelledScans = new Set<number>();
@@ -58,6 +59,9 @@ export interface StartScanResult {
  * @returns Scan ID and Task ID for tracking progress
  */
 export async function startScan(options: ScanOptions = {}): Promise<StartScanResult> {
+  // Ensure task queue settings are loaded from DB
+  await ensureSettingsLoaded();
+
   // Validate configuration
   const config = getConfig();
 

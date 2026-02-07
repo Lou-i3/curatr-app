@@ -4,7 +4,7 @@ PRAGMA foreign_keys=OFF;
 CREATE TABLE "new_Settings" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT DEFAULT 1,
     "dateFormat" TEXT NOT NULL DEFAULT 'EU',
-    "maxParallelTasks" INTEGER NOT NULL DEFAULT 5,
+    "maxParallelTasks" INTEGER NOT NULL DEFAULT 2,
     "updatedAt" DATETIME NOT NULL
 );
 INSERT INTO "new_Settings" ("dateFormat", "id", "updatedAt") SELECT "dateFormat", "id", "updatedAt" FROM "Settings";

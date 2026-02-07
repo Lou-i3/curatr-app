@@ -4,33 +4,18 @@
  * Tasks page - View and manage running background tasks
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshCw, Loader2, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
+import { useTasks, type TaskData } from '@/lib/contexts/task-context';
 
-interface TaskProgress {
-  taskId: string;
-  type: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  total: number;
-  processed: number;
-  succeeded: number;
-  failed: number;
-  currentItem?: string;
-  errors: Array<{ item: string; error: string }>;
-  startedAt: string;
-  completedAt?: string;
-  // Scan-specific
-  phase?: string;
-  scanId?: number;
-  filesAdded?: number;
-  filesUpdated?: number;
-  filesDeleted?: number;
-}
+// Re-use TaskData from context
+type TaskProgress = TaskData;
 
 const TASK_TYPE_LABELS: Record<string, string> = {
   'scan': 'Library Scan',
@@ -55,7 +40,7 @@ function getStatusBadge(status: TaskProgress['status']) {
       );
     case 'pending':
       return (
-        <Badge variant="secondary">
+        <Badge className="bg-amber-500 text-white">
           <Clock className="size-3 mr-1" />
           Queued
         </Badge>
@@ -85,39 +70,33 @@ function getStatusBadge(status: TaskProgress['status']) {
 }
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<TaskProgress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { tasks, loading, refresh } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
 
-  const fetchTasks = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    try {
-      const response = await fetch('/api/tasks');
-      if (response.ok) {
-        const data = await response.json();
-        setTasks(data.tasks || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch tasks:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
+  // Refresh tasks immediately when page loads and fetch settings
   useEffect(() => {
-    fetchTasks();
-    // Poll every 2 seconds for updates
-    const interval = setInterval(() => fetchTasks(), 2000);
-    return () => clearInterval(interval);
-  }, [fetchTasks]);
+    refresh();
+    fetch('/api/settings')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.dateFormat) setDateFormat(data.dateFormat);
+      })
+      .catch(() => {});
+  }, [refresh]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
 
   const handleCancel = async (taskId: string) => {
     setCancellingId(taskId);
     try {
       await fetch(`/api/tasks/${taskId}/cancel`, { method: 'POST' });
-      await fetchTasks(true);
+      await refresh();
     } catch (error) {
       console.error('Failed to cancel task:', error);
     } finally {
@@ -157,7 +136,7 @@ export default function TasksPage() {
           <h1 className="text-2xl font-semibold">Tasks</h1>
           <p className="text-muted-foreground">View and manage background tasks</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => fetchTasks(true)} disabled={refreshing}>
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
           {refreshing ? (
             <Loader2 className="size-4 mr-2 animate-spin" />
           ) : (
@@ -189,6 +168,7 @@ export default function TasksPage() {
                 <TaskCard
                   key={task.taskId}
                   task={task}
+                  dateFormat={dateFormat}
                   onCancel={() => handleCancel(task.taskId)}
                   cancelling={cancellingId === task.taskId}
                 />
@@ -211,7 +191,7 @@ export default function TasksPage() {
           <CardContent>
             <div className="space-y-4">
               {completedTasks.map((task) => (
-                <TaskCard key={task.taskId} task={task} />
+                <TaskCard key={task.taskId} task={task} dateFormat={dateFormat} />
               ))}
             </div>
           </CardContent>
@@ -223,11 +203,12 @@ export default function TasksPage() {
 
 interface TaskCardProps {
   task: TaskProgress;
+  dateFormat: DateFormat;
   onCancel?: () => void;
   cancelling?: boolean;
 }
 
-function TaskCard({ task, onCancel, cancelling }: TaskCardProps) {
+function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
   const percent = task.total > 0 ? Math.round((task.processed / task.total) * 100) : 0;
   const isActive = task.status === 'running' || task.status === 'pending';
 
@@ -236,7 +217,7 @@ function TaskCard({ task, onCancel, cancelling }: TaskCardProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="font-medium">{getTaskLabel(task.type)}</span>
+          <span className="font-medium">{task.title || getTaskLabel(task.type)}</span>
           {getStatusBadge(task.status)}
         </div>
         {isActive && onCancel && (
@@ -337,9 +318,9 @@ function TaskCard({ task, onCancel, cancelling }: TaskCardProps) {
 
       {/* Timestamps */}
       <div className="text-xs text-muted-foreground">
-        Started: {new Date(task.startedAt).toLocaleString()}
+        Started: {formatDateTimeWithFormat(new Date(task.startedAt), dateFormat)}
         {task.completedAt && (
-          <> · Finished: {new Date(task.completedAt).toLocaleString()}</>
+          <> · Finished: {formatDateTimeWithFormat(new Date(task.completedAt), dateFormat)}</>
         )}
       </div>
     </div>

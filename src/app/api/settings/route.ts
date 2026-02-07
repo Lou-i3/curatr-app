@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { setMaxParallelTasks } from '@/lib/tasks';
 
 const VALID_DATE_FORMATS = ['EU', 'US', 'ISO'];
 
@@ -11,6 +12,9 @@ export async function GET() {
       update: {},
       create: { id: 1 },
     });
+
+    // Sync in-memory task queue limit (ensures it's loaded from DB on first access)
+    setMaxParallelTasks(settings.maxParallelTasks);
 
     return NextResponse.json(settings);
   } catch (error) {
@@ -55,6 +59,11 @@ export async function PATCH(request: NextRequest) {
       update: updateData,
       create: { id: 1, ...updateData },
     });
+
+    // Sync in-memory task queue limit
+    if (updateData.maxParallelTasks !== undefined) {
+      setMaxParallelTasks(updateData.maxParallelTasks);
+    }
 
     return NextResponse.json(settings);
   } catch (error) {

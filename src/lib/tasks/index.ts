@@ -5,6 +5,30 @@
  * Tasks run in separate worker threads to avoid blocking the main event loop.
  */
 
+import { prisma } from '@/lib/prisma';
+import { setMaxParallelTasks, isSettingsLoaded } from './progress';
+
+/**
+ * Ensure max parallel tasks setting is loaded from database
+ * Call this before creating tasks to ensure the correct limit is used
+ */
+export async function ensureSettingsLoaded(): Promise<void> {
+  if (isSettingsLoaded()) return;
+
+  try {
+    const settings = await prisma.settings.findUnique({
+      where: { id: 1 },
+      select: { maxParallelTasks: true },
+    });
+
+    if (settings) {
+      setMaxParallelTasks(settings.maxParallelTasks);
+    }
+  } catch {
+    // Silently fail - will use default value
+  }
+}
+
 // Types
 export type {
   TaskType,
@@ -38,6 +62,7 @@ export {
   scheduleCleanup,
   setMaxParallelTasks,
   getMaxParallelTasks,
+  isSettingsLoaded,
   canRunImmediately,
   queueTaskRun,
 } from './progress';

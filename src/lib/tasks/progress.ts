@@ -128,27 +128,67 @@ export class TaskProgressTracker<T extends BaseTaskProgress = BaseTaskProgress> 
   }
 }
 
-/** Global registry of active tasks */
-export const activeTasks = new Map<string, TaskProgressTracker<BaseTaskProgress>>();
-
-/** Set of cancelled task IDs */
-const cancelledTasks = new Set<string>();
-
-/** Queue of pending tasks waiting to run */
+/** Queue item type */
 interface QueuedTask {
   taskId: string;
   run: () => Promise<void>;
 }
-const taskQueue: QueuedTask[] = [];
 
-/** Current max parallel tasks setting */
-let maxParallelTasks = DEFAULT_MAX_PARALLEL_TASKS;
+/** Global state interface for task system */
+interface TaskGlobalState {
+  activeTasks: Map<string, TaskProgressTracker<BaseTaskProgress>>;
+  cancelledTasks: Set<string>;
+  taskQueue: QueuedTask[];
+  maxParallelTasks: number;
+  settingsLoaded: boolean;
+}
+
+/** Symbol key for global state to avoid collisions */
+const TASK_STATE_KEY = Symbol.for('media-quality-tracker.taskState');
+
+/** Get or create the global task state (survives module reloads) */
+function getGlobalState(): TaskGlobalState {
+  const globalObj = globalThis as typeof globalThis & { [TASK_STATE_KEY]?: TaskGlobalState };
+
+  if (!globalObj[TASK_STATE_KEY]) {
+    globalObj[TASK_STATE_KEY] = {
+      activeTasks: new Map<string, TaskProgressTracker<BaseTaskProgress>>(),
+      cancelledTasks: new Set<string>(),
+      taskQueue: [],
+      maxParallelTasks: DEFAULT_MAX_PARALLEL_TASKS,
+      settingsLoaded: false,
+    };
+  }
+
+  return globalObj[TASK_STATE_KEY];
+}
+
+/** Global registry of active tasks (singleton across module reloads) */
+export const activeTasks = getGlobalState().activeTasks;
+
+/** Set of cancelled task IDs */
+const cancelledTasks = getGlobalState().cancelledTasks;
+
+/** Queue of pending tasks waiting to run */
+const taskQueue = getGlobalState().taskQueue;
+
+/** Get max parallel tasks from global state */
+function getMaxParallelTasksValue(): number {
+  return getGlobalState().maxParallelTasks;
+}
+
+/** Get settings loaded flag from global state */
+function getSettingsLoadedValue(): boolean {
+  return getGlobalState().settingsLoaded;
+}
 
 /**
  * Update the max parallel tasks setting
  */
 export function setMaxParallelTasks(max: number): void {
-  maxParallelTasks = Math.max(1, Math.min(10, max));
+  const state = getGlobalState();
+  state.maxParallelTasks = Math.max(1, Math.min(10, max));
+  state.settingsLoaded = true;
   // Try to start queued tasks if we increased the limit
   processQueue();
 }
@@ -157,7 +197,14 @@ export function setMaxParallelTasks(max: number): void {
  * Get current max parallel tasks setting
  */
 export function getMaxParallelTasks(): number {
-  return maxParallelTasks;
+  return getMaxParallelTasksValue();
+}
+
+/**
+ * Check if settings have been loaded from DB
+ */
+export function isSettingsLoaded(): boolean {
+  return getSettingsLoadedValue();
 }
 
 /**
@@ -177,7 +224,7 @@ function getRunningTaskCount(): number {
  * Process the queue - start tasks if slots are available
  */
 function processQueue(): void {
-  while (taskQueue.length > 0 && getRunningTaskCount() < maxParallelTasks) {
+  while (taskQueue.length > 0 && getRunningTaskCount() < getMaxParallelTasksValue()) {
     const next = taskQueue.shift()!;
     const tracker = activeTasks.get(next.taskId);
     if (tracker && tracker.getProgress().status === 'pending') {
@@ -200,16 +247,19 @@ function onTaskComplete(taskId: string): void {
 /**
  * Create and queue a TMDB task
  * Returns the tracker immediately; task starts when a slot is available
+ * @param title - Optional custom title for display (e.g., "Sync: Arrow")
  */
 export function createTmdbTask(
   type: 'tmdb-bulk-match' | 'tmdb-refresh-missing' | 'tmdb-bulk-refresh' | 'tmdb-import',
+  title?: string,
   runFn?: () => Promise<void>
 ): TaskProgressTracker<TmdbTaskProgress> {
-  const canRunNow = getRunningTaskCount() < maxParallelTasks;
+  const canRunNow = getRunningTaskCount() < getMaxParallelTasksValue();
 
   const progress: TmdbTaskProgress = {
     taskId: randomUUID(),
     type,
+    title,
     status: canRunNow ? 'running' : 'pending',
     total: 0,
     processed: 0,
@@ -248,14 +298,14 @@ export function queueTaskRun(taskId: string, runFn: () => Promise<void>): void {
  * Check if a task can run immediately
  */
 export function canRunImmediately(): boolean {
-  return getRunningTaskCount() < maxParallelTasks;
+  return getRunningTaskCount() < getMaxParallelTasksValue();
 }
 
 /**
  * Create a new scan task
  */
 export function createScanTask(scanId: number): TaskProgressTracker<ScanTaskProgress> {
-  const canRunNow = getRunningTaskCount() < maxParallelTasks;
+  const canRunNow = getRunningTaskCount() < getMaxParallelTasksValue();
 
   const progress: ScanTaskProgress = {
     taskId: randomUUID(),
@@ -375,10 +425,15 @@ export function getTaskCounts(): { running: number; pending: number; total: numb
 export const yieldToEventLoop = (): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, 0));
 
+/** Default task retention: 1 hour */
+const DEFAULT_TASK_RETENTION_MS = 3600000;
+
 /**
  * Schedule task cleanup after completion
- * Keeps task in memory for a short time to allow final status fetch
+ * Keeps task in memory to allow status fetch and review
+ * Default: 1 hour, configurable via TASK_RETENTION_MS env var
  */
-export function scheduleCleanup(taskId: string, delayMs = 60000): void {
-  setTimeout(() => removeTask(taskId), delayMs);
+export function scheduleCleanup(taskId: string, delayMs?: number): void {
+  const delay = delayMs ?? (parseInt(process.env.TASK_RETENTION_MS || '') || DEFAULT_TASK_RETENTION_MS);
+  setTimeout(() => removeTask(taskId), delay);
 }

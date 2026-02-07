@@ -31,6 +31,7 @@ export interface TaskError {
 export interface BaseTaskProgress {
   taskId: string;
   type: TaskType;
+  title?: string; // Custom title for display (e.g., "Sync: Arrow")
   status: TaskStatus;
   total: number;
   processed: number;
@@ -73,6 +74,7 @@ export type TaskProgress = ScanTaskProgress | TmdbTaskProgress;
 export interface SerializedTaskProgress {
   taskId: string;
   type: TaskType;
+  title?: string;
   status: TaskStatus;
   total: number;
   processed: number;
@@ -98,6 +100,7 @@ export function serializeProgress(progress: BaseTaskProgress): SerializedTaskPro
   const base: SerializedTaskProgress = {
     taskId: progress.taskId,
     type: progress.type,
+    title: progress.title,
     status: progress.status,
     total: progress.total,
     processed: progress.processed,

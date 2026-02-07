@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { isTmdbConfigured, getShowsNeedingSync } from '@/lib/tmdb';
 import { TMDB_CONFIG } from '@/lib/tmdb/config';
-import { createTmdbTask, runInWorker } from '@/lib/tasks';
+import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
 
 export async function POST() {
   if (!isTmdbConfigured()) {
@@ -19,6 +19,9 @@ export async function POST() {
   }
 
   try {
+    // Ensure task queue settings are loaded from DB
+    await ensureSettingsLoaded();
+
     const showsNeedingSync = await getShowsNeedingSync();
 
     if (showsNeedingSync.length === 0) {

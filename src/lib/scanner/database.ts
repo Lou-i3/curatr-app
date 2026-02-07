@@ -232,15 +232,20 @@ export async function markMissingFilesAsDeleted(
     return 0;
   }
 
-  // Batch update - just mark as not existing, quality status computed at episode level
-  const result = await prisma.episodeFile.updateMany({
-    where: { id: { in: missingIds } },
-    data: {
-      fileExists: false,
-    },
-  });
+  // Batch update to avoid SQLite parameter limit (max ~999 params per query)
+  const BATCH_SIZE = 500;
+  let totalUpdated = 0;
 
-  return result.count;
+  for (let i = 0; i < missingIds.length; i += BATCH_SIZE) {
+    const batch = missingIds.slice(i, i + BATCH_SIZE);
+    const result = await prisma.episodeFile.updateMany({
+      where: { id: { in: batch } },
+      data: { fileExists: false },
+    });
+    totalUpdated += result.count;
+  }
+
+  return totalUpdated;
 }
 
 /**

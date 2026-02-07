@@ -26,24 +26,44 @@ export async function GET(request: NextRequest, { params }: Params) {
 
   const stream = new ReadableStream({
     start(controller) {
+      // Track unsubscribe function
+      let unsubscribeFn: (() => void) | null = null;
+      let closed = false;
+
+      const cleanup = () => {
+        if (closed) return;
+        closed = true;
+        unsubscribeFn?.();
+        try {
+          controller.close();
+        } catch {
+          // Controller may already be closed
+        }
+      };
+
       // Subscribe to progress updates
-      const unsubscribe = tracker.subscribe((progress) => {
+      unsubscribeFn = tracker.subscribe((progress) => {
+        if (closed) return;
+
         const serialized = serializeProgress(progress);
         const data = `data: ${JSON.stringify(serialized)}\n\n`;
-        controller.enqueue(encoder.encode(data));
 
-        // Close stream when task is no longer running
-        if (progress.status !== 'running') {
-          unsubscribe();
-          controller.close();
+        try {
+          controller.enqueue(encoder.encode(data));
+        } catch {
+          // Controller may be closed
+          cleanup();
+          return;
+        }
+
+        // Close stream when task is complete (not just not-running, since pending is valid)
+        if (progress.status === 'completed' || progress.status === 'failed' || progress.status === 'cancelled') {
+          cleanup();
         }
       });
 
       // Clean up on client disconnect
-      request.signal.addEventListener('abort', () => {
-        unsubscribe();
-        controller.close();
-      });
+      request.signal.addEventListener('abort', cleanup);
     },
   });
 

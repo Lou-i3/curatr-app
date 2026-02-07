@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { TMDB_CONFIG } from '@/lib/tmdb/config';
-import { createTmdbTask, runInWorker } from '@/lib/tasks';
+import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
 
 export async function POST() {
   if (!TMDB_CONFIG.apiKey) {
@@ -18,6 +18,9 @@ export async function POST() {
   }
 
   try {
+    // Ensure task queue settings are loaded from DB
+    await ensureSettingsLoaded();
+
     // Get all matched shows
     const matchedShows = await prisma.tVShow.findMany({
       where: { tmdbId: { not: null } },

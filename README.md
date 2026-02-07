@@ -34,12 +34,13 @@ A Next.js web application for tracking media file quality, playback compatibilit
   - Import seasons & episodes from TMDB with selective import and status options
   - Graceful handling when TMDB is not configured
 - **Background Task System** - Non-blocking operations with real-time progress
-  - Tasks run in background without freezing UI
-  - Real-time SSE progress updates
+  - Tasks run in worker threads (TMDB operations) to keep UI responsive
+  - Real-time SSE progress updates with toast notifications on completion
   - Cancel running tasks anytime
   - Queue system with configurable max parallel tasks (1-10)
-  - Sidebar indicator shows running task count and progress
+  - Sidebar indicator shows running task count
   - Dedicated /tasks page for task management
+  - 1-hour task retention for review after completion
 - **Settings** - Configurable date format (EU/US/ISO) and max parallel tasks
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **Dark Mode** - Full dark mode UI with system preference support
@@ -85,6 +86,7 @@ docker compose up --build
 | `PGID` | No | `1000` | Group ID for file permissions |
 | `FFPROBE_PATH` | No | `/usr/bin/ffprobe` | Path to ffprobe binary |
 | `SCAN_CONCURRENCY` | No | `4` | Parallel ffprobe processes |
+| `TASK_RETENTION_MS` | No | `3600000` | Task retention time in ms (1 hour) |
 
 *At least one of `TV_SHOWS_PATH` or `MOVIES_PATH` is required.
 
@@ -179,7 +181,12 @@ src/
 │   ├── tasks/                      # Background task system
 │   │   ├── types.ts                # Task types and interfaces
 │   │   ├── progress.ts             # Task tracker and queue
+│   │   ├── worker-manager.ts       # Worker thread spawning
+│   │   ├── task-worker.ts          # Worker source (TypeScript)
+│   │   ├── task-worker.js          # Worker compiled (gitignored)
 │   │   └── index.ts                # Barrel export
+│   ├── contexts/
+│   │   └── task-context.tsx        # Task state & notifications (client)
 │   └── tmdb/                       # TMDB integration service
 │       ├── config.ts               # API configuration
 │       ├── types.ts                # TMDB API types
@@ -387,8 +394,9 @@ All status badges are clickable and open dropdowns to change values:
 ## Development Commands
 
 ```bash
-npm run dev          # Start dev server
-npm run build        # Production build
+npm run dev          # Start dev server (compiles worker automatically)
+npm run build        # Production build (compiles worker automatically)
+npm run build:worker # Compile TypeScript worker to JS (esbuild)
 npm start            # Start production server
 
 npx prisma studio    # Open DB viewer

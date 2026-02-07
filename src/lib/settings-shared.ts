@@ -12,7 +12,7 @@ export interface AppSettings {
 }
 
 /** Default max parallel tasks */
-export const DEFAULT_MAX_PARALLEL_TASKS = 5;
+export const DEFAULT_MAX_PARALLEL_TASKS = 2;
 
 /**
  * Format a date according to the specified format

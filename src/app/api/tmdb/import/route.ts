@@ -8,10 +8,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { ImportRequest } from '@/lib/tmdb/types';
-import { createTmdbTask, runInWorker } from '@/lib/tasks';
+import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
 
 export async function POST(request: Request) {
   try {
+    // Ensure task queue settings are loaded from DB
+    await ensureSettingsLoaded();
+
     const body: ImportRequest = await request.json();
     const { showId, items } = body;
 
@@ -43,8 +46,8 @@ export async function POST(request: Request) {
       });
     }
 
-    // Create task tracker
-    const tracker = createTmdbTask('tmdb-import');
+    // Create task tracker with custom title for the specific show
+    const tracker = createTmdbTask('tmdb-import', `Import: ${show.title}`);
     tracker.setTotal(totalEpisodes);
 
     // Run task in a separate worker thread

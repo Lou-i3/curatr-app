@@ -6,11 +6,8 @@
  */
 
 import { Worker } from 'worker_threads';
-import { resolve, isAbsolute } from 'path';
-import {
-  TaskProgressTracker,
-  scheduleCleanup,
-} from './progress';
+import { resolve, isAbsolute, join } from 'path';
+import { TaskProgressTracker, scheduleCleanup, queueTaskRun } from './progress';
 import type { TmdbTaskProgress } from './types';
 
 // Worker message types
@@ -45,11 +42,9 @@ const activeWorkers = new Map<string, Worker>();
  * Converts relative file paths to absolute paths
  */
 function normalizeDatabaseUrl(url: string): string {
-  // Handle file: URLs for SQLite
   if (url.startsWith('file:')) {
     const path = url.substring(5);
     if (!isAbsolute(path)) {
-      // Convert relative path to absolute
       return `file:${resolve(process.cwd(), path)}`;
     }
   }
@@ -57,480 +52,59 @@ function normalizeDatabaseUrl(url: string): string {
 }
 
 /**
- * Create inline worker code from the task worker module
- * This is a workaround for Next.js bundling issues with worker_threads
+ * Get the path to the worker script
+ * Works in both development and Docker standalone mode
  */
-function createInlineWorkerCode(): string {
-  // This inline worker code is self-contained and doesn't need external imports
-  // It receives database URL and task data via workerData
-  return `
-const { parentPort, workerData } = require('worker_threads');
-const { PrismaClient } = require('@prisma/client');
+function getWorkerPath(): string {
+  // In development: src/lib/tasks/task-worker.js
+  // In Docker: copied to /app/task-worker.js
+  const devPath = join(process.cwd(), 'src/lib/tasks/task-worker.js');
+  const prodPath = join(process.cwd(), 'task-worker.js');
 
-// Create Prisma client with the provided database URL
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: workerData.databaseUrl,
-    },
-  },
-});
-
-// Send message to main thread
-function sendProgress(msg) {
-  parentPort?.postMessage(msg);
+  // Check if we're in production (Docker) - the file will be at root
+  // In dev, use the src path
+  return process.env.NODE_ENV === 'production' ? prodPath : devPath;
 }
 
-// TMDB API helpers
-const TMDB_API_BASE = 'https://api.themoviedb.org/3';
-
-async function tmdbFetch(endpoint, apiKey) {
-  const response = await fetch(TMDB_API_BASE + endpoint, {
-    headers: {
-      Authorization: 'Bearer ' + apiKey,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('TMDB API error: ' + response.status);
-  }
-
-  return response.json();
-}
-
-async function autoMatchShow(title, year, apiKey) {
-  const query = encodeURIComponent(title);
-  const yearParam = year ? '&first_air_date_year=' + year : '';
-
-  const response = await tmdbFetch('/search/tv?query=' + query + yearParam, apiKey);
-
-  if (!response.results || response.results.length === 0) {
-    return null;
-  }
-
-  const normalizedTitle = title.toLowerCase().trim();
-
-  for (const result of response.results) {
-    const resultTitle = result.name.toLowerCase().trim();
-    const resultYear = result.first_air_date?.substring(0, 4);
-
-    if (resultTitle === normalizedTitle) {
-      if (!year || resultYear === String(year)) {
-        return { tmdbId: result.id, confidence: 1.0 };
-      }
-      return { tmdbId: result.id, confidence: 0.9 };
-    }
-  }
-
-  const firstResult = response.results[0];
-  const firstTitle = firstResult.name.toLowerCase().trim();
-
-  if (firstTitle.includes(normalizedTitle) || normalizedTitle.includes(firstTitle)) {
-    return { tmdbId: firstResult.id, confidence: 0.7 };
-  }
-
-  return null;
-}
-
-async function matchShow(showId, tmdbId, apiKey, syncSeasons = false) {
-  const details = await tmdbFetch('/tv/' + tmdbId, apiKey);
-
-  await prisma.tVShow.update({
-    where: { id: showId },
-    data: {
-      tmdbId: details.id,
-      posterPath: details.poster_path,
-      backdropPath: details.backdrop_path,
-      description: details.overview,
-      voteAverage: details.vote_average,
-      airDate: details.first_air_date ? new Date(details.first_air_date) : null,
-      tmdbStatus: details.status,
-      tmdbSeasonCount: details.number_of_seasons,
-      tmdbEpisodeCount: details.number_of_episodes,
-    },
-  });
-
-  if (syncSeasons && details.seasons) {
-    await syncShowSeasons(showId, tmdbId, apiKey);
-  }
-}
-
-async function syncShowSeasons(showId, tmdbId, apiKey) {
-  const details = await tmdbFetch('/tv/' + tmdbId, apiKey);
-
-  if (!details.seasons) return;
-
-  for (const tmdbSeason of details.seasons) {
-    const seasonDetails = await tmdbFetch('/tv/' + tmdbId + '/season/' + tmdbSeason.season_number, apiKey);
-
-    const season = await prisma.season.upsert({
-      where: {
-        tvShowId_seasonNumber: {
-          tvShowId: showId,
-          seasonNumber: tmdbSeason.season_number,
-        },
-      },
-      create: {
-        tvShowId: showId,
-        seasonNumber: tmdbSeason.season_number,
-        name: tmdbSeason.name,
-        tmdbSeasonId: tmdbSeason.id,
-        posterPath: tmdbSeason.poster_path,
-        description: tmdbSeason.overview,
-        airDate: tmdbSeason.air_date ? new Date(tmdbSeason.air_date) : null,
-      },
-      update: {
-        name: tmdbSeason.name,
-        tmdbSeasonId: tmdbSeason.id,
-        posterPath: tmdbSeason.poster_path,
-        description: tmdbSeason.overview,
-        airDate: tmdbSeason.air_date ? new Date(tmdbSeason.air_date) : null,
-      },
-    });
-
-    for (const tmdbEpisode of seasonDetails.episodes) {
-      await prisma.episode.upsert({
-        where: {
-          seasonId_episodeNumber: {
-            seasonId: season.id,
-            episodeNumber: tmdbEpisode.episode_number,
-          },
-        },
-        create: {
-          seasonId: season.id,
-          episodeNumber: tmdbEpisode.episode_number,
-          title: tmdbEpisode.name,
-          tmdbEpisodeId: tmdbEpisode.id,
-          stillPath: tmdbEpisode.still_path,
-          description: tmdbEpisode.overview,
-          airDate: tmdbEpisode.air_date ? new Date(tmdbEpisode.air_date) : null,
-          runtime: tmdbEpisode.runtime,
-          voteAverage: tmdbEpisode.vote_average,
-        },
-        update: {
-          title: tmdbEpisode.name,
-          tmdbEpisodeId: tmdbEpisode.id,
-          stillPath: tmdbEpisode.still_path,
-          description: tmdbEpisode.overview,
-          airDate: tmdbEpisode.air_date ? new Date(tmdbEpisode.air_date) : null,
-          runtime: tmdbEpisode.runtime,
-          voteAverage: tmdbEpisode.vote_average,
-        },
-      });
-    }
-
-    await new Promise(r => setTimeout(r, 250));
-  }
-}
-
-async function refreshShowMetadata(showId, apiKey) {
-  const show = await prisma.tVShow.findUnique({
-    where: { id: showId },
-    select: { tmdbId: true },
-  });
-
-  if (!show?.tmdbId) {
-    throw new Error('Show is not matched to TMDB');
-  }
-
-  const details = await tmdbFetch('/tv/' + show.tmdbId, apiKey);
-
-  await prisma.tVShow.update({
-    where: { id: showId },
-    data: {
-      posterPath: details.poster_path,
-      backdropPath: details.backdrop_path,
-      description: details.overview,
-      voteAverage: details.vote_average,
-      airDate: details.first_air_date ? new Date(details.first_air_date) : null,
-      tmdbStatus: details.status,
-      tmdbSeasonCount: details.number_of_seasons,
-      tmdbEpisodeCount: details.number_of_episodes,
-    },
-  });
-
-  await syncShowSeasons(showId, show.tmdbId, apiKey);
-}
-
-// Task runners
-async function runBulkMatch(taskId, data) {
-  const { apiKey, shows } = data;
-  const errors = [];
-  let succeeded = 0;
-  let failed = 0;
-
-  for (let i = 0; i < shows.length; i++) {
-    const show = shows[i];
-
-    try {
-      const match = await autoMatchShow(show.title, show.year, apiKey);
-
-      if (match && match.confidence >= 0.7) {
-        await matchShow(show.id, match.tmdbId, apiKey, false);
-        succeeded++;
-      } else {
-        failed++;
-        errors.push({ item: show.title, error: 'No confident match found' });
-      }
-    } catch (error) {
-      failed++;
-      errors.push({ item: show.title, error: error.message || 'Unknown error' });
-    }
-
-    sendProgress({
-      type: 'progress',
-      taskId,
-      processed: i + 1,
-      succeeded,
-      failed,
-      currentItem: show.title,
-      errors,
-    });
-
-    await new Promise(r => setTimeout(r, 250));
-  }
-
-  sendProgress({ type: 'complete', taskId });
-}
-
-async function runBulkRefresh(taskId, data) {
-  const { apiKey, shows } = data;
-  const errors = [];
-  let succeeded = 0;
-  let failed = 0;
-
-  for (let i = 0; i < shows.length; i++) {
-    const show = shows[i];
-
-    try {
-      await refreshShowMetadata(show.id, apiKey);
-      succeeded++;
-    } catch (error) {
-      failed++;
-      errors.push({ item: show.title, error: error.message || 'Unknown error' });
-    }
-
-    sendProgress({
-      type: 'progress',
-      taskId,
-      processed: i + 1,
-      succeeded,
-      failed,
-      currentItem: show.title,
-      errors,
-    });
-
-    await new Promise(r => setTimeout(r, 500));
-  }
-
-  sendProgress({ type: 'complete', taskId });
-}
-
-async function runRefreshMissing(taskId, data) {
-  const { apiKey, shows } = data;
-  const errors = [];
-  let succeeded = 0;
-  let failed = 0;
-
-  for (let i = 0; i < shows.length; i++) {
-    const show = shows[i];
-
-    try {
-      await syncShowSeasons(show.id, show.tmdbId, apiKey);
-      succeeded++;
-    } catch (error) {
-      failed++;
-      errors.push({ item: show.title, error: error.message || 'Unknown error' });
-    }
-
-    sendProgress({
-      type: 'progress',
-      taskId,
-      processed: i + 1,
-      succeeded,
-      failed,
-      currentItem: show.title,
-      errors,
-    });
-
-    await new Promise(r => setTimeout(r, 500));
-  }
-
-  sendProgress({ type: 'complete', taskId });
-}
-
-async function runSingleRefresh(taskId, data) {
-  const { apiKey, showId, showTitle } = data;
-  const errors = [];
-
-  try {
-    await refreshShowMetadata(showId, apiKey);
-    sendProgress({
-      type: 'progress',
-      taskId,
-      processed: 1,
-      succeeded: 1,
-      failed: 0,
-      currentItem: showTitle,
-      errors,
-    });
-  } catch (error) {
-    errors.push({ item: showTitle, error: error.message || 'Unknown error' });
-    sendProgress({
-      type: 'progress',
-      taskId,
-      processed: 1,
-      succeeded: 0,
-      failed: 1,
-      currentItem: showTitle,
-      errors,
-    });
-  }
-
-  sendProgress({ type: 'complete', taskId });
-}
-
-async function runImport(taskId, data) {
-  const { showId, items } = data;
-  const errors = [];
-  let processed = 0;
-  let succeeded = 0;
-  let failed = 0;
-
-  for (const seasonData of items) {
-    const season = await prisma.season.upsert({
-      where: {
-        tvShowId_seasonNumber: {
-          tvShowId: showId,
-          seasonNumber: seasonData.seasonNumber,
-        },
-      },
-      create: {
-        tvShowId: showId,
-        seasonNumber: seasonData.seasonNumber,
-        name: seasonData.name,
-        tmdbSeasonId: seasonData.tmdbSeasonId,
-        posterPath: seasonData.posterPath,
-        description: seasonData.description,
-        airDate: seasonData.airDate ? new Date(seasonData.airDate) : null,
-      },
-      update: {
-        name: seasonData.name,
-        tmdbSeasonId: seasonData.tmdbSeasonId,
-        posterPath: seasonData.posterPath,
-        description: seasonData.description,
-        airDate: seasonData.airDate ? new Date(seasonData.airDate) : null,
-      },
-    });
-
-    for (const episodeData of seasonData.episodes) {
-      const itemName = 'S' + seasonData.seasonNumber + 'E' + episodeData.episodeNumber;
-
-      try {
-        const existingEpisode = await prisma.episode.findUnique({
-          where: {
-            seasonId_episodeNumber: {
-              seasonId: season.id,
-              episodeNumber: episodeData.episodeNumber,
-            },
-          },
-        });
-
-        await prisma.episode.upsert({
-          where: {
-            seasonId_episodeNumber: {
-              seasonId: season.id,
-              episodeNumber: episodeData.episodeNumber,
-            },
-          },
-          create: {
-            seasonId: season.id,
-            episodeNumber: episodeData.episodeNumber,
-            title: episodeData.title,
-            tmdbEpisodeId: episodeData.tmdbEpisodeId,
-            stillPath: episodeData.stillPath,
-            description: episodeData.description,
-            airDate: episodeData.airDate ? new Date(episodeData.airDate) : null,
-            runtime: episodeData.runtime,
-            voteAverage: episodeData.voteAverage,
-            monitorStatus: episodeData.monitorStatus || 'WANTED',
-          },
-          update: {
-            title: episodeData.title,
-            tmdbEpisodeId: episodeData.tmdbEpisodeId,
-            stillPath: episodeData.stillPath,
-            description: episodeData.description,
-            airDate: episodeData.airDate ? new Date(episodeData.airDate) : null,
-            runtime: episodeData.runtime,
-            voteAverage: episodeData.voteAverage,
-          },
-        });
-
-        succeeded++;
-      } catch (error) {
-        failed++;
-        errors.push({ item: itemName, error: error.message || 'Unknown error' });
-      }
-
-      processed++;
-      sendProgress({
-        type: 'progress',
-        taskId,
-        processed,
-        succeeded,
-        failed,
-        currentItem: itemName,
-        errors,
-      });
-    }
-  }
-
-  sendProgress({ type: 'complete', taskId });
-}
-
-// Main handler
-async function main() {
-  const { taskId, taskType, taskData } = workerData;
-
-  try {
-    switch (taskType) {
-      case 'tmdb-bulk-match':
-        await runBulkMatch(taskId, taskData);
-        break;
-      case 'tmdb-bulk-refresh':
-        await runBulkRefresh(taskId, taskData);
-        break;
-      case 'tmdb-refresh-missing':
-        await runRefreshMissing(taskId, taskData);
-        break;
-      case 'tmdb-single-refresh':
-        await runSingleRefresh(taskId, taskData);
-        break;
-      case 'tmdb-import':
-        await runImport(taskId, taskData);
-        break;
-      default:
-        sendProgress({ type: 'fail', taskId, error: 'Unknown task type: ' + taskType });
-    }
-  } catch (error) {
-    sendProgress({ type: 'fail', taskId, error: error.message || 'Unknown error' });
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-main().catch(err => {
-  console.error('Worker fatal error:', err);
-  process.exit(1);
-});
-`;
+/**
+ * Get module paths for the worker to find dependencies
+ */
+function getModulePaths(): string[] {
+  return [
+    resolve(process.cwd(), 'node_modules'),
+    resolve(process.cwd(), '.next/standalone/node_modules'),
+    resolve(process.cwd(), '../node_modules'),
+  ];
 }
 
 /**
  * Run a task in a worker thread
+ * Respects the task queue - if the task is pending, queues the worker spawn
  */
 export function runInWorker(
+  taskId: string,
+  taskType: string,
+  taskData: unknown,
+  tracker: TaskProgressTracker<TmdbTaskProgress>
+): void {
+  const status = tracker.getProgress().status;
+
+  // If task is pending (queued), register the worker spawn for later
+  if (status === 'pending') {
+    queueTaskRun(taskId, async () => {
+      spawnWorker(taskId, taskType, taskData, tracker);
+    });
+    return;
+  }
+
+  // Task can run now - spawn worker immediately
+  spawnWorker(taskId, taskType, taskData, tracker);
+}
+
+/**
+ * Actually spawn a worker thread for a task
+ */
+function spawnWorker(
   taskId: string,
   taskType: string,
   taskData: unknown,
@@ -543,19 +117,18 @@ export function runInWorker(
     return;
   }
 
-  // Normalize database URL for worker thread (convert relative paths to absolute)
   const databaseUrl = normalizeDatabaseUrl(rawDatabaseUrl);
+  const workerPath = getWorkerPath();
+  const modulePaths = getModulePaths();
 
   try {
-    const workerCode = createInlineWorkerCode();
-
-    const worker = new Worker(workerCode, {
-      eval: true,
+    const worker = new Worker(workerPath, {
       workerData: {
         taskId,
         taskType,
         taskData,
         databaseUrl,
+        modulePaths,
       },
     });
 
@@ -597,7 +170,6 @@ export function runInWorker(
     worker.on('exit', (code) => {
       if (code !== 0) {
         console.error(`Worker exited with code ${code} for task ${taskId}`);
-        // Only mark as failed if not already completed
         const progress = tracker.getProgress();
         if (progress.status === 'running') {
           tracker.fail(`Worker exited unexpectedly with code ${code}`);

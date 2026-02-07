@@ -17,6 +17,7 @@ import {
   XCircle,
   Loader2,
   AlertTriangle,
+  Clock,
   X,
 } from 'lucide-react';
 
@@ -149,7 +150,9 @@ export function TaskProgress({
     ? Math.round((progress.processed / progress.total) * 100)
     : 0;
 
-  const isRunning = progress.status === 'running' || progress.status === 'pending';
+  const isRunning = progress.status === 'running';
+  const isPending = progress.status === 'pending';
+  const isActive = isRunning || isPending;
   const isCompleted = progress.status === 'completed';
   const isFailed = progress.status === 'failed';
   const isCancelled = progress.status === 'cancelled';
@@ -159,6 +162,7 @@ export function TaskProgress({
       isCompleted ? 'border-green-500/50' :
       isFailed ? 'border-destructive/50' :
       isCancelled ? 'border-muted' :
+      isPending ? 'border-amber-500/50' :
       ''
     }>
       <CardContent className="pt-4 space-y-3">
@@ -166,13 +170,15 @@ export function TaskProgress({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isRunning && <Loader2 className="size-4 animate-spin text-primary" />}
+            {isPending && <Clock className="size-4 text-amber-500" />}
             {isCompleted && <CheckCircle2 className="size-4 text-green-500" />}
             {isFailed && <XCircle className="size-4 text-destructive" />}
             {isCancelled && <AlertTriangle className="size-4 text-muted-foreground" />}
             <span className="font-medium">{title}</span>
+            {isPending && <Badge className="bg-amber-500 text-white text-xs">Queued</Badge>}
           </div>
           <div className="flex items-center gap-2">
-            {isRunning && (
+            {isActive && (
               <Button
                 variant="outline"
                 size="sm"
@@ -185,7 +191,7 @@ export function TaskProgress({
                 Cancel
               </Button>
             )}
-            {!isRunning && onClose && (
+            {!isActive && onClose && (
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="size-4" />
               </Button>
@@ -204,7 +210,12 @@ export function TaskProgress({
           </div>
         </div>
 
-        {/* Current item */}
+        {/* Current item or pending message */}
+        {isPending && (
+          <div className="text-sm text-amber-600">
+            Waiting for another task to complete...
+          </div>
+        )}
         {isRunning && progress.currentItem && (
           <div className="text-sm text-muted-foreground truncate">
             Processing: {progress.currentItem}

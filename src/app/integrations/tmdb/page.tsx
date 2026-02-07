@@ -5,7 +5,7 @@
  * Configuration, sync status, and bulk operations for TMDB metadata
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateWithFormat, type DateFormat } from '@/lib/settings-shared';
 import { getPosterUrl } from '@/lib/tmdb/images';
+import { useTasks } from '@/lib/contexts/task-context';
 
 interface EnhancedIntegrationStatus {
   configured: boolean;
@@ -73,15 +74,64 @@ interface ActiveTask {
 
 export default function TmdbIntegrationPage() {
   const router = useRouter();
+  const { tasks: allTasks, refresh: refreshTasks } = useTasks();
   const [status, setStatus] = useState<EnhancedIntegrationStatus | null>(null);
   const [shows, setShows] = useState<LibraryShow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTask, setActiveTask] = useState<ActiveTask | null>(null);
   const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
   const [activeFilter, setActiveFilter] = useState<LibraryFilter>('all');
   const [syncingShowId, setSyncingShowId] = useState<number | null>(null);
+
+  // Derive active BULK TMDB task from shared context (running or pending)
+  // Excludes single-show tasks (those with custom titles like "TMDB Refresh: Show Name")
+  const activeTask = (() => {
+    const tmdbTask = allTasks.find(
+      (t) =>
+        (t.status === 'running' || t.status === 'pending') &&
+        t.type.startsWith('tmdb-') &&
+        !t.title // Bulk tasks don't have custom titles
+    );
+    if (tmdbTask) {
+      let type: ActiveTask['type'] = 'bulk-refresh';
+      let title = 'Refreshing Metadata';
+      if (tmdbTask.type === 'tmdb-bulk-match') {
+        type = 'auto-match';
+        title = 'Auto-Matching Shows';
+      } else if (tmdbTask.type === 'tmdb-refresh-missing') {
+        type = 'refresh-missing';
+        title = 'Syncing Missing Metadata';
+      } else if (tmdbTask.type === 'tmdb-bulk-refresh') {
+        type = 'bulk-refresh';
+        title = 'Refreshing All Metadata';
+      }
+      // Indicate if queued
+      if (tmdbTask.status === 'pending') {
+        title = `${title} (Queued)`;
+      }
+      return { taskId: tmdbTask.taskId, type, title };
+    }
+    return null;
+  })();
+
+  // Get set of show IDs currently being synced (from single-show tasks)
+  const syncingShowIds = new Set(
+    allTasks
+      .filter(
+        (t) =>
+          (t.status === 'running' || t.status === 'pending') &&
+          t.type === 'tmdb-bulk-refresh' &&
+          t.title?.startsWith('TMDB Refresh:')
+      )
+      .map((t) => {
+        // Extract show title from "TMDB Refresh: Show Name" and find matching show
+        const showTitle = t.title?.replace('TMDB Refresh: ', '');
+        const show = shows.find((s) => s.title === showTitle);
+        return show?.id;
+      })
+      .filter((id): id is number => id !== undefined)
+  );
 
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) {
@@ -120,6 +170,16 @@ export default function TmdbIntegrationPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Refresh data when single-show sync tasks complete
+  const prevSyncingCount = useRef(0);
+  useEffect(() => {
+    // When syncing count drops to 0 from a higher number, tasks completed
+    if (syncingShowIds.size === 0 && prevSyncingCount.current > 0 && !loading) {
+      fetchData(true);
+    }
+    prevSyncingCount.current = syncingShowIds.size;
+  }, [syncingShowIds.size, loading]);
 
   // Calculate percentages
   const showMatchPercent = status?.shows.total
@@ -163,11 +223,8 @@ export default function TmdbIntegrationPage() {
 
       const data = await response.json();
       if (data.taskId) {
-        setActiveTask({
-          taskId: data.taskId,
-          type: 'auto-match',
-          title: 'Auto-Matching Shows',
-        });
+        // Refresh task context to pick up the new task immediately
+        await refreshTasks();
       } else {
         // No shows to match
         await fetchData(true);
@@ -175,7 +232,7 @@ export default function TmdbIntegrationPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Auto-match failed');
     }
-  }, []);
+  }, [refreshTasks]);
 
   const handleRefreshMissing = useCallback(async () => {
     setError(null);
@@ -186,11 +243,7 @@ export default function TmdbIntegrationPage() {
 
       const data = await response.json();
       if (data.taskId) {
-        setActiveTask({
-          taskId: data.taskId,
-          type: 'refresh-missing',
-          title: 'Syncing Missing Metadata',
-        });
+        await refreshTasks();
       } else {
         // Nothing to sync
         await fetchData(true);
@@ -198,7 +251,7 @@ export default function TmdbIntegrationPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Refresh missing failed');
     }
-  }, []);
+  }, [refreshTasks]);
 
   const handleBulkRefresh = useCallback(async () => {
     setError(null);
@@ -209,11 +262,7 @@ export default function TmdbIntegrationPage() {
 
       const data = await response.json();
       if (data.taskId) {
-        setActiveTask({
-          taskId: data.taskId,
-          type: 'bulk-refresh',
-          title: 'Refreshing All Metadata',
-        });
+        await refreshTasks();
       } else {
         // Nothing to refresh
         await fetchData(true);
@@ -221,7 +270,7 @@ export default function TmdbIntegrationPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bulk refresh failed');
     }
-  }, []);
+  }, [refreshTasks]);
 
   const handleTaskComplete = useCallback(() => {
     // Refresh data when task completes
@@ -229,22 +278,17 @@ export default function TmdbIntegrationPage() {
   }, []);
 
   const handleSyncShow = async (showId: number) => {
-    if (syncingShowId === showId) return;
+    if (syncingShowId === showId || syncingShowIds.has(showId)) return;
     setSyncingShowId(showId);
     try {
       const response = await fetch(`/api/tmdb/refresh/${showId}`, { method: 'POST' });
       if (!response.ok) throw new Error('Failed to sync show');
       const data = await response.json();
-      // Task started in background - visible in sidebar
-      // Refresh data after a delay to show updated metadata
       if (data.taskId) {
-        setTimeout(() => {
-          fetchData(true);
-          setSyncingShowId(null);
-        }, 2000);
-        return; // Don't clear syncingShowId yet, wait for timeout
+        // Refresh task context to pick up the new task
+        await refreshTasks();
       }
-      await fetchData(true);
+      // Clear local state - task context will track from here
       setSyncingShowId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed');
@@ -484,7 +528,6 @@ export default function TmdbIntegrationPage() {
                   taskId={activeTask.taskId}
                   title={activeTask.title}
                   onComplete={handleTaskComplete}
-                  onClose={() => setActiveTask(null)}
                 />
               )}
 
@@ -606,7 +649,7 @@ export default function TmdbIntegrationPage() {
 
                       {/* Actions */}
                       <div className="flex gap-2">
-                        {show.syncStatus === 'unmatched' && (
+                        {show.syncStatus === 'unmatched' ? (
                           <TmdbMatchDialog
                             showId={show.id}
                             showTitle={show.title}
@@ -618,20 +661,19 @@ export default function TmdbIntegrationPage() {
                               </Button>
                             }
                           />
-                        )}
-                        {show.syncStatus === 'needs-sync' && (
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleSyncShow(show.id)}
-                            disabled={syncingShowId === show.id}
+                            disabled={syncingShowIds.has(show.id) || syncingShowId === show.id}
                           >
-                            {syncingShowId === show.id ? (
+                            {syncingShowIds.has(show.id) || syncingShowId === show.id ? (
                               <Loader2 className="size-4 animate-spin" />
                             ) : (
                               <>
                                 <RefreshCw className="size-4 mr-1" />
-                                Sync
+                                {show.syncStatus === 'fully-synced' ? 'Refresh' : 'Sync'}
                               </>
                             )}
                           </Button>

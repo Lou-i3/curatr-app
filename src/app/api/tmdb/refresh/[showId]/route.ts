@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { TMDB_CONFIG } from '@/lib/tmdb/config';
-import { createTmdbTask, runInWorker } from '@/lib/tasks';
+import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
 
 interface Params {
   params: Promise<{ showId: string }>;
@@ -22,6 +22,9 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   try {
+    // Ensure task queue settings are loaded from DB
+    await ensureSettingsLoaded();
+
     const { showId } = await params;
     const id = parseInt(showId, 10);
 
@@ -43,8 +46,8 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Show is not matched to TMDB' }, { status: 400 });
     }
 
-    // Create task tracker
-    const tracker = createTmdbTask('tmdb-bulk-refresh'); // Use bulk-refresh type for single show too
+    // Create task tracker with custom title for the specific show
+    const tracker = createTmdbTask('tmdb-bulk-refresh', `TMDB Refresh: ${show.title}`);
     tracker.setTotal(1);
 
     // Run task in a separate worker thread

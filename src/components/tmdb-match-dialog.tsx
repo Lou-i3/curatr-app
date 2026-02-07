@@ -125,7 +125,7 @@ export function TmdbMatchDialog({
       const response = await fetch('/api/tmdb/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ showId, tmdbId, syncSeasons: true }),
+        body: JSON.stringify({ showId, tmdbId, syncSeasons: false }),
       });
 
       if (!response.ok) throw new Error('Failed to match show');
