@@ -37,7 +37,7 @@ const cancelledScans = new Set<number>();
 
 /** Yield to event loop to keep app responsive */
 const yieldToEventLoop = (): Promise<void> =>
-  new Promise((resolve) => setImmediate(resolve));
+  new Promise((resolve) => setTimeout(resolve, 0));
 
 /** Batch size for database operations */
 const BATCH_SIZE = 100;

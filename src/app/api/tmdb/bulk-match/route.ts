@@ -1,20 +1,15 @@
 /**
  * TMDB bulk match API route
  * POST /api/tmdb/bulk-match - Start auto-matching unmatched shows (non-blocking)
+ *
+ * Runs in a separate worker thread to avoid blocking the main event loop.
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { autoMatchShow, matchShow, isTmdbConfigured } from '@/lib/tmdb';
-import {
-  createTmdbTask,
-  isCancelled,
-  yieldToEventLoop,
-  scheduleCleanup,
-  queueTaskRun,
-  type TaskProgressTracker,
-  type TmdbTaskProgress,
-} from '@/lib/tasks';
+import { isTmdbConfigured } from '@/lib/tmdb';
+import { TMDB_CONFIG } from '@/lib/tmdb/config';
+import { createTmdbTask, runInWorker } from '@/lib/tasks';
 
 export async function POST() {
   if (!isTmdbConfigured()) {
@@ -39,30 +34,21 @@ export async function POST() {
       });
     }
 
-    // Create task tracker (may be pending if queue is full)
+    // Create task tracker
     const tracker = createTmdbTask('tmdb-bulk-match');
     tracker.setTotal(unmatchedShows.length);
 
-    const runTask = () => runBulkMatch(tracker, unmatchedShows);
-
-    // Check if task is pending (queued) or can run now
-    const status = tracker.getProgress().status;
-    if (status === 'pending') {
-      // Queue the run function for later
-      queueTaskRun(tracker.getTaskId(), runTask);
-    } else {
-      // Start background processing immediately (fire and forget)
-      runTask().catch((error) => {
-        console.error('Bulk match task failed:', error);
-        tracker.fail(error instanceof Error ? error.message : 'Unknown error');
-      });
-    }
+    // Run task in a separate worker thread
+    runInWorker(tracker.getTaskId(), 'tmdb-bulk-match', {
+      apiKey: TMDB_CONFIG.apiKey,
+      shows: unmatchedShows,
+    }, tracker);
 
     return NextResponse.json({
       taskId: tracker.getTaskId(),
-      status: status,
+      status: 'running',
       total: unmatchedShows.length,
-      message: status === 'pending' ? 'Bulk match queued' : 'Bulk match started',
+      message: 'Bulk match started in background',
     });
   } catch (error) {
     console.error('Bulk match error:', error);
@@ -71,46 +57,4 @@ export async function POST() {
       { status: 500 }
     );
   }
-}
-
-/**
- * Run bulk matching in background
- */
-async function runBulkMatch(
-  tracker: TaskProgressTracker<TmdbTaskProgress>,
-  shows: Array<{ id: number; title: string; year: number | null }>
-): Promise<void> {
-  for (const show of shows) {
-    // Check for cancellation
-    if (isCancelled(tracker.getTaskId())) {
-      tracker.cancel();
-      scheduleCleanup(tracker.getTaskId());
-      return;
-    }
-
-    try {
-      const match = await autoMatchShow(show.title, show.year ?? undefined);
-
-      if (match) {
-        // High confidence match - apply it
-        await matchShow(show.id, match.tmdbShow.id, false);
-        tracker.incrementSuccess(show.title);
-      } else {
-        // No confident match found - count as failed (skipped)
-        tracker.incrementFailed(show.title, 'No confident match found');
-      }
-    } catch (error) {
-      tracker.incrementFailed(
-        show.title,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
-    }
-
-    // Yield to event loop and rate limit
-    await yieldToEventLoop();
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-
-  tracker.complete();
-  scheduleCleanup(tracker.getTaskId());
 }

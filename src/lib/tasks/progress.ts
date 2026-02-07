@@ -363,9 +363,17 @@ export function getTaskCounts(): { running: number; pending: number; total: numb
 
 /**
  * Yield to event loop to keep app responsive
+ *
+ * Uses setTimeout(0) instead of setImmediate because setImmediate
+ * runs before I/O callbacks, while setTimeout allows HTTP handlers
+ * to process first. This is critical for keeping the app responsive
+ * during background tasks, especially in Docker/production.
+ *
+ * Note: Most tasks now run in worker threads, but this is still used
+ * by the scanner which runs in the main thread.
  */
 export const yieldToEventLoop = (): Promise<void> =>
-  new Promise((resolve) => setImmediate(resolve));
+  new Promise((resolve) => setTimeout(resolve, 0));
 
 /**
  * Schedule task cleanup after completion

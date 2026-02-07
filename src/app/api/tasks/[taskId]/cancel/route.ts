@@ -4,7 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getTaskTracker, requestCancellation } from '@/lib/tasks';
+import {
+  getTaskTracker,
+  requestCancellation,
+  terminateWorker,
+  scheduleCleanup,
+  type ScanTaskProgress,
+} from '@/lib/tasks';
+import { cancelScan } from '@/lib/scanner/scan';
 
 interface Params {
   params: Promise<{ taskId: string }>;
@@ -31,18 +38,26 @@ export async function POST(request: NextRequest, { params }: Params) {
     );
   }
 
-  const cancelled = requestCancellation(taskId);
-
-  if (!cancelled) {
-    return NextResponse.json(
-      { error: 'Failed to cancel task' },
-      { status: 500 }
-    );
+  // Handle different task types
+  if (progress.type === 'scan') {
+    // For scans, use the scanner's cancellation mechanism
+    const scanProgress = progress as ScanTaskProgress;
+    cancelScan(scanProgress.scanId);
+    // The scan will mark itself as cancelled when it checks the flag
+  } else {
+    // For worker-based tasks, terminate the worker
+    terminateWorker(taskId);
+    // Mark the task as cancelled immediately
+    tracker.cancel();
+    scheduleCleanup(taskId);
   }
+
+  // Request cancellation flag (used by some tasks)
+  requestCancellation(taskId);
 
   return NextResponse.json({
     success: true,
-    message: 'Cancellation requested',
+    message: 'Task cancelled',
     taskId,
   });
 }

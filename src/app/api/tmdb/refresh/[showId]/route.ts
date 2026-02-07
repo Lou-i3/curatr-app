@@ -1,18 +1,13 @@
 /**
  * Refresh metadata for a single show (non-blocking)
+ *
+ * Runs in a separate worker thread to avoid blocking the main event loop.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { refreshShowMetadata } from '@/lib/tmdb/service';
 import { TMDB_CONFIG } from '@/lib/tmdb/config';
-import {
-  createTmdbTask,
-  scheduleCleanup,
-  queueTaskRun,
-  type TaskProgressTracker,
-  type TmdbTaskProgress,
-} from '@/lib/tasks';
+import { createTmdbTask, runInWorker } from '@/lib/tasks';
 
 interface Params {
   params: Promise<{ showId: string }>;
@@ -52,49 +47,21 @@ export async function POST(request: NextRequest, { params }: Params) {
     const tracker = createTmdbTask('tmdb-bulk-refresh'); // Use bulk-refresh type for single show too
     tracker.setTotal(1);
 
-    const runTask = () => runRefresh(tracker, id, show.title);
-
-    // Check if task is pending (queued) or can run now
-    const status = tracker.getProgress().status;
-    if (status === 'pending') {
-      queueTaskRun(tracker.getTaskId(), runTask);
-    } else {
-      runTask().catch((error) => {
-        console.error('Single show refresh failed:', error);
-        tracker.fail(error instanceof Error ? error.message : 'Unknown error');
-      });
-    }
+    // Run task in a separate worker thread
+    runInWorker(tracker.getTaskId(), 'tmdb-single-refresh', {
+      apiKey: TMDB_CONFIG.apiKey,
+      showId: id,
+      showTitle: show.title,
+    }, tracker);
 
     return NextResponse.json({
       taskId: tracker.getTaskId(),
-      status: status,
-      message: status === 'pending' ? 'Refresh queued' : 'Refresh started',
+      status: 'running',
+      message: 'Refresh started in background',
     });
   } catch (error) {
     console.error('Refresh metadata failed:', error);
     const message = error instanceof Error ? error.message : 'Failed to refresh metadata';
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
-
-/**
- * Run refresh in background
- */
-async function runRefresh(
-  tracker: TaskProgressTracker<TmdbTaskProgress>,
-  showId: number,
-  showTitle: string
-): Promise<void> {
-  try {
-    await refreshShowMetadata(showId);
-    tracker.incrementSuccess(showTitle);
-  } catch (error) {
-    tracker.incrementFailed(
-      showTitle,
-      error instanceof Error ? error.message : 'Unknown error'
-    );
-  }
-
-  tracker.complete();
-  scheduleCleanup(tracker.getTaskId());
 }

@@ -2,6 +2,7 @@
  * Task management system
  *
  * Provides unified task tracking for all long-running operations.
+ * Tasks run in separate worker threads to avoid blocking the main event loop.
  */
 
 // Types
@@ -40,3 +41,10 @@ export {
   canRunImmediately,
   queueTaskRun,
 } from './progress';
+
+// Worker thread management
+export {
+  runInWorker,
+  terminateWorker,
+  isWorkerActive,
+} from './worker-manager';

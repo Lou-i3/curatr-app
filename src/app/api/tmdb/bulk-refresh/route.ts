@@ -1,20 +1,13 @@
 /**
  * Bulk refresh metadata for all matched shows (non-blocking)
+ *
+ * Runs in a separate worker thread to avoid blocking the main event loop.
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { refreshShowMetadata } from '@/lib/tmdb/service';
 import { TMDB_CONFIG } from '@/lib/tmdb/config';
-import {
-  createTmdbTask,
-  isCancelled,
-  yieldToEventLoop,
-  scheduleCleanup,
-  queueTaskRun,
-  type TaskProgressTracker,
-  type TmdbTaskProgress,
-} from '@/lib/tasks';
+import { createTmdbTask, runInWorker } from '@/lib/tasks';
 
 export async function POST() {
   if (!TMDB_CONFIG.apiKey) {
@@ -39,28 +32,21 @@ export async function POST() {
       });
     }
 
-    // Create task tracker (may be pending if queue is full)
+    // Create task tracker
     const tracker = createTmdbTask('tmdb-bulk-refresh');
     tracker.setTotal(matchedShows.length);
 
-    const runTask = () => runBulkRefresh(tracker, matchedShows);
-
-    // Check if task is pending (queued) or can run now
-    const status = tracker.getProgress().status;
-    if (status === 'pending') {
-      queueTaskRun(tracker.getTaskId(), runTask);
-    } else {
-      runTask().catch((error) => {
-        console.error('Bulk refresh task failed:', error);
-        tracker.fail(error instanceof Error ? error.message : 'Unknown error');
-      });
-    }
+    // Run task in a separate worker thread
+    runInWorker(tracker.getTaskId(), 'tmdb-bulk-refresh', {
+      apiKey: TMDB_CONFIG.apiKey,
+      shows: matchedShows,
+    }, tracker);
 
     return NextResponse.json({
       taskId: tracker.getTaskId(),
-      status: status,
+      status: 'running',
       total: matchedShows.length,
-      message: status === 'pending' ? 'Bulk refresh queued' : 'Bulk refresh started',
+      message: 'Bulk refresh started in background',
     });
   } catch (error) {
     console.error('Bulk refresh failed:', error);
@@ -69,38 +55,4 @@ export async function POST() {
       { status: 500 }
     );
   }
-}
-
-/**
- * Run bulk refresh in background
- */
-async function runBulkRefresh(
-  tracker: TaskProgressTracker<TmdbTaskProgress>,
-  shows: Array<{ id: number; title: string }>
-): Promise<void> {
-  for (const show of shows) {
-    // Check for cancellation
-    if (isCancelled(tracker.getTaskId())) {
-      tracker.cancel();
-      scheduleCleanup(tracker.getTaskId());
-      return;
-    }
-
-    try {
-      await refreshShowMetadata(show.id);
-      tracker.incrementSuccess(show.title);
-    } catch (error) {
-      tracker.incrementFailed(
-        show.title,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
-    }
-
-    // Yield to event loop and rate limit (TMDB allows 40 requests per 10 seconds)
-    await yieldToEventLoop();
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  }
-
-  tracker.complete();
-  scheduleCleanup(tracker.getTaskId());
 }
