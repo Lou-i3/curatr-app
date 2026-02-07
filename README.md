@@ -129,6 +129,8 @@ src/
 │   │   └── page.tsx                # Background tasks management
 │   ├── settings/
 │   │   └── page.tsx                # Settings page
+│   ├── changelog/
+│   │   └── page.tsx                # Changelog (GitHub releases)
 │   ├── integrations/
 │   │   ├── page.tsx                # Integrations hub
 │   │   └── tmdb/
@@ -195,6 +197,7 @@ src/
 │       └── images.ts               # Poster/backdrop URL helpers
 ├── components/
 │   ├── app-sidebar.tsx             # Collapsible navigation sidebar
+│   ├── version-badge.tsx           # Version display with update indicator
 │   ├── task-progress.tsx           # Real-time task progress display
 │   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
 │   ├── tmdb-import-dialog.tsx      # Import seasons/episodes from TMDB
@@ -403,6 +406,39 @@ npx prisma studio    # Open DB viewer
 npx prisma migrate dev   # Run migrations
 npx prisma generate  # Generate client
 ```
+
+## Versioning & Releases
+
+This project uses git tags to manage versions. When a version tag is pushed, GitHub Actions automatically:
+
+1. **Builds a Docker image** tagged with the version number (e.g., `ghcr.io/lou-i3/curatr-app:1.0.0`)
+2. **Creates a GitHub release** with auto-generated changelog from commits
+3. **Deploys** to Portainer (if configured)
+
+### Creating a Release
+
+```bash
+# Create and push a version tag
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
+The release notes are automatically generated from commit messages. You can edit them on GitHub after creation to add custom notes or a title.
+
+### Pre-releases
+
+For beta or alpha releases, include a suffix:
+
+```bash
+git tag -a v1.0.0-beta.1 -m "Beta release"
+git push origin v1.0.0-beta.1
+```
+
+Pre-releases are marked as such on GitHub and get their own Docker tag.
+
+### Changelog
+
+View the [Changelog](/changelog) page in the app to see all releases. The version badge in the sidebar shows update availability.
 
 ## Roadmap
 

@@ -3,7 +3,9 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - '**'  # All branches
+      - main  # Staging builds
+    tags:
+      - 'v*.*.*'  # Release builds
   pull_request:
     branches:
       - main
@@ -34,18 +36,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Patch package.json version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Patching package.json with version: $VERSION"
+          jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Branch name as tag (e.g., feature-branch, develop)
-            type=ref,event=branch
-            # SHA for traceability
-            type=sha,prefix=
-            # 'latest' only on main branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            # 'staging' for main branch builds
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
+            # 'latest' only for version tags
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # Version number from tag (e.g., v1.0.0 -> 1.0.0)
+            type=semver,pattern={{version}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -58,12 +68,11 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Trigger Portainer deployment
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           if [ -n "${{ secrets.PORTAINER_WEBHOOK_URL }}" ]; then
-            curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}" \
-              -H "Content-Type: application/json" \
-              -d '{"image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"}'
+            echo "Triggering Portainer deployment for ${GITHUB_REF_NAME}"
+            curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
           else
             echo "⚠️  Portainer webhook URL not configured. Set PORTAINER_WEBHOOK_URL secret to enable auto-deployment."
           fi
