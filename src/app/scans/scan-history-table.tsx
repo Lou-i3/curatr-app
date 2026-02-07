@@ -54,7 +54,7 @@ export function ScanHistoryTable({ initialScans, dateFormat }: Props) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return <Badge variant="default" className="bg-green-600">Completed</Badge>;
+        return <Badge variant="success">Completed</Badge>;
       case 'RUNNING':
         return <Badge variant="secondary">Running</Badge>;
       case 'FAILED':

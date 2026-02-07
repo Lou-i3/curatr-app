@@ -438,10 +438,10 @@ export function TmdbImportDialog({
     const someExist = season.episodes.some((e) => e.existingEpisodeId);
 
     if (allHaveFiles) {
-      return <Badge variant="outline" className="text-xs">All in DB</Badge>;
+      return <Badge variant="success" className="text-xs">All in DB</Badge>;
     }
     if (allExist) {
-      return <Badge variant="secondary" className="text-xs">No files</Badge>;
+      return <Badge variant="outline" className="text-xs">No files</Badge>;
     }
     if (someExist) {
       return <Badge variant="secondary" className="text-xs">Partial</Badge>;

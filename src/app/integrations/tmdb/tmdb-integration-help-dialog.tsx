@@ -67,7 +67,7 @@ export function TmdbIntegrationHelpDialog() {
                 </p>
               </div>
               <div className="flex items-start gap-3 p-2 rounded bg-muted/50">
-                <Badge className="bg-green-600 mt-0.5">
+                <Badge variant="success" className="mt-0.5">
                   <CheckCircle2 className="size-3 mr-1" />
                   Synced
                 </Badge>

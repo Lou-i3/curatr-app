@@ -175,7 +175,7 @@ export function TaskProgress({
             {isFailed && <XCircle className="size-4 text-destructive" />}
             {isCancelled && <AlertTriangle className="size-4 text-muted-foreground" />}
             <span className="font-medium">{title}</span>
-            {isPending && <Badge className="bg-amber-500 text-white text-xs">Queued</Badge>}
+            {isPending && <Badge variant="secondary" className="text-xs">Queued</Badge>}
           </div>
           <div className="flex items-center gap-2">
             {isActive && (
@@ -224,12 +224,12 @@ export function TaskProgress({
 
         {/* Stats */}
         <div className="flex gap-3">
-          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+          <Badge variant="outline" className="bg-success/10 border-success/50 text-success gap-2">
             <CheckCircle2 className="size-3 mr-1" />
             {progress.succeeded} succeeded
           </Badge>
           {progress.failed > 0 && (
-            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 gap-2">
               <XCircle className="size-3 mr-1" />
               {progress.failed} failed
             </Badge>
@@ -238,12 +238,12 @@ export function TaskProgress({
 
         {/* Completion message */}
         {isCompleted && progress.failed === 0 && (
-          <div className="text-sm text-green-600">
+          <div className="text-sm text-success">
             All items processed successfully
           </div>
         )}
         {isCompleted && progress.failed > 0 && (
-          <div className="text-sm text-amber-600">
+          <div className="text-sm text-warning">
             Completed with {progress.failed} failures
           </div>
         )}

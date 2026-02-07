@@ -111,7 +111,7 @@ export function ScanHelpDialog({ tvShowsPath, moviesPath }: ScanHelpDialogProps)
               What Happens After a Scan
             </h4>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-              <li>New shows are created with <Badge variant="default" className="text-xs mx-1">Wanted</Badge> status</li>
+              <li>New shows are created with <Badge variant="secondary" className="text-xs mx-1">Wanted</Badge> status</li>
               <li>New files are added with <Badge variant="warning" className="text-xs mx-1">Unverified</Badge> quality</li>
               <li>Existing files are updated with new file size and modification date</li>
               <li>Missing files (deleted from disk) are flagged but not removed from database</li>

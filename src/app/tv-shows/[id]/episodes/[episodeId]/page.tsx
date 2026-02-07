@@ -240,7 +240,7 @@ export default async function EpisodeDetailPage({ params }: Props) {
                   {file.plexMatched && (
                     <div>
                       <h4 className="text-sm font-medium mb-3">Plex Integration</h4>
-                      <Badge variant="default" className="gap-1">
+                      <Badge variant="secondary" className="gap-1">
                         <HardDrive className="h-3 w-3" />
                         Matched in Plex
                       </Badge>

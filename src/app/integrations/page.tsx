@@ -126,7 +126,7 @@ function IntegrationCard({ integration }: { integration: Integration }) {
             {integration.comingSoon ? (
               <Badge variant="secondary">Coming Soon</Badge>
             ) : integration.configured ? (
-              <Badge variant="default" className="bg-green-600">Connected</Badge>
+              <Badge variant="success">Connected</Badge>
             ) : (
               <Badge variant="outline">Not Configured</Badge>
             )}

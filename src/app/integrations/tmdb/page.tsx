@@ -378,7 +378,7 @@ export default function TmdbIntegrationPage() {
           <CardTitle className="flex items-center gap-2">
             Configuration
             {status?.configured ? (
-              <Badge variant="default" className="bg-green-600">
+              <Badge variant="success">
                 <CheckCircle2 className="size-3 mr-1" />
                 Connected
               </Badge>
@@ -639,7 +639,7 @@ export default function TmdbIntegrationPage() {
                             </Badge>
                           )}
                           {show.syncStatus === 'fully-synced' && (
-                            <Badge className="bg-green-600 text-xs">
+                            <Badge variant="success" className="text-xs">
                               <CheckCircle2 className="size-3 mr-1" />
                               Synced
                             </Badge>

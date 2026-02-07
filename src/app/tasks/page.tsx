@@ -33,21 +33,21 @@ function getStatusBadge(status: TaskProgress['status']) {
   switch (status) {
     case 'running':
       return (
-        <Badge variant="default" className="bg-blue-600">
+        <Badge variant="secondary">
           <Loader2 className="size-3 mr-1 animate-spin" />
           Running
         </Badge>
       );
     case 'pending':
       return (
-        <Badge className="bg-amber-500 text-white">
+        <Badge variant="warning">
           <Clock className="size-3 mr-1" />
           Queued
         </Badge>
       );
     case 'completed':
       return (
-        <Badge className="bg-green-600">
+        <Badge variant="success">
           <CheckCircle2 className="size-3 mr-1" />
           Completed
         </Badge>

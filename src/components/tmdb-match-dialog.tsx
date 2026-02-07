@@ -162,9 +162,9 @@ export function TmdbMatchDialog({
   };
 
   const getConfidenceBadge = (confidence: number) => {
-    if (confidence >= 80) return <Badge className="bg-green-600">High Match</Badge>;
+    if (confidence >= 80) return <Badge variant="success">High Match</Badge>;
     if (confidence >= 50) return <Badge variant="secondary">Possible</Badge>;
-    return <Badge variant="outline">Low</Badge>;
+    return <Badge variant="warning">Low</Badge>;
   };
 
   return (
