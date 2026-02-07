@@ -303,13 +303,21 @@ export function canRunImmediately(): boolean {
 
 /**
  * Create a new scan task
+ * @param scanId - Database scan history ID
+ * @param customTitle - Optional custom title for display (e.g., "Sync: Show Name")
+ * @param taskType - Task type, defaults to 'scan'
  */
-export function createScanTask(scanId: number): TaskProgressTracker<ScanTaskProgress> {
+export function createScanTask(
+  scanId: number,
+  customTitle?: string,
+  taskType: 'scan' | 'show-sync' = 'scan'
+): TaskProgressTracker<ScanTaskProgress> {
   const canRunNow = getRunningTaskCount() < getMaxParallelTasksValue();
 
   const progress: ScanTaskProgress = {
     taskId: randomUUID(),
-    type: 'scan',
+    type: taskType,
+    title: customTitle,
     status: canRunNow ? 'running' : 'pending',
     total: 0,
     processed: 0,

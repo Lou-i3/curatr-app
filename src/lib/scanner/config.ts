@@ -4,6 +4,7 @@
  */
 
 import { access, constants } from 'fs/promises';
+import { join } from 'path';
 
 export interface ScannerConfig {
   tvShowsPath: string;
@@ -100,6 +101,17 @@ export async function validateConfig(options?: { skipFfprobe?: boolean }): Promi
       );
     }
   }
+}
+
+/**
+ * Get the full filesystem path for a show folder
+ * @param folderName - The show's folder name (e.g., "Arrow (2012)")
+ * @returns Full path or null if TV shows path is not configured
+ */
+export function getShowFolderPath(folderName: string): string | null {
+  const config = getConfig();
+  if (!config.tvShowsPath) return null;
+  return join(config.tvShowsPath, folderName);
 }
 
 /**

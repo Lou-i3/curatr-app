@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Star, Calendar, Tv, Film } from "lucide-react";
 import { TmdbSection } from "./tmdb-section";
 import { ShowEditButton } from "./show-edit-button";
+import { ShowSyncButton } from "./show-sync-button";
 import { ShowDetailStatusBadges } from "./show-detail-status-badges";
 import { SeasonsList } from "./seasons-list";
 
@@ -136,13 +137,11 @@ export default async function ShowDetailPage({ params }: Props) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ShowDetailStatusBadges
-                  showId={show.id}
-                  monitorStatus={show.monitorStatus}
-                  displayMonitorStatus={displayMonitorStatus}
-                  qualityStatus={qualityStatus}
-                  hasChildren={show.seasons.length > 0}
-                />
+                <ShowSyncButton show={{
+                  id: show.id,
+                  title: show.title,
+                  folderName: show.folderName,
+                }} />
                 <ShowEditButton show={{
                   id: show.id,
                   title: show.title,
@@ -154,6 +153,13 @@ export default async function ShowDetailPage({ params }: Props) {
                   posterPath: show.posterPath,
                   backdropPath: show.backdropPath,
                 }} />
+                <ShowDetailStatusBadges
+                  showId={show.id}
+                  monitorStatus={show.monitorStatus}
+                  displayMonitorStatus={displayMonitorStatus}
+                  qualityStatus={qualityStatus}
+                  hasChildren={show.seasons.length > 0}
+                />
               </div>
             </div>
 

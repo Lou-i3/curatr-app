@@ -249,6 +249,56 @@ export async function markMissingFilesAsDeleted(
 }
 
 /**
+ * Mark files as deleted for a specific show if they no longer exist on disk
+ * Used for single-show sync to avoid affecting other shows
+ *
+ * @param showId - The TV show ID to scope the deletion to
+ * @param existingFilepaths - Set of file paths found during the single-show scan
+ * @returns Number of files marked as deleted
+ */
+export async function markShowFilesAsDeleted(
+  showId: number,
+  existingFilepaths: Set<string>
+): Promise<number> {
+  // Get all files for this show that are currently marked as existing
+  const dbFiles = await prisma.episodeFile.findMany({
+    where: {
+      fileExists: true,
+      episode: {
+        season: {
+          tvShowId: showId,
+        },
+      },
+    },
+    select: { id: true, filepath: true },
+  });
+
+  // Find files not in the current scan
+  const missingIds = dbFiles
+    .filter((f) => !existingFilepaths.has(f.filepath))
+    .map((f) => f.id);
+
+  if (missingIds.length === 0) {
+    return 0;
+  }
+
+  // Batch update to avoid SQLite parameter limit
+  const BATCH_SIZE = 500;
+  let totalUpdated = 0;
+
+  for (let i = 0; i < missingIds.length; i += BATCH_SIZE) {
+    const batch = missingIds.slice(i, i + BATCH_SIZE);
+    const result = await prisma.episodeFile.updateMany({
+      where: { id: { in: batch } },
+      data: { fileExists: false },
+    });
+    totalUpdated += result.count;
+  }
+
+  return totalUpdated;
+}
+
+/**
  * Create a new scan history record
  */
 export async function createScanHistory(scanType: string): Promise<number> {

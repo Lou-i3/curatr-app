@@ -27,9 +27,14 @@ export class ScanProgressTracker {
   private tracker: TaskProgressTracker<ScanTaskProgress>;
   private scanId: number;
 
-  constructor(scanId: number) {
+  /**
+   * @param scanId - Database scan history ID
+   * @param customTitle - Optional custom title for display (e.g., "Sync: Show Name")
+   * @param taskType - Task type, defaults to 'scan'
+   */
+  constructor(scanId: number, customTitle?: string, taskType: 'scan' | 'show-sync' = 'scan') {
     this.scanId = scanId;
-    this.tracker = createScanTask(scanId);
+    this.tracker = createScanTask(scanId, customTitle, taskType);
     scanIdToTaskId.set(scanId, this.tracker.getTaskId());
   }
 

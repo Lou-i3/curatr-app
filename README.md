@@ -9,6 +9,7 @@ A Next.js web application for tracking media file quality, playback compatibilit
 ## Features
 
 - **Library Scanner** - Scan TV show directories to discover and catalog media files
+- **Single-Show Sync** - Sync files for individual shows without rescanning the entire library
 - **Batch Processing** - Optimized database operations for fast scanning of large libraries
 - **Plex-style Parsing** - Automatically parse `Show Name (Year)/Season 01/S01E05.mkv` naming
 - **Smart Show Detection** - Extracts show names from folder structure for reliable matching
@@ -250,6 +251,7 @@ prisma/
 | `GET` | `/api/scan/[id]` | Get scan status |
 | `POST` | `/api/scan/[id]/cancel` | Cancel running scan |
 | `GET` | `/api/scan/[id]/progress` | SSE progress stream |
+| `POST` | `/api/tv-shows/[id]/sync` | Sync files for a single show |
 
 ### Tasks
 
@@ -459,7 +461,7 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [x] Import seasons & episodes from TMDB
 - [x] Two-dimensional status system (monitor intent + quality state)
 - [x] Clickable status badges with cascade updates
-- [ ] Single show files sync button + endpoint
+- [x] Single show files sync button + endpoint
 - [ ] ffprobe metadata extraction
 - [ ] Movies support
 - [ ] Plex database sync

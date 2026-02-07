@@ -8,6 +8,7 @@
 /** Supported task types */
 export type TaskType =
   | 'scan'
+  | 'show-sync'
   | 'tmdb-bulk-match'
   | 'tmdb-refresh-missing'
   | 'tmdb-bulk-refresh'
@@ -54,7 +55,7 @@ export type ScanPhase =
 
 /** Scan-specific progress with additional fields */
 export interface ScanTaskProgress extends BaseTaskProgress {
-  type: 'scan';
+  type: 'scan' | 'show-sync';
   phase: ScanPhase;
   scanId: number;
   filesAdded: number;
@@ -113,7 +114,7 @@ export function serializeProgress(progress: BaseTaskProgress): SerializedTaskPro
   };
 
   // Add scan-specific fields if present
-  if (progress.type === 'scan') {
+  if (progress.type === 'scan' || progress.type === 'show-sync') {
     const scanProgress = progress as ScanTaskProgress;
     base.phase = scanProgress.phase;
     base.scanId = scanProgress.scanId;

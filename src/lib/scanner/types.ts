@@ -67,6 +67,12 @@ export interface ScanOptions {
   scanType?: 'full' | 'incremental';
   skipMetadata?: boolean;
   concurrency?: number;
+  /** Database ID of the show to sync (single-show mode) */
+  targetShowId?: number;
+  /** Folder name on disk for the target show */
+  targetFolderName?: string;
+  /** Custom title for task display (e.g., "Sync: Show Name") */
+  targetShowTitle?: string;
 }
 
 /** Statistics from a completed scan */

@@ -17,11 +17,12 @@ import type {
   DiscoveredFile,
   BatchItem,
 } from './types';
-import { getConfig, validateConfig, type ScannerConfig } from './config';
+import { getConfig, getShowFolderPath, validateConfig, type ScannerConfig } from './config';
 import { discoverFiles } from './filesystem';
 import { parseFilename } from './parser';
 import {
   markMissingFilesAsDeleted,
+  markShowFilesAsDeleted,
   createScanHistory,
   updateScanHistory,
   BatchProcessor,
@@ -66,11 +67,12 @@ export async function startScan(options: ScanOptions = {}): Promise<StartScanRes
   const config = getConfig();
 
   // Create scan history record
-  const scanType = options.scanType ?? 'full';
+  const scanType = options.targetShowId ? 'show-sync' : (options.scanType ?? 'full');
   const scanId = await createScanHistory(scanType);
 
   // Create progress tracker (also registers with task system)
-  const tracker = new ScanProgressTracker(scanId);
+  const taskType = options.targetShowId ? 'show-sync' : 'scan';
+  const tracker = new ScanProgressTracker(scanId, options.targetShowTitle, taskType);
   activeScanners.set(scanId, tracker);
   const taskId = tracker.getTaskId();
 
@@ -104,18 +106,19 @@ async function runScan(
   const existingFilepaths = new Set<string>();
 
   try {
-    // Validate media path is accessible (skip ffprobe check if not extracting metadata)
-    await validateConfig({ skipFfprobe: options.skipMetadata });
-
-    // Phase 1: Discover files from both TV shows and movies directories
+    // Phase 1: Discover files
     tracker.setPhase('discovering');
     const files: DiscoveredFile[] = [];
 
-    // Scan TV shows directory
-    if (config.tvShowsPath) {
+    if (options.targetFolderName) {
+      // Single-show sync - only scan target folder
+      const showPath = getShowFolderPath(options.targetFolderName);
+      if (!showPath) {
+        throw new Error('TV shows path not configured');
+      }
+
       let discoveryCount = 0;
-      for await (const file of discoverFiles(config.tvShowsPath)) {
-        // Check for cancellation
+      for await (const file of discoverFiles(showPath)) {
         if (cancelledScans.has(scanId)) {
           throw new Error('Scan cancelled by user');
         }
@@ -123,28 +126,45 @@ async function runScan(
         files.push(file);
         existingFilepaths.add(file.filepath);
 
-        // Yield periodically to keep app responsive
         if (++discoveryCount % YIELD_INTERVAL === 0) {
           await yieldToEventLoop();
         }
       }
-    }
+    } else {
+      // Full library scan - validate config and scan all directories
+      await validateConfig({ skipFfprobe: options.skipMetadata });
 
-    // Scan movies directory
-    if (config.moviesPath) {
-      let discoveryCount = 0;
-      for await (const file of discoverFiles(config.moviesPath)) {
-        // Check for cancellation
-        if (cancelledScans.has(scanId)) {
-          throw new Error('Scan cancelled by user');
+      // Scan TV shows directory
+      if (config.tvShowsPath) {
+        let discoveryCount = 0;
+        for await (const file of discoverFiles(config.tvShowsPath)) {
+          if (cancelledScans.has(scanId)) {
+            throw new Error('Scan cancelled by user');
+          }
+
+          files.push(file);
+          existingFilepaths.add(file.filepath);
+
+          if (++discoveryCount % YIELD_INTERVAL === 0) {
+            await yieldToEventLoop();
+          }
         }
+      }
 
-        files.push(file);
-        existingFilepaths.add(file.filepath);
+      // Scan movies directory
+      if (config.moviesPath) {
+        let discoveryCount = 0;
+        for await (const file of discoverFiles(config.moviesPath)) {
+          if (cancelledScans.has(scanId)) {
+            throw new Error('Scan cancelled by user');
+          }
 
-        // Yield periodically to keep app responsive
-        if (++discoveryCount % YIELD_INTERVAL === 0) {
-          await yieldToEventLoop();
+          files.push(file);
+          existingFilepaths.add(file.filepath);
+
+          if (++discoveryCount % YIELD_INTERVAL === 0) {
+            await yieldToEventLoop();
+          }
         }
       }
     }
@@ -224,7 +244,13 @@ async function runScan(
 
     // Phase 4: Mark deleted files
     tracker.setPhase('cleanup');
-    stats.filesDeleted = await markMissingFilesAsDeleted(existingFilepaths);
+    if (options.targetShowId) {
+      // Single-show sync - only mark files for this show as deleted
+      stats.filesDeleted = await markShowFilesAsDeleted(options.targetShowId, existingFilepaths);
+    } else {
+      // Full scan - mark all missing files as deleted
+      stats.filesDeleted = await markMissingFilesAsDeleted(existingFilepaths);
+    }
 
     // Update final stats on tracker
     tracker.updateStats({
