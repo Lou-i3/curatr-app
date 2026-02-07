@@ -31,6 +31,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import Image from 'next/image';
 
 const navigation = [
@@ -90,44 +96,77 @@ export function AppSidebar() {
           })}
 
           {/* Integrations with submenu */}
-          <Collapsible
-            asChild
-            defaultOpen={pathname.startsWith('/integrations')}
-            className="group/collapsible"
-          >
+          {state === 'collapsed' ? (
+            // Dropdown menu for collapsed sidebar
             <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton
-                  isActive={pathname.startsWith('/integrations')}
-                >
-                  <Plug />
-                  <span>Integrations</span>
-                  <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    isActive={pathname.startsWith('/integrations')}
+                    tooltip="Integrations"
+                  >
+                    <Plug />
+                    <span>Integrations</span>
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" sideOffset={4}>
                   {integrationItems.map((item) => (
-                    <SidebarMenuSubItem key={item.name}>
-                      <SidebarMenuSubButton asChild isActive={pathname === item.href}>
-                        <Link href={item.href}>
-                          <item.icon className="size-4" />
-                          <span>{item.name}</span>
+                    <DropdownMenuItem key={item.name} asChild>
+                      <Link href={item.href} className="flex items-center gap-2">
+                        <item.icon className="size-4" />
+                        <span>{item.name}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuItem asChild>
+                    <Link href="/integrations" className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Other Integrations</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          ) : (
+            // Collapsible submenu for expanded sidebar
+            <Collapsible
+              asChild
+              defaultOpen={pathname.startsWith('/integrations')}
+              className="group/collapsible"
+            >
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton
+                    isActive={pathname.startsWith('/integrations')}
+                  >
+                    <Plug />
+                    <span>Integrations</span>
+                    <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {integrationItems.map((item) => (
+                      <SidebarMenuSubItem key={item.name}>
+                        <SidebarMenuSubButton asChild isActive={pathname === item.href}>
+                          <Link href={item.href}>
+                            <item.icon className="size-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild isActive={pathname === '/integrations'}>
+                        <Link href="/integrations">
+                          <span className="text-muted-foreground">Other Integrations</span>
                         </Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
-                  ))}
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={pathname === '/integrations'}>
-                      <Link href="/integrations">
-                        <span className="text-muted-foreground">Other Integrations</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+          )}
 
 
           {/* Tasks with activity indicator */}

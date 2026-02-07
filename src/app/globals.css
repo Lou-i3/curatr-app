@@ -203,6 +203,7 @@
 
 /* Force pointer cursor on all interactive elements - outside @layer for proper specificity */
 button,
-[role="button"] {
+[role="button"],
+[data-slot="dropdown-menu-item"] {
   cursor: pointer;
 }
