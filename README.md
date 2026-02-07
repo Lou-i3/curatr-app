@@ -459,6 +459,7 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [x] Import seasons & episodes from TMDB
 - [x] Two-dimensional status system (monitor intent + quality state)
 - [x] Clickable status badges with cascade updates
+- [ ] Single show files sync button + endpoint
 - [ ] ffprobe metadata extraction
 - [ ] Movies support
 - [ ] Plex database sync
