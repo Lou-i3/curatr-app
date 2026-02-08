@@ -104,7 +104,7 @@ function StatusIndicator({ status }: { status: UpdateStatus }) {
       );
     case 'up-to-date':
       return (
-        <span className="size-2 rounded-full bg-success" aria-label="Up to date" />
+        <span className="size-2 rounded-full bg-primary" aria-label="Up to date" />
       );
     case 'update-available':
       return (

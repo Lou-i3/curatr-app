@@ -262,21 +262,21 @@ function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
       {/* Stats */}
       <div className="flex flex-wrap gap-3 text-sm">
         {task.succeeded > 0 && (
-          <span className="text-success-foreground">
+          <Badge variant="outline" className="text-success-foreground">
             <CheckCircle2 className="size-3 inline mr-1" />
             {task.succeeded} succeeded
-          </span>
+          </Badge>
         )}
         {task.failed > 0 && (
-          <span className="text-destructive-foreground">
+          <Badge variant="outline"  className="text-destructive-foreground">
             <XCircle className="size-3 inline mr-1" />
             {task.failed} failed
-          </span>
+          </Badge>
         )}
         {task.status === 'pending' && (
-          <span className="text-muted-foreground">
+          <Badge variant="outline" className="text-muted-foreground">
             Waiting for slot...
-          </span>
+          </Badge>
         )}
       </div>
 
