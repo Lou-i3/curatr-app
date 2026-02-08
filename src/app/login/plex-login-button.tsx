@@ -38,6 +38,10 @@ export function PlexLoginButton() {
     setError(null);
     setState('creating-pin');
 
+    // Open window immediately on click — Safari blocks window.open() after async calls.
+    // We open a blank page first, then navigate it to the Plex auth URL once we have it.
+    authWindowRef.current = window.open('about:blank', 'plex-auth', 'width=800,height=600');
+
     try {
       // Create a Plex PIN
       const pinResponse = await fetch('/api/auth/plex/pin', { method: 'POST' });
@@ -49,8 +53,13 @@ export function PlexLoginButton() {
 
       const { pinId, authUrl } = await pinResponse.json();
 
-      // Open Plex auth in a new window
-      authWindowRef.current = window.open(authUrl, 'plex-auth', 'width=800,height=600');
+      // Navigate the already-opened window to the Plex auth URL
+      if (authWindowRef.current) {
+        authWindowRef.current.location.href = authUrl;
+      } else {
+        // Fallback: window was closed or blocked despite our effort
+        window.open(authUrl, 'plex-auth', 'width=800,height=600');
+      }
       setState('waiting');
 
       // Start polling for PIN completion
@@ -102,6 +111,7 @@ export function PlexLoginButton() {
         }
       }, POLL_INTERVAL_MS);
     } catch (err) {
+      authWindowRef.current?.close();
       setState('error');
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     }
