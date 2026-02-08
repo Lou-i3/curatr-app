@@ -76,6 +76,7 @@ A **self-hosted** web application for tracking media file quality, playback comp
   - Add/edit/delete tests from episode list or detail pages
 - **Settings** - Configurable date format (EU/US/ISO), max parallel tasks, playback platforms, and user management (when auth enabled)
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
+- **PWA Support** - Installable as a Progressive Web App on phones (iOS/Android) and desktop
 - **Dark Mode** - Full dark mode UI with system preference support
 - **Custom Theme** - Nunito font, green accent colors, consistent design
 
@@ -216,6 +217,8 @@ src/
 ├── proxy.ts                        # Auth route protection (cookie check, no DB)
 ├── app/
 │   ├── page.tsx                    # Dashboard
+│   ├── manifest.ts                 # PWA web app manifest
+│   ├── apple-icon.png              # Apple touch icon (180x180)
 │   ├── layout.tsx                  # Root layout with sidebar + providers
 │   ├── login/
 │   │   ├── page.tsx                # Login page
@@ -693,7 +696,7 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [x] Plex Auth integration page with setup guide
 - [x] Fix in app documentation for scanner and TMDB features to reflect real implementation
 - [ ] Mobile responsive design improvements
-- [ ] Add manifest for PWA support
+- [x] Add manifest for PWA support
 - [ ] Refactor codebase to store prisma client in the default location
 - [ ] Check modules utilization and relevance and remove unused ones
 - [ ] Transform API documentation into a swagger

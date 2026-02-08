@@ -312,7 +312,7 @@ const { user, isAdmin, isAuthenticated, authMode, loading, logout } = useAuth();
 **Proxy** (`src/proxy.ts`):
 - Lightweight cookie check + redirect (no DB access — edge runtime limitations)
 - Only active when `AUTH_MODE=plex`
-- Passes through `/login`, `/api/auth/*`, static assets
+- Passes through `/login`, `/api/auth/*`, static assets, and PWA assets (manifest, icons, screenshots)
 
 **API Route Protection**:
 - All mutation API routes (POST/PATCH/DELETE) use `requireAdmin()`
