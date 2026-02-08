@@ -110,7 +110,10 @@ When uncertain about implementation:
 - If a shadcn component fits but isn't installed yet, **add it** via `npx shadcn@latest add <component>`
 - **Tailwind**: Use for shadcn components (maintain their existing patterns)
 - **Custom CSS**: Always prefer using existing styles in `globals.css` when building UI elements
-- **Semantic color tokens**: Use Tailwind classes with token colors defined in `globals.css` (e.g., `text-destructive`, `bg-warning`, `border-success`) rather than fixed color classes (e.g., avoid `text-red-500`, `bg-yellow-500`)
+- **Semantic color tokens**: Use Tailwind classes with token colors defined in `globals.css` rather than fixed color classes (e.g., avoid `text-red-500`, `bg-yellow-500`)
+  - **For text**: Always use `-foreground` variants: `text-success-foreground`, `text-warning-foreground`, `text-destructive-foreground`
+  - **For backgrounds**: Use base colors: `bg-success`, `bg-warning`, `bg-destructive`
+  - **For borders**: Use base colors: `border-success`, `border-warning`, `border-destructive`
 - Check `src/components/ui/` for installed components; see [shadcn/ui docs](https://ui.shadcn.com/docs/components) for full list
 
 **Component Gotchas:**
