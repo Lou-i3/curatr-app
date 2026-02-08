@@ -32,6 +32,7 @@ import { TVShowsTable } from './tv-shows-table';
 import type { TVShow } from './tv-show-columns';
 import { Star, Film, HardDrive } from 'lucide-react';
 import { formatFileSize } from '@/lib/settings-shared';
+import { PageHeader } from '@/components/page-header';
 
 function ShowCardSkeleton() {
   return (
@@ -120,15 +121,11 @@ export default function TVShowsPage() {
   return (
     <div className="p-8">
       {/* Sticky Header + Toolbar */}
-      <div className="sticky top-0 z-10 bg-background pb-4 -mx-8 px-8 pt-0 -mt-8 border-b">
-        <div className="pt-8 mb-4">
-          <h1 className="text-3xl font-bold">
-            TV Shows {!loading && `(${shows.length})`}
-          </h1>
-          <p className="text-muted-foreground">
-            Browse and manage your TV show library
-          </p>
-        </div>
+      <div className="sticky top-0 z-10 bg-background p-4 -mx-8 px-8 -mt-8">
+        <PageHeader
+          title={`TV Shows ${!loading ? `(${shows.length})` : ''}`}
+          description="Browse and manage your TV show library"
+        />
 
         {/* Toolbar */}
         <TVShowsToolbar table={table} />
@@ -138,7 +135,7 @@ export default function TVShowsPage() {
         {loading ? (
           /* Loading Skeleton */
           isTableView ? (
-            <Card>
+            <Card >
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
@@ -189,7 +186,7 @@ export default function TVShowsPage() {
           <div className="grid gap-4">
             {shows.map((show) => (
               <div key={show.id} className="block">
-                <Card className="hover:bg-accent/50 transition-colors">
+                <Card className="hover:bg-accent/50 transition-colors p-0">
                   <CardContent className="p-6">
                     <div className="flex gap-4">
                       {/* Poster */}

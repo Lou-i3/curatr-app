@@ -12,6 +12,7 @@ import { FileSearch } from 'lucide-react';
 import { isTmdbConfigured } from '@/lib/tmdb';
 import { isFFprobeAvailable } from '@/lib/ffprobe';
 import { prisma } from '@/lib/prisma';
+import { PageHeader } from '@/components/page-header';
 
 /** Integration definition */
 interface Integration {
@@ -122,12 +123,10 @@ export default async function IntegrationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Integrations</h1>
-        <p className="text-muted-foreground">
-          Connect external services to enrich your library with metadata and automate workflows.
-        </p>
-      </div>
+      <PageHeader
+        title="Integrations"
+        description="Connect external services to enrich your library with metadata and automate workflows."
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {integrations.map((integration) => (

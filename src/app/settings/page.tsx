@@ -1,5 +1,6 @@
 import { getSettings } from '@/lib/settings';
 import { SettingsForm } from './settings-form';
+import { PageHeader } from '@/components/page-header';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,10 +9,10 @@ export default async function SettingsPage() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Configure application preferences</p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Configure application preferences"
+      />
 
       <SettingsForm initialSettings={settings} />
     </div>

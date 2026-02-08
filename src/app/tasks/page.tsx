@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 import { useTasks, type TaskData } from '@/lib/contexts/task-context';
+import { PageHeader } from '@/components/page-header';
 
 // Re-use TaskData from context
 type TaskProgress = TaskData;
@@ -111,12 +112,10 @@ export default function TasksPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Tasks</h1>
-            <p className="text-muted-foreground">View and manage background tasks</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Tasks"
+          description="View and manage background tasks"
+        />
         <Card>
           <CardContent className="pt-6 space-y-4">
             <Skeleton className="h-16 w-full" />
@@ -131,20 +130,20 @@ export default function TasksPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Tasks</h1>
-          <p className="text-muted-foreground">View and manage background tasks</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-          {refreshing ? (
-            <Loader2 className="size-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="size-4 mr-2" />
-          )}
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Tasks"
+        description="View and manage background tasks"
+        action={
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? (
+              <Loader2 className="size-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4 mr-2" />
+            )}
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Active Tasks */}
       <Card>

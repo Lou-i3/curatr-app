@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, ExternalLink } from 'lucide-react';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
+import { PageHeader } from '@/components/page-header';
 
 interface GitHubRelease {
   id: number;
@@ -65,21 +66,21 @@ export default function ChangelogPage() {
 
   return (
     <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Changelog</h1>
-          <p className="text-muted-foreground">Release history and version notes</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fetchReleases(true)}
-          disabled={refreshing}
-        >
-          <RefreshCw className={`size-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Changelog"
+        description="Release history and version notes"
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchReleases(true)}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`size-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       <div className="space-y-6">
         {loading ? (

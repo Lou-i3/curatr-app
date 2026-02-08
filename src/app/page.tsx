@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tv, Film, FileVideo, ScanSearch, ArrowRight } from "lucide-react";
+import { PageHeader } from '@/components/page-header';
 
 async function getStats() {
   const [showCount, episodeCount, fileCount, recentScans] = await Promise.all([
@@ -25,10 +26,10 @@ export default async function Home() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your media library</p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Overview of your media library"
+      />
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-3 mb-8">
