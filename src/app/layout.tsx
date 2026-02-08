@@ -26,7 +26,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Curatr App",
-  description: "Track media file quality, playback compatibility, and maintenance status",
+  description:
+    "Track media file quality, playback compatibility, and maintenance status",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Curatr",
+  },
 };
 
 export default async function RootLayout({
