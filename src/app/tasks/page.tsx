@@ -262,13 +262,13 @@ function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
       {/* Stats */}
       <div className="flex flex-wrap gap-3 text-sm">
         {task.succeeded > 0 && (
-          <span className="text-green-600">
+          <span className="text-success-foreground">
             <CheckCircle2 className="size-3 inline mr-1" />
             {task.succeeded} succeeded
           </span>
         )}
         {task.failed > 0 && (
-          <span className="text-destructive">
+          <span className="text-destructive-foreground">
             <XCircle className="size-3 inline mr-1" />
             {task.failed} failed
           </span>
@@ -298,7 +298,7 @@ function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
       {/* Errors summary */}
       {task.errors.length > 0 && task.status !== 'running' && (
         <details className="text-sm">
-          <summary className="cursor-pointer text-destructive">
+          <summary className="cursor-pointer text-destructive-foreground">
             {task.errors.length} error{task.errors.length !== 1 ? 's' : ''}
           </summary>
           <ul className="mt-2 space-y-1 pl-4">

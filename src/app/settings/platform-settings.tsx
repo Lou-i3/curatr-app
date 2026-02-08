@@ -235,7 +235,7 @@ export function PlatformSettings() {
 
   if (error) {
     return (
-      <div className="text-destructive text-sm py-4">
+      <div className="text-destructive-foreground text-sm py-4">
         {error}
         <Button variant="link" size="sm" onClick={fetchPlatforms} className="ml-2">
           Retry
@@ -277,7 +277,7 @@ export function PlatformSettings() {
                     className="h-8 w-8"
                     onClick={() => handleSaveEdit(platform.id)}
                   >
-                    <Check className="h-4 w-4 text-success" />
+                    <Check className="h-4 w-4 text-success-foreground" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -330,7 +330,7 @@ export function PlatformSettings() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    className="h-8 w-8 text-destructive-foreground hover:text-destructive-foreground"
                     onClick={() => setDeletingPlatform(platform)}
                     disabled={platform._count && platform._count.playbackTests > 0}
                   >

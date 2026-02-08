@@ -106,10 +106,10 @@ export default async function Home() {
                   <li key={scan.id} className="flex items-center justify-between text-sm">
                     <span className="capitalize">{scan.scanType} scan</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs ${
-                      scan.status === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                      scan.status === 'FAILED' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                      scan.status === 'RUNNING' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                      'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                      scan.status === 'COMPLETED' ? 'bg-success text-success-foreground' :
+                      scan.status === 'FAILED' ? 'bg-destructive text-destructive-foreground' :
+                      scan.status === 'RUNNING' ? 'bg-secondary text-secondary-foreground' :
+                      'bg-muted text-muted-foreground'
                     }`}>
                       {scan.status.toLowerCase()}
                     </span>

@@ -74,7 +74,7 @@ export function TmdbHelpDialog() {
               {/* What gets updated */}
               <div className="bg-muted rounded-md p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="size-4 text-green-500" />
+                  <CheckCircle2 className="size-4 text-success-foreground" />
                   <span className="text-sm font-medium">Always Updated</span>
                 </div>
                 <ul className="list-disc list-inside space-y-0.5 text-xs text-muted-foreground ml-6">
@@ -129,20 +129,20 @@ export function TmdbHelpDialog() {
                 <p className="text-sm font-medium mb-2">Status Indicators</p>
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="size-4 text-green-500" />
-                    <span className="text-muted-foreground">
+                    <CheckCircle2 className="size-4 text-success-foreground" />
+                    <span className="text-success-foreground-foreground">
                       Exists with files — already in DB with media files
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="size-4 rounded-full border-2 border-yellow-500 bg-yellow-500/20" />
-                    <span className="text-muted-foreground">
+                    <div className="size-4 rounded-full border-2 border-warning bg-warning" />
+                    <span className="text-warning-foreground">
                       Exists without files — in DB but no files (missing)
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="size-4 rounded-full border-2 border-muted-foreground" />
-                    <span className="text-muted-foreground">
+                    <div className="size-4 rounded-full border-2 border-secondary bg-secondary" />
+                      <span className="text-secondary-foreground">
                       Will be created — not in DB yet
                     </span>
                   </div>

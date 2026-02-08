@@ -256,7 +256,7 @@ export function MediaInfoSection({ file, ffprobeAvailable, dateFormat }: MediaIn
       )}
 
       {file.mediaInfoError && (
-        <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+        <div className="text-sm text-destructive-foreground bg-destructive/10 p-2 rounded">
           Analysis error: {file.mediaInfoError}
         </div>
       )}

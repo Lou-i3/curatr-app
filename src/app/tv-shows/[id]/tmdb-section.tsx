@@ -155,13 +155,13 @@ export function TmdbSection({
               <div className="flex flex-wrap gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="text-muted-foreground">Seasons:</span>
-                  <span className={syncStats.syncedSeasons === syncStats.totalSeasons ? 'text-green-600' : 'text-amber-600'}>
+                  <span className={syncStats.syncedSeasons === syncStats.totalSeasons ? 'text-success-foreground' : 'text-warning-foreground'}>
                     {syncStats.syncedSeasons}/{syncStats.totalSeasons} synced
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-muted-foreground">Episodes:</span>
-                  <span className={syncStats.syncedEpisodes === syncStats.totalEpisodes ? 'text-green-600' : 'text-amber-600'}>
+                  <span className={syncStats.syncedEpisodes === syncStats.totalEpisodes ? 'text-success-foreground' : 'text-warning-foreground'}>
                     {syncStats.syncedEpisodes}/{syncStats.totalEpisodes} synced
                   </span>
                 </div>

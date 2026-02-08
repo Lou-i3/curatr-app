@@ -234,7 +234,7 @@ export default function TVShowsPage() {
                       </TableCell>
                       <TableCell>
                         {show.voteAverage ? (
-                          <span className="flex items-center gap-1 text-amber-500">
+                          <span className="flex items-center gap-1 text-warning-foreground">
                             <Star className="size-3 fill-current" />
                             {show.voteAverage.toFixed(1)}
                           </span>
@@ -318,7 +318,7 @@ export default function TVShowsPage() {
                                 <span className="text-sm text-muted-foreground">{show.year}</span>
                               )}
                               {show.voteAverage && (
-                                <span className="flex items-center gap-1 text-amber-500 text-sm">
+                                <span className="flex items-center gap-1 text-warning-foreground text-sm">
                                   <Star className="size-3 fill-current" />
                                   {show.voteAverage.toFixed(1)}
                                 </span>

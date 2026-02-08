@@ -493,15 +493,15 @@ export default function TmdbIntegrationPage() {
                   <div className="text-sm text-muted-foreground">Total Shows</div>
                 </div>
                 <div className="rounded-lg border p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{status.shows.fullySynced}</div>
+                  <div className="text-2xl font-bold text-success-foreground">{status.shows.fullySynced}</div>
                   <div className="text-sm text-muted-foreground">Fully Synced</div>
                 </div>
                 <div className="rounded-lg border p-4 text-center">
-                  <div className="text-2xl font-bold text-amber-600">{status.shows.needsSync}</div>
+                  <div className="text-2xl font-bold text-warning-foreground">{status.shows.needsSync}</div>
                   <div className="text-sm text-muted-foreground">Needs Sync</div>
                 </div>
                 <div className="rounded-lg border p-4 text-center">
-                  <div className="text-2xl font-bold text-red-600">{status.shows.unmatched}</div>
+                  <div className="text-2xl font-bold text-destructive-foreground">{status.shows.unmatched}</div>
                   <div className="text-sm text-muted-foreground">Unmatched</div>
                 </div>
               </div>

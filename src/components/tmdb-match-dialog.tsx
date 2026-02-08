@@ -195,7 +195,7 @@ export function TmdbMatchDialog({
           {/* Not configured message */}
           {!checkingConfig && configured === false && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <AlertCircle className="size-12 text-amber-500 mb-4" />
+              <AlertCircle className="size-12 text-warning-foreground mb-4" />
               <h3 className="font-medium text-lg mb-2">TMDB Not Configured</h3>
               <p className="text-muted-foreground mb-4 max-w-sm">
                 To search and match shows, you need to configure your TMDB API key first.
@@ -245,7 +245,7 @@ export function TmdbMatchDialog({
 
           {/* Error */}
           {error && (
-            <div className="text-sm text-destructive">{error}</div>
+            <div className="text-sm text-destructive-foreground">{error}</div>
           )}
 
           {/* Results */}

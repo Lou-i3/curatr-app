@@ -123,13 +123,13 @@ export function ScanHistoryTable({ initialScans, dateFormat }: Props) {
                   {formatDuration(scan.startedAt, scan.completedAt)}
                 </TableCell>
                 <TableCell className="text-right">{scan.filesScanned}</TableCell>
-                <TableCell className="text-right text-green-600">
+                <TableCell className="text-right text-success-foreground">
                   {scan.filesAdded > 0 ? `+${scan.filesAdded}` : '-'}
                 </TableCell>
-                <TableCell className="text-right text-blue-600">
+                <TableCell className="text-right text-secondary">
                   {scan.filesUpdated > 0 ? scan.filesUpdated : '-'}
                 </TableCell>
-                <TableCell className="text-right text-orange-600">
+                <TableCell className="text-right text-warning-foreground">
                   {scan.filesDeleted > 0 ? scan.filesDeleted : '-'}
                 </TableCell>
                 <TableCell className="text-right">

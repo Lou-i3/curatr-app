@@ -411,14 +411,14 @@ export function TmdbImportDialog({
     if (episode.existingEpisodeId && episode.hasFiles) {
       return (
         <span title="Exists with files">
-          <CheckCircle2 className="size-4 text-green-500" />
+          <CheckCircle2 className="size-4 text-success-foreground" />
         </span>
       );
     }
     if (episode.existingEpisodeId) {
       return (
         <span title="Exists without files">
-          <Circle className="size-4 text-yellow-500 fill-yellow-500/20" />
+          <Circle className="size-4 text-warning-foreground fill-warning" />
         </span>
       );
     }
@@ -477,7 +477,7 @@ export function TmdbImportDialog({
 
           {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 text-destructive p-3 bg-destructive/10 rounded-md">
+            <div className="flex items-center gap-2 text-destructive-foreground p-3 bg-destructive/10 rounded-md">
               <AlertCircle className="size-4" />
               {error}
             </div>

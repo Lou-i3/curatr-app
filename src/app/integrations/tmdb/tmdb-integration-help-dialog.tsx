@@ -97,7 +97,7 @@ export function TmdbIntegrationHelpDialog() {
 
               <div className="p-3 rounded border">
                 <div className="flex items-center gap-2 mb-1">
-                  <RefreshCw className="size-4 text-amber-500" />
+                  <RefreshCw className="size-4 text-warning-foreground" />
                   <span className="font-medium">Refresh Missing Metadata</span>
                 </div>
                 <p className="text-sm text-muted-foreground">

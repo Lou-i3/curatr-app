@@ -126,7 +126,7 @@ export default async function ShowDetailPage({ params }: Props) {
                     <span className="text-lg text-muted-foreground">{show.year}</span>
                   )}
                   {show.voteAverage && (
-                    <span className="flex items-center gap-1 text-amber-500">
+                    <span className="flex items-center gap-1 text-warning-foreground">
                       <Star className="size-4 fill-current" />
                       {show.voteAverage.toFixed(1)}
                     </span>

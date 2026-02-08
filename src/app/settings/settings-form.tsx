@@ -132,7 +132,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           {isSaving ? 'Saving...' : 'Save Changes'}
         </Button>
         {savedMessage && (
-          <p className="text-sm text-green-600 dark:text-green-400">{savedMessage}</p>
+          <p className="text-sm text-success-foreground">{savedMessage}</p>
         )}
       </div>
     </div>

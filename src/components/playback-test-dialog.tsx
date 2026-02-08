@@ -369,7 +369,7 @@ export function PlaybackTestDialog({
                                 <div className="font-medium flex items-center gap-2">
                                   {test.platform.name}
                                   {test.platform.isRequired && (
-                                    <span className="text-destructive">*</span>
+                                    <span className="text-destructive-foreground">*</span>
                                   )}
                                 </div>
                                 <Select
@@ -429,7 +429,7 @@ export function PlaybackTestDialog({
                                   <span className="font-medium text-sm">
                                     {test.platform.name}
                                     {test.platform.isRequired && (
-                                      <span className="text-destructive ml-1">*</span>
+                                      <span className="text-destructive-foreground ml-1">*</span>
                                     )}
                                   </span>
                                   <div className="flex items-center gap-1">
@@ -444,7 +444,7 @@ export function PlaybackTestDialog({
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-6 w-6 text-destructive hover:text-destructive"
+                                      className="h-6 w-6 text-destructive-foreground hover:text-destructive-foreground"
                                       onClick={() => setDeleteTestId(test.id)}
                                     >
                                       <Trash2 className="h-3 w-3" />
@@ -587,7 +587,7 @@ export function PlaybackTestDialog({
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground-foreground hover:bg-destructive/90"
             >
               {deleting ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-1" />

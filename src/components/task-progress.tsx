@@ -159,10 +159,10 @@ export function TaskProgress({
 
   return (
     <Card className={
-      isCompleted ? 'border-green-500/50' :
+      isCompleted ? 'border-success/50' :
       isFailed ? 'border-destructive/50' :
-      isCancelled ? 'border-muted' :
-      isPending ? 'border-amber-500/50' :
+      isCancelled ? 'border-border/50' :
+      isPending ? 'border-secondary/50' :
       ''
     }>
       <CardContent className="pt-4 space-y-3">
@@ -170,9 +170,9 @@ export function TaskProgress({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isRunning && <Loader2 className="size-4 animate-spin text-primary" />}
-            {isPending && <Clock className="size-4 text-amber-500" />}
-            {isCompleted && <CheckCircle2 className="size-4 text-green-500" />}
-            {isFailed && <XCircle className="size-4 text-destructive" />}
+            {isPending && <Clock className="size-4 text-warning-foreground" />}
+            {isCompleted && <CheckCircle2 className="size-4 text-success-foreground" />}
+            {isFailed && <XCircle className="size-4 text-destructive-foreground" />}
             {isCancelled && <AlertTriangle className="size-4 text-muted-foreground" />}
             <span className="font-medium">{title}</span>
             {isPending && <Badge variant="secondary" className="text-xs">Queued</Badge>}
@@ -238,12 +238,12 @@ export function TaskProgress({
 
         {/* Completion message */}
         {isCompleted && progress.failed === 0 && (
-          <div className="text-sm text-success">
+          <div className="text-sm text-success-foreground">
             All items processed successfully
           </div>
         )}
         {isCompleted && progress.failed > 0 && (
-          <div className="text-sm text-warning">
+          <div className="text-sm text-warning-foreground">
             Completed with {progress.failed} failures
           </div>
         )}

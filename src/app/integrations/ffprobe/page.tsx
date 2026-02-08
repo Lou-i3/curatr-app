@@ -132,7 +132,7 @@ export default function FfprobeIntegrationPage() {
       {error && (
         <Card className="border-destructive">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-destructive">
+            <div className="flex items-center gap-2 text-destructive-foreground">
               <AlertCircle className="size-4" />
               <span>{error}</span>
             </div>
@@ -181,9 +181,9 @@ export default function FfprobeIntegrationPage() {
             <div className="space-y-4">
               <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="size-5 text-destructive mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="size-5 text-destructive-foreground mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-destructive">FFprobe configuration error</p>
+                    <p className="font-medium text-destructive-foreground">FFprobe configuration error</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {status.error || 'Unknown error'}
                     </p>
