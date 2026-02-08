@@ -5,6 +5,7 @@
  * Integrates with TanStack Table's column visibility state
  */
 
+import { useState, useEffect } from 'react';
 import { Table } from '@tanstack/react-table';
 import { Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,22 @@ interface ColumnVisibilityToggleProps<TData> {
 export function ColumnVisibilityToggle<TData>({
   table,
 }: ColumnVisibilityToggleProps<TData>) {
+  // Local state for column visibility (following shadcn pattern)
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >({});
+
+  // Initialize column visibility from table
+  useEffect(() => {
+    if (!table) return;
+
+    const visibility: Record<string, boolean> = {};
+    table.getAllColumns().forEach((column) => {
+      visibility[column.id] = column.getIsVisible();
+    });
+    setColumnVisibility(visibility);
+  }, [table]);
+
   if (!table) {
     return null;
   }
@@ -42,18 +59,24 @@ export function ColumnVisibilityToggle<TData>({
         {table
           .getAllColumns()
           .filter((column) => column.getCanHide())
-          .map((column) => {
-            return (
-              <DropdownMenuCheckboxItem
-                key={column.id}
-                checked={column.getIsVisible()}
-                onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                className="capitalize"
-              >
-                {column.id}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
+          .map((column) => (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              className="capitalize"
+              checked={columnVisibility[column.id] ?? true}
+              onCheckedChange={(checked) => {
+                // Update local state (triggers re-render)
+                setColumnVisibility((prev) => ({
+                  ...prev,
+                  [column.id]: !!checked,
+                }));
+                // Update table
+                column.toggleVisibility(!!checked);
+              }}
+            >
+              {column.id}
+            </DropdownMenuCheckboxItem>
+          ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
