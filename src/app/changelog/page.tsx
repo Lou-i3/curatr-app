@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, ExternalLink } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ExternalLink } from 'lucide-react';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 import { PageHeader } from '@/components/page-header';
 
@@ -23,15 +23,24 @@ interface GitHubRelease {
   prerelease: boolean;
 }
 
+interface RateLimitInfo {
+  resetAt: Date;
+  limit: number;
+}
+
+type FetchError = { type: 'rate-limit'; rateLimit: RateLimitInfo } | { type: 'error'; message: string } | null;
+
 export default function ChangelogPage() {
   const [releases, setReleases] = useState<GitHubRelease[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<FetchError>(null);
   const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
 
   const fetchReleases = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch(
@@ -44,9 +53,21 @@ export default function ChangelogPage() {
 
       if (res.ok) {
         setReleases(await res.json());
+      } else if (res.status === 403 || res.status === 429) {
+        const resetTimestamp = res.headers.get('X-RateLimit-Reset');
+        const limit = res.headers.get('X-RateLimit-Limit');
+        setError({
+          type: 'rate-limit',
+          rateLimit: {
+            resetAt: resetTimestamp ? new Date(Number(resetTimestamp) * 1000) : new Date(Date.now() + 60 * 60 * 1000),
+            limit: limit ? Number(limit) : 60,
+          },
+        });
+      } else {
+        setError({ type: 'error', message: `GitHub API returned ${res.status}` });
       }
-    } catch (error) {
-      console.error('Error fetching releases:', error);
+    } catch {
+      setError({ type: 'error', message: 'Could not connect to GitHub' });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -88,6 +109,8 @@ export default function ChangelogPage() {
             <Skeleton className="h-48 w-full" />
             <Skeleton className="h-48 w-full" />
           </>
+        ) : error ? (
+          <ErrorCard error={error} onRetry={() => fetchReleases(true)} retrying={refreshing} />
         ) : releases.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
@@ -101,6 +124,55 @@ export default function ChangelogPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function ErrorCard({ error, onRetry, retrying }: { error: FetchError; onRetry: () => void; retrying: boolean }) {
+  if (!error) return null;
+
+  if (error.type === 'rate-limit') {
+    const { resetAt, limit } = error.rateLimit;
+    const now = new Date();
+    const minutesLeft = Math.max(1, Math.ceil((resetAt.getTime() - now.getTime()) / 60000));
+
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <AlertTriangle className="size-8 text-warning-foreground" />
+            <div className="space-y-1">
+              <p className="font-medium">GitHub API rate limit reached</p>
+              <p className="text-sm text-muted-foreground">
+                GitHub allows {limit} unauthenticated API requests per hour.
+                The limit resets in approximately <strong>{minutesLeft} minute{minutesLeft !== 1 ? 's' : ''}</strong> (at {resetAt.toLocaleTimeString()}).
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={onRetry} disabled={retrying}>
+              <RefreshCw className={`size-4 mr-2 ${retrying ? 'animate-spin' : ''}`} />
+              Try again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="py-8">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <AlertTriangle className="size-8 text-destructive-foreground" />
+          <div className="space-y-1">
+            <p className="font-medium">Could not load releases</p>
+            <p className="text-sm text-muted-foreground">{error.message}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={onRetry} disabled={retrying}>
+            <RefreshCw className={`size-4 mr-2 ${retrying ? 'animate-spin' : ''}`} />
+            Try again
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
