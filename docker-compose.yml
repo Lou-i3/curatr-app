@@ -1,24 +1,68 @@
+# =============================================================================
+# Curatr App - Docker Compose Configuration
+# =============================================================================
+# This is an example configuration. Adjust paths and settings for your setup.
+# See README.md for full documentation of all environment variables.
+
 services:
   curatr-app:
     image: curatr-app
     container_name: curatr-app
     ports:
       - "3000:3000"
+
     environment:
+      # --- Core Settings ---
       - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/media-tracker.db
+
+      # --- Timezone & Permissions ---
       - TZ=Europe/Paris
       - PUID=1020
       - PGID=100
-      - DATABASE_URL=file:/app/data/media-tracker.db
+
+      # --- Media Library Paths (at least one required) ---
       - TV_SHOWS_PATH=/media/TV Shows
       - MOVIES_PATH=/media/Movies
-      - PLEX_DB_PATH=/plex-db
+
+      # --- TMDB Integration ---
+      # Get your API key at: https://www.themoviedb.org/settings/api
+      # - TMDB_API_KEY=your-read-access-token
+
+      # --- FFprobe Integration ---
+      # Requires extending the Docker image with ffmpeg:
+      #   FROM curatr:latest
+      #   RUN apk add --no-cache ffmpeg
+      # Then uncomment below:
+      # - FFPROBE_PATH=/usr/bin/ffprobe
+      # - FFPROBE_TIMEOUT=30000
+
+      # --- Scanner Settings ---
+      # - SCAN_CONCURRENCY=4
+      # - SCAN_BATCH_SIZE=100
+
+      # --- Task System ---
+      # - TASK_RETENTION_MS=3600000
+
+      # --- Plex Integration (Future Feature) ---
+      # - PLEX_DB_PATH=/plex-db
+
     volumes:
+      # Database persistence (required)
       - ./data:/app/data
-      #- ./logs:/app/logs
-      - ./media:/media/TV Shows:ro
-      #- /plex-db:/plex-db:ro
+
+      # Media library mounts (read-only recommended)
+      - /path/to/tv-shows:/media/TV Shows:ro
+      - /path/to/movies:/media/Movies:ro
+
+      # Optional: Plex database for future sync feature
+      # - /path/to/plex/database:/plex-db:ro
+
+      # Optional: Log persistence
+      # - ./logs:/app/logs
+
     restart: unless-stopped
+
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/tv-shows"]
       interval: 30s

@@ -43,6 +43,13 @@ A **self-hosted** web application for tracking media file quality, playback comp
   - Sidebar indicator shows running task count
   - Dedicated /tasks page for task management
   - 1-hour task retention for review after completion
+- **FFprobe Media Analysis** - Extract detailed media information from files
+  - Video: codec, resolution, bit depth (8/10/12-bit), frame rate, HDR type (HDR10, Dolby Vision, HLG)
+  - Audio: codec, channels, sample rate, language per track
+  - Subtitles: format, language, forced flag per track
+  - Analyze button on episode file pages
+  - Dedicated integration page with setup instructions and statistics
+  - User-configured via FFPROBE_PATH environment variable
 - **Playback Testing** - Record and track playback compatibility across platforms
   - Configurable platforms (TV, Web Player, Mobile, custom)
   - Mark platforms as required for quality verification
@@ -92,26 +99,62 @@ docker compose up --build
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DATABASE_URL` | Yes | - | SQLite database path |
-| `TV_SHOWS_PATH` | Yes* | - | Path to TV shows directory |
-| `MOVIES_PATH` | Yes* | - | Path to movies directory |
-| `TMDB_API_KEY` | No | - | TMDB API Read Access Token for metadata integration |
-| `TZ` | No | `UTC` | Timezone for date display (e.g., `Europe/Paris`, `America/New_York`) |
-| `PUID` | No | `1000` | User ID for file permissions |
-| `PGID` | No | `1000` | Group ID for file permissions |
-| `FFPROBE_PATH` | No | `/usr/bin/ffprobe` | Path to ffprobe binary |
-| `SCAN_CONCURRENCY` | No | `4` | Parallel ffprobe processes |
-| `TASK_RETENTION_MS` | No | `3600000` | Task retention time in ms (1 hour) |
+### Required
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | - | SQLite database path (e.g., `file:./prisma/dev.db`) |
+| `TV_SHOWS_PATH` | - | Path to TV shows directory* |
+| `MOVIES_PATH` | - | Path to movies directory* |
 
 *At least one of `TV_SHOWS_PATH` or `MOVIES_PATH` is required.
+
+### Integrations
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TMDB_API_KEY` | - | TMDB API Read Access Token for metadata ([get one here](https://www.themoviedb.org/settings/api)) |
+| `FFPROBE_PATH` | - | Path to ffprobe binary for media analysis (not set = disabled) |
+| `FFPROBE_TIMEOUT` | `30000` | FFprobe execution timeout in milliseconds |
+| `PLEX_DB_PATH` | - | Path to Plex database for future sync (not yet implemented) |
+
+### Scanner Settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SCAN_CONCURRENCY` | `4` | Number of parallel file operations during scan |
+| `SCAN_BATCH_SIZE` | `100` | Number of files to process per database batch |
+
+### Task System
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TASK_RETENTION_MS` | `3600000` | How long to keep completed tasks in memory (1 hour) |
+
+### Docker Settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TZ` | `UTC` | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
+| `PUID` | `1000` | User ID for file permissions |
+| `PGID` | `1000` | Group ID for file permissions |
+
+### FFprobe Installation Paths
+
+| Platform | Path |
+|----------|------|
+| Linux | `/usr/bin/ffprobe` |
+| macOS (Homebrew, Apple Silicon) | `/opt/homebrew/bin/ffprobe` |
+| macOS (Homebrew, Intel) | `/usr/local/bin/ffprobe` |
+| Docker (after `apk add ffmpeg`) | `/usr/bin/ffprobe` |
 
 ### Example .env
 
 ```bash
 DATABASE_URL="file:./prisma/dev.db"
 TV_SHOWS_PATH="/media/TV Shows"
+TMDB_API_KEY="your-read-access-token"
+FFPROBE_PATH="/opt/homebrew/bin/ffprobe"
 ```
 
 ### Example docker-compose.yml
@@ -128,6 +171,8 @@ services:
       - PGID=1000
       - DATABASE_URL=file:/app/data/media-tracker.db
       - TV_SHOWS_PATH=/media/TV Shows
+      - TMDB_API_KEY=your-read-access-token
+      # - FFPROBE_PATH=/usr/bin/ffprobe  # Requires extending image with ffmpeg
     volumes:
       - ./data:/app/data
       - /path/to/media:/media:ro
@@ -151,9 +196,12 @@ src/
 │   │   └── page.tsx                # Changelog (GitHub releases)
 │   ├── integrations/
 │   │   ├── page.tsx                # Integrations hub
-│   │   └── tmdb/
-│   │       ├── page.tsx            # TMDB integration config & status
-│   │       └── tmdb-integration-help-dialog.tsx # Help documentation
+│   │   ├── tmdb/
+│   │   │   ├── page.tsx            # TMDB integration config & status
+│   │   │   └── tmdb-integration-help-dialog.tsx # Help documentation
+│   │   └── ffprobe/
+│   │       ├── page.tsx            # FFprobe integration config & status
+│   │       └── ffprobe-help-dialog.tsx # Help documentation
 │   ├── tv-shows/
 │   │   ├── page.tsx                # TV Shows list (grid/table)
 │   │   ├── toolbar.tsx             # Search, filter, view toggle
@@ -218,12 +266,18 @@ src/
 │   │   └── index.ts                # Barrel export
 │   ├── contexts/
 │   │   └── task-context.tsx        # Task state & notifications (client)
-│   └── tmdb/                       # TMDB integration service
-│       ├── config.ts               # API configuration
-│       ├── types.ts                # TMDB API types
-│       ├── client.ts               # HTTP client with rate limiting
-│       ├── service.ts              # Match, sync, refresh operations
-│       └── images.ts               # Poster/backdrop URL helpers
+│   ├── tmdb/                       # TMDB integration service
+│   │   ├── config.ts               # API configuration
+│   │   ├── types.ts                # TMDB API types
+│   │   ├── client.ts               # HTTP client with rate limiting
+│   │   ├── service.ts              # Match, sync, refresh operations
+│   │   └── images.ts               # Poster/backdrop URL helpers
+│   └── ffprobe/                    # FFprobe media analysis
+│       ├── config.ts               # Path/timeout configuration
+│       ├── types.ts                # FFprobe output types
+│       ├── extract.ts              # Core extraction logic
+│       ├── service.ts              # Analysis operations
+│       └── index.ts                # Barrel export
 ├── components/
 │   ├── app-sidebar.tsx             # Collapsible navigation sidebar
 │   ├── version-badge.tsx           # Version display with update indicator
@@ -262,7 +316,14 @@ prisma/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `PATCH` | `/api/files/[id]` | Update file quality/action |
+| `POST` | `/api/files/[id]/analyze` | Analyze file with FFprobe |
 | `GET` | `/api/episodes/[id]/files` | Get episode files with playback tests |
+
+### FFprobe Integration
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/ffprobe/status` | Get FFprobe availability and analysis statistics |
 
 ### Platforms
 
@@ -513,9 +574,10 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [x] Clickable status badges with cascade updates
 - [x] Single show files sync button + endpoint
 - [x] Media files playback testing
+- [x] FFprobe media analysis integration
 - [ ] Mobile responsive design improvements
 - [ ] Add manifest for PWA support
-- [ ] ffprobe metadata extraction
+- [ ] Fix in app documentation for scanner and TMDB features to reflect real implementation
 - [ ] Refactor codebase to store prisma client in the default location
 - [ ] Check modules utilization and relevance and remove unused ones
 - [ ] Transform API documentation into a swagger

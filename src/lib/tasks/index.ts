@@ -38,6 +38,7 @@ export type {
   ScanPhase,
   ScanTaskProgress,
   TmdbTaskProgress,
+  FfprobeTaskProgress,
   TaskProgress,
   SerializedTaskProgress,
 } from './types';
@@ -50,6 +51,7 @@ export {
   activeTasks,
   createTmdbTask,
   createScanTask,
+  createFfprobeTask,
   getTaskTracker,
   removeTask,
   requestCancellation,

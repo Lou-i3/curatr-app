@@ -7,7 +7,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tv, ScanSearch, Plug, Settings, PanelLeftClose, PanelLeft, ChevronRight, Film, ListTodo, Loader2 } from 'lucide-react';
+import { Home, Tv, ScanSearch, Plug, Settings, PanelLeftClose, PanelLeft, ChevronRight, Film, ListTodo, Loader2, FileSearch } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { VersionBadge } from '@/components/version-badge';
 import { useTaskCounts } from '@/lib/contexts/task-context';
@@ -47,6 +47,7 @@ const navigation = [
 
 const integrationItems = [
   { name: 'TMDB', href: '/integrations/tmdb', icon: Film },
+  { name: 'FFprobe', href: '/integrations/ffprobe', icon: FileSearch },
 ];
 
 export function AppSidebar() {

@@ -27,13 +27,6 @@ Flat view of ALL files (MovieFile + EpisodeFile) for power users:
 - Search by filename or title
 - Useful for: "Show all BAD files across entire library"
 
-### ffprobe Metadata Extraction
-Extract quality metadata from video files:
-- Video: codec, resolution, bitrate, HDR metadata
-- Audio: codec, channels, language
-- Subtitles: language tracks
-- Container format, duration
-
 ### Plex Database Sync
 Read-only sync with Plex SQLite database:
 - Match files by filepath to Plex records

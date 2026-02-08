@@ -196,7 +196,7 @@ Every feature interface should help users understand what's happening:
 - **Worker threads** for TMDB operations (keeps main thread responsive)
 - Queue system with configurable max parallel tasks
 - Task retention: 1 hour (configurable via `TASK_RETENTION_MS`)
-- Task types: `scan`, `show-sync`, `tmdb-bulk-match`, `tmdb-refresh-missing`, `tmdb-bulk-refresh`, `tmdb-import`
+- Task types: `scan`, `show-sync`, `tmdb-bulk-match`, `tmdb-refresh-missing`, `tmdb-bulk-refresh`, `tmdb-import`, `ffprobe-analyze`
 
 **Critical: Global Singleton Pattern**
 
@@ -254,6 +254,15 @@ const { running, pending, total } = useTaskCounts();
   - `scan` - Full library scan
   - `tmdb-*` - TMDB metadata operations
 
+### FFprobe Service
+- Located in `src/lib/ffprobe/`
+- Extracts detailed media info: video (codec, resolution, HDR, bit depth), audio (codec, channels, language), subtitles
+- Stores per-track info in `MediaTrack` model, summary fields on `EpisodeFile`
+- **Not bundled in Docker** - user configures via `FFPROBE_PATH` env var
+- Integration page at `/integrations/ffprobe` with setup instructions
+- Manual trigger only via "Analyze" button on episode file pages
+- Uses task system for tracking (`ffprobe-analyze` task type)
+
 ### API Routes
 - RESTful conventions
 - Error format: `{ error: "message" }`
@@ -263,9 +272,13 @@ const { running, pending, total } = useTaskCounts();
 ### Environment Variables
 - Development: `.env` (gitignored)
 - Template: `.env.example` (committed)
-- Required: `DATABASE_URL`
-- Scanner: `TV_SHOWS_PATH`, `MOVIES_PATH`
-- TMDB: `TMDB_API_KEY`
+- Required: `DATABASE_URL`, plus at least one of `TV_SHOWS_PATH` or `MOVIES_PATH`
+- Integrations: `TMDB_API_KEY`, `FFPROBE_PATH`, `FFPROBE_TIMEOUT`
+- Scanner: `SCAN_CONCURRENCY`, `SCAN_BATCH_SIZE`
+- Tasks: `TASK_RETENTION_MS`
+- Docker: `TZ`, `PUID`, `PGID`
+
+See `.env.example` and README.md for full documentation of all variables.
 
 ### Key Lib Utilities
 Always use these utilities instead of native JS methods:

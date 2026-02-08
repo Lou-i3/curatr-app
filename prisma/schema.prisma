@@ -57,6 +57,13 @@ enum ScanStatus {
   FAILED
 }
 
+/// Media track type (video, audio, or subtitle stream)
+enum TrackType {
+  VIDEO
+  AUDIO
+  SUBTITLE
+}
+
 // TV Show Models
 model TVShow {
   id            Int           @id @default(autoincrement())
@@ -170,7 +177,12 @@ model EpisodeFile {
   audioLanguages    String?
   subtitleLanguages String?
 
+  // Media analysis tracking
+  mediaInfoExtractedAt DateTime? // When ffprobe analysis was last run
+  mediaInfoError       String?   // Last analysis error message, if any
+
   playbackTests PlaybackTest[]
+  tracks        MediaTrack[]
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -206,6 +218,43 @@ model PlaybackTest {
 
   @@index([episodeFileId])
   @@index([platformId])
+}
+
+/// A single track (stream) within a media file, extracted via ffprobe
+model MediaTrack {
+  id            Int         @id @default(autoincrement())
+  episodeFileId Int
+  episodeFile   EpisodeFile @relation(fields: [episodeFileId], references: [id], onDelete: Cascade)
+
+  trackType     TrackType
+  trackIndex    Int         // Stream index from ffprobe
+  codec         String?     // e.g., "hevc", "aac", "subrip"
+  codecLong     String?     // Full codec name from ffprobe
+
+  // Video-specific fields
+  width         Int?
+  height        Int?
+  bitDepth      Int?        // 8, 10, 12 bit
+  frameRate     Float?      // e.g., 23.976
+  hdrType       String?     // "HDR10", "HDR10+", "Dolby Vision", "HLG", null for SDR
+  profile       String?     // e.g., "Main 10", "High"
+
+  // Audio-specific fields
+  channels      Int?        // 2, 6, 8
+  channelLayout String?     // "stereo", "5.1", "7.1"
+  sampleRate    Int?        // 48000, 44100
+
+  // Common metadata
+  language      String?     // ISO 639-2/3 code: "eng", "jpn", etc.
+  title         String?     // Track title if present
+  bitrate       Int?        // Bits per second for this track
+  isDefault     Boolean     @default(false)
+  isForced      Boolean     @default(false)
+
+  createdAt     DateTime    @default(now())
+
+  @@index([episodeFileId])
+  @@index([trackType])
 }
 
 model ScanHistory {

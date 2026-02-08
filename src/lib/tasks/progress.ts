@@ -10,6 +10,7 @@ import type {
   BaseTaskProgress,
   ScanTaskProgress,
   TmdbTaskProgress,
+  FfprobeTaskProgress,
   SerializedTaskProgress,
 } from './types';
 import { serializeProgress } from './types';
@@ -299,6 +300,36 @@ export function queueTaskRun(taskId: string, runFn: () => Promise<void>): void {
  */
 export function canRunImmediately(): boolean {
   return getRunningTaskCount() < getMaxParallelTasksValue();
+}
+
+/**
+ * Create an FFprobe analysis task
+ * @param fileId - The EpisodeFile ID being analyzed
+ * @param filename - The filename for display
+ */
+export function createFfprobeTask(
+  fileId: number,
+  filename: string
+): TaskProgressTracker<FfprobeTaskProgress> {
+  const canRunNow = getRunningTaskCount() < getMaxParallelTasksValue();
+
+  const progress: FfprobeTaskProgress = {
+    taskId: randomUUID(),
+    type: 'ffprobe-analyze',
+    title: `Analyze: ${filename}`,
+    status: canRunNow ? 'running' : 'pending',
+    total: 1,
+    processed: 0,
+    succeeded: 0,
+    failed: 0,
+    errors: [],
+    startedAt: new Date(),
+    fileId,
+  };
+
+  const tracker = new TaskProgressTracker(progress);
+  activeTasks.set(progress.taskId, tracker as unknown as TaskProgressTracker<BaseTaskProgress>);
+  return tracker;
 }
 
 /**

@@ -6,7 +6,9 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { FileSearch } from 'lucide-react';
 import { isTmdbConfigured } from '@/lib/tmdb';
+import { isFFprobeAvailable } from '@/lib/ffprobe';
 import { prisma } from '@/lib/prisma';
 
 /** Integration definition */
@@ -41,6 +43,7 @@ function TmdbLogo({ className }: { className?: string }) {
 
 async function getIntegrations(): Promise<Integration[]> {
   const tmdbConfigured = isTmdbConfigured();
+  const ffprobeAvailable = await isFFprobeAvailable();
 
   let tmdbStats: string | undefined;
   if (tmdbConfigured) {
@@ -53,6 +56,17 @@ async function getIntegrations(): Promise<Integration[]> {
     }
   }
 
+  let ffprobeStats: string | undefined;
+  const [totalFiles, analyzedFiles] = await Promise.all([
+    prisma.episodeFile.count({ where: { fileExists: true } }),
+    prisma.episodeFile.count({
+      where: { fileExists: true, mediaInfoExtractedAt: { not: null }, mediaInfoError: null },
+    }),
+  ]);
+  if (totalFiles > 0) {
+    ffprobeStats = `${analyzedFiles}/${totalFiles} files analyzed`;
+  }
+
   return [
     {
       id: 'tmdb',
@@ -62,6 +76,15 @@ async function getIntegrations(): Promise<Integration[]> {
       href: '/integrations/tmdb',
       configured: tmdbConfigured,
       stats: tmdbStats,
+    },
+    {
+      id: 'ffprobe',
+      name: 'FFprobe',
+      description: 'Analyze media files to extract video quality, audio tracks, and subtitle information.',
+      icon: <FileSearch className="size-8" />,
+      href: '/integrations/ffprobe',
+      configured: ffprobeAvailable,
+      stats: ffprobeStats,
     },
     {
       id: 'plex',

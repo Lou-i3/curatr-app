@@ -4,11 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { formatFileSize, formatDuration, formatDateWithFormat, formatDateTimeWithFormat } from "@/lib/format";
 import { computeEpisodeQuality, getPlaybackStatusVariant, PLAYBACK_STATUS_LABELS } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
+import { isFFprobeAvailable } from "@/lib/ffprobe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, FileCheck, FileX, Clock, HardDrive, Calendar } from "lucide-react";
 import { EpisodeDetailStatusBadges } from "./episode-detail-status-badges";
 import { FileStatusBadges } from "./file-status-badges";
+import { MediaInfoSection } from "@/components/files/media-info-section";
 
 export const dynamic = 'force-dynamic';
 
@@ -17,9 +19,10 @@ interface Props {
 }
 
 export default async function EpisodeDetailPage({ params }: Props) {
-  const [{ id, episodeId }, settings] = await Promise.all([
+  const [{ id, episodeId }, settings, ffprobeAvailable] = await Promise.all([
     params,
     getSettings(),
+    isFFprobeAvailable(),
   ]);
   const dateFormat = settings.dateFormat;
   const showId = parseInt(id, 10);
@@ -46,6 +49,12 @@ export default async function EpisodeDetailPage({ params }: Props) {
             orderBy: {
               testedAt: 'desc',
             },
+          },
+          tracks: {
+            orderBy: [
+              { trackType: 'asc' },
+              { trackIndex: 'asc' },
+            ],
           },
         },
       },
@@ -143,12 +152,6 @@ export default async function EpisodeDetailPage({ params }: Props) {
                         <p className="text-muted-foreground text-xs">Size</p>
                         <p className="font-semibold">{formatFileSize(file.fileSize)}</p>
                       </div>
-                      {file.container && (
-                        <div className="bg-muted p-2 rounded">
-                          <p className="text-muted-foreground text-xs">Container</p>
-                          <p className="font-semibold">{file.container.toUpperCase()}</p>
-                        </div>
-                      )}
                       {file.duration && (
                         <div className="bg-muted p-2 rounded">
                           <p className="text-muted-foreground text-xs">Duration</p>
@@ -162,71 +165,6 @@ export default async function EpisodeDetailPage({ params }: Props) {
                     </div>
                   </div>
 
-                  {/* Video Quality */}
-                  {(file.resolution || file.codec || file.bitrate || file.hdrType) && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">Video Quality</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        {file.resolution && (
-                          <div className="bg-muted p-2 rounded">
-                            <p className="text-muted-foreground text-xs">Resolution</p>
-                            <p className="font-semibold">{file.resolution}</p>
-                          </div>
-                        )}
-                        {file.codec && (
-                          <div className="bg-muted p-2 rounded">
-                            <p className="text-muted-foreground text-xs">Codec</p>
-                            <p className="font-semibold">{file.codec}</p>
-                          </div>
-                        )}
-                        {file.bitrate && (
-                          <div className="bg-muted p-2 rounded">
-                            <p className="text-muted-foreground text-xs">Bitrate</p>
-                            <p className="font-semibold">{(file.bitrate / 1000).toFixed(1)} Mbps</p>
-                          </div>
-                        )}
-                        {file.hdrType && (
-                          <div className="bg-muted p-2 rounded">
-                            <p className="text-muted-foreground text-xs">HDR</p>
-                            <p className="font-semibold">{file.hdrType}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Audio */}
-                  {(file.audioFormat || file.audioLanguages) && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">Audio</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        {file.audioFormat && (
-                          <div className="bg-muted p-2 rounded">
-                            <p className="text-muted-foreground text-xs">Format</p>
-                            <p className="font-semibold">{file.audioFormat}</p>
-                          </div>
-                        )}
-                        {file.audioLanguages && (
-                          <div className="bg-muted p-2 rounded col-span-2">
-                            <p className="text-muted-foreground text-xs">Languages</p>
-                            <p className="font-semibold">{file.audioLanguages}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Subtitles */}
-                  {file.subtitleLanguages && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">Subtitles</h4>
-                      <div className="bg-muted p-2 rounded text-sm inline-block">
-                        <p className="text-muted-foreground text-xs">Languages</p>
-                        <p className="font-semibold">{file.subtitleLanguages}</p>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Status & Management */}
                   <div>
                     <h4 className="text-sm font-medium mb-3">Status & Management</h4>
@@ -235,13 +173,31 @@ export default async function EpisodeDetailPage({ params }: Props) {
                       quality={file.quality}
                       action={file.action}
                     />
-                    {file.metadataSource && (
-                      <div className="mt-3">
-                        <p className="text-muted-foreground text-xs mb-1">Metadata Source</p>
-                        <Badge variant="outline">{file.metadataSource}</Badge>
-                      </div>
-                    )}
                   </div>
+
+                  {/* Media Analysis Section */}
+                  <MediaInfoSection
+                    file={{
+                      id: file.id,
+                      filename: file.filename,
+                      fileExists: file.fileExists,
+                      resolution: file.resolution,
+                      codec: file.codec,
+                      container: file.container,
+                      duration: file.duration,
+                      bitrate: file.bitrate,
+                      audioFormat: file.audioFormat,
+                      hdrType: file.hdrType,
+                      audioLanguages: file.audioLanguages,
+                      subtitleLanguages: file.subtitleLanguages,
+                      mediaInfoExtractedAt: file.mediaInfoExtractedAt,
+                      mediaInfoError: file.mediaInfoError,
+                      metadataSource: file.metadataSource,
+                      tracks: file.tracks,
+                    }}
+                    ffprobeAvailable={ffprobeAvailable}
+                    dateFormat={dateFormat}
+                  />
 
                   {/* Plex Integration */}
                   {file.plexMatched && (

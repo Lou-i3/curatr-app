@@ -12,7 +12,8 @@ export type TaskType =
   | 'tmdb-bulk-match'
   | 'tmdb-refresh-missing'
   | 'tmdb-bulk-refresh'
-  | 'tmdb-import';
+  | 'tmdb-import'
+  | 'ffprobe-analyze';
 
 /** Task execution status */
 export type TaskStatus =
@@ -68,8 +69,14 @@ export interface TmdbTaskProgress extends BaseTaskProgress {
   type: 'tmdb-bulk-match' | 'tmdb-refresh-missing' | 'tmdb-bulk-refresh' | 'tmdb-import';
 }
 
+/** FFprobe analysis progress */
+export interface FfprobeTaskProgress extends BaseTaskProgress {
+  type: 'ffprobe-analyze';
+  fileId: number; // The file being analyzed
+}
+
 /** Union of all task progress types */
-export type TaskProgress = ScanTaskProgress | TmdbTaskProgress;
+export type TaskProgress = ScanTaskProgress | TmdbTaskProgress | FfprobeTaskProgress;
 
 /** Serializable version of task progress for API responses */
 export interface SerializedTaskProgress {
@@ -91,6 +98,8 @@ export interface SerializedTaskProgress {
   filesAdded?: number;
   filesUpdated?: number;
   filesDeleted?: number;
+  // FFprobe-specific fields
+  fileId?: number;
 }
 
 /**
@@ -121,6 +130,12 @@ export function serializeProgress(progress: BaseTaskProgress): SerializedTaskPro
     base.filesAdded = scanProgress.filesAdded;
     base.filesUpdated = scanProgress.filesUpdated;
     base.filesDeleted = scanProgress.filesDeleted;
+  }
+
+  // Add ffprobe-specific fields if present
+  if (progress.type === 'ffprobe-analyze') {
+    const ffprobeProgress = progress as FfprobeTaskProgress;
+    base.fileId = ffprobeProgress.fileId;
   }
 
   return base;
