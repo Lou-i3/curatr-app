@@ -6,7 +6,6 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -16,7 +15,6 @@ const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 export function PlexLoginButton() {
-  const router = useRouter();
   const [state, setState] = useState<LoginState>('idle');
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -82,12 +80,12 @@ export function PlexLoginButton() {
           }
 
           if (data.status === 'authenticated') {
-            // Success — stop polling and redirect
+            // Success — stop polling and do a full page navigation
+            // (not router.push) so all client contexts re-mount with fresh state
             stopPolling();
             authWindowRef.current?.close();
             setState('authenticating');
-            router.push('/');
-            router.refresh();
+            window.location.href = '/';
             return;
           }
 
@@ -107,7 +105,7 @@ export function PlexLoginButton() {
       setState('error');
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     }
-  }, [router, stopPolling]);
+  }, [stopPolling]);
 
   const handleRetry = useCallback(() => {
     stopPolling();

@@ -3,8 +3,9 @@
  * GET: Returns the current user session info (for client components)
  */
 
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { getSession, getAuthMode } from '@/lib/auth';
+import { getSession, getAuthMode, getSessionCookieName } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -12,11 +13,24 @@ export async function GET() {
     const session = await getSession();
 
     if (!session) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         authenticated: false,
         authMode,
         user: null,
       });
+
+      // Clear stale session cookie — proxy only checks cookie existence,
+      // so a stale cookie bypasses the proxy but fails DB validation.
+      // Clearing it lets the proxy properly redirect to /login next time.
+      if (authMode === 'plex') {
+        const cookieStore = await cookies();
+        const cookieName = getSessionCookieName();
+        if (cookieStore.get(cookieName)) {
+          response.cookies.delete(cookieName);
+        }
+      }
+
+      return response;
     }
 
     return NextResponse.json({

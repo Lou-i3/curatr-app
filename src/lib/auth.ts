@@ -54,6 +54,17 @@ export async function ensureLocalAdmin(): Promise<User> {
  * Returns null if no valid session exists
  */
 export const getSession = cache(async (): Promise<{ user: User } | null> => {
+  // Always call cookies() first to force dynamic rendering.
+  // Without this, pages using getSession() could be statically prerendered
+  // at build time (when AUTH_MODE is not set), causing stale redirect behavior.
+  let cookieStore;
+  try {
+    cookieStore = await cookies();
+  } catch {
+    // cookies() not available during static rendering — return null
+    return null;
+  }
+
   // In no-auth mode, return the Local Admin user implicitly
   if (!isAuthEnabled()) {
     try {
@@ -63,14 +74,6 @@ export const getSession = cache(async (): Promise<{ user: User } | null> => {
       // DB not available (e.g., during build) — return null gracefully
       return null;
     }
-  }
-
-  let cookieStore;
-  try {
-    cookieStore = await cookies();
-  } catch {
-    // cookies() not available during static rendering — return null
-    return null;
   }
 
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;

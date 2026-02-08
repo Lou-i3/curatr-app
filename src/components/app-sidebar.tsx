@@ -55,11 +55,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const taskCounts = useTaskCounts();
   const issueCounts = useIssueCounts();
-  const { user, isAdmin, isAuthenticated, authMode, loading: authLoading, logout } = useAuth();
-
-  // Don't render sidebar content until auth is resolved
-  // Prevents API calls and render errors on the login page
-  if (!authLoading && !isAuthenticated) return null;
+  const { user, isAdmin, authMode, loading: authLoading, logout } = useAuth();
 
   // Build navigation items based on role
   const navigation = [

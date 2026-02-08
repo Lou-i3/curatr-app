@@ -60,6 +60,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchSession();
   }, [fetchSession]);
 
+  // Redirect to login when plex auth is enabled but session is invalid
+  // Handles stale cookies that bypass the proxy's cookie-existence check
+  useEffect(() => {
+    if (!loading && authMode === 'plex' && !user) {
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+  }, [loading, authMode, user]);
+
   const logout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
