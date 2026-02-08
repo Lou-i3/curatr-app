@@ -11,12 +11,16 @@ import {
   scheduleCleanup,
   queueTaskRun,
 } from '@/lib/tasks';
+import { checkAdmin } from '@/lib/auth';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const fileId = parseInt(id, 10);
 

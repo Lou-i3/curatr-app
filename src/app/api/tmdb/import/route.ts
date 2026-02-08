@@ -9,9 +9,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { ImportRequest } from '@/lib/tmdb/types';
 import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
+import { checkAdmin } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     // Ensure task queue settings are loaded from DB
     await ensureSettingsLoaded();
 

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTmdbApiKey, isTmdbConfigured } from '@/lib/tmdb/config';
 import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
+import { checkAdmin } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ showId: string }>;
@@ -22,6 +23,9 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     // Ensure task queue settings are loaded from DB
     await ensureSettingsLoaded();
 

@@ -4,12 +4,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cancelScan, isScanActive } from '@/lib/scanner';
+import { checkAdmin } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ id: string }>;
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const authError = await checkAdmin();
+  if (authError) return authError;
+
   const { id } = await params;
   const scanId = parseInt(id, 10);
 

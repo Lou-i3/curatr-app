@@ -5,6 +5,9 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { TaskProvider } from "@/lib/contexts/task-context";
+import { IssueProvider } from "@/lib/contexts/issue-context";
+import { AuthProvider } from "@/lib/contexts/auth-context";
+import { getSession, isAuthEnabled } from "@/lib/auth";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -26,30 +29,44 @@ export const metadata: Metadata = {
   description: "Track media file quality, playback compatibility, and maintenance status",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Determine if sidebar should be shown
+  // Hidden when auth is enabled but user has no session (login page)
+  const authEnabled = isAuthEnabled();
+  const session = await getSession();
+  const showSidebar = !authEnabled || session !== null;
+
   return (
     <html lang="en">
       <body
         className={`${nunito.variable} ${lora.variable} ${geistMono.variable} antialiased`}
       >
-        <SidebarProvider>
+        <AuthProvider>
           <TaskProvider>
-            <AppSidebar />
-            <SidebarInset>
-              <header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
-                <SidebarTrigger />
-                <span className="font-semibold">Curatr App</span>
-              </header>
-              <main className="flex-1 p-4 md:p-6">
-                {children}
-              </main>
-            </SidebarInset>
+            <IssueProvider>
+              {showSidebar ? (
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
+                      <SidebarTrigger />
+                      <span className="font-semibold">Curatr App</span>
+                    </header>
+                    <main className="flex-1 p-4 md:p-6">
+                      {children}
+                    </main>
+                  </SidebarInset>
+                </SidebarProvider>
+              ) : (
+                children
+              )}
+            </IssueProvider>
           </TaskProvider>
-        </SidebarProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

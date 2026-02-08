@@ -267,6 +267,12 @@ const { tasks, loading, refresh } = useTasks();
 const { running, pending, total } = useTaskCounts();
 ```
 
+**Client Contexts (Root Layout):**
+Three client contexts wrap the app in root layout (order: AuthProvider → TaskProvider → IssueProvider):
+- `AuthProvider` — fetches `/api/auth/session`, provides `useAuth()` hook
+- `TaskProvider` — polls `/api/tasks`, provides `useTasks()` / `useTaskCounts()` hooks
+- `IssueProvider` — polls `/api/issues/counts`, provides `useIssueCounts()` / `useIssueContext()` hooks
+
 **Single-Show vs Bulk Tasks:**
 - Bulk tasks (auto-match, refresh-missing, bulk-refresh) have NO custom title
 - Single-show tasks have a custom title like `"TMDB Refresh: Show Name"` or `"Scan: Show Name"`
@@ -275,6 +281,71 @@ const { running, pending, total } = useTaskCounts();
   - `show-scan` - Single-show file scan (scans only that show's folder)
   - `scan` - Full library scan
   - `tmdb-*` - TMDB metadata operations
+
+### Authentication System
+- Located in `src/lib/auth.ts` (session management) and `src/lib/plex/` (Plex OAuth)
+- Two modes: `AUTH_MODE=none` (default, no login) and `AUTH_MODE=plex` (Plex OAuth with roles)
+- Cookie-based sessions (HTTP-only, 30-day expiry) backed by Session table in DB
+- Seeded "Local Admin" user (id=1, plexId="local") created on first boot for no-auth mode attribution
+- Plex server owner auto-promoted to ADMIN; other Plex users get USER role
+
+**Key Functions** (`src/lib/auth.ts`):
+- `getSession()` — reads cookie, looks up Session + User in DB
+- `requireAuth(request)` — returns user or throws 401
+- `requireAdmin(request)` — returns admin user or throws 403
+- `getAuthMode()` / `isAuthEnabled()` — reads AUTH_MODE env var
+- `ensureLocalAdmin()` — upserts the seeded admin user
+
+**Plex OAuth Flow** (`src/lib/plex/auth.ts`):
+- PIN-based auth: create PIN → user authorizes on plex.tv → poll for token
+- Validates user has access to configured Plex server before creating account
+- Server owner detection for auto-admin promotion
+
+**Auth Context** (`src/lib/contexts/auth-context.tsx`):
+```typescript
+import { useAuth } from '@/lib/contexts/auth-context';
+const { user, isAdmin, isAuthenticated, authMode, loading, logout } = useAuth();
+```
+- During loading: `isAdmin` defaults to `true` to prevent UI flash (admin items don't disappear then reappear)
+- In no-auth mode: `isAdmin=true`, `isAuthenticated=true` (backwards compatible)
+
+**Proxy** (`src/proxy.ts`):
+- Lightweight cookie check + redirect (no DB access — edge runtime limitations)
+- Only active when `AUTH_MODE=plex`
+- Passes through `/login`, `/api/auth/*`, static assets
+
+**API Route Protection**:
+- All mutation API routes (POST/PATCH/DELETE) use `requireAdmin()`
+- GET routes accessible to all authenticated users
+- Pattern: `const user = await requireAdmin(request);` as first line
+
+**Layout Gotcha**:
+- `TaskProvider` and `IssueProvider` must be OUTSIDE the `showSidebar` conditional in root layout
+- Otherwise prerendering fails because children render without context providers
+- The sidebar conditional only controls `SidebarProvider` + `AppSidebar`, not the data contexts
+
+### Issue Reporting System
+- Database models: `Issue` with `IssueType` and `IssueStatus` enums
+- Works in both auth modes (no-auth: issues attributed to Local Admin user)
+- `userId` on Issue is non-nullable — every issue always has a reporter
+
+**Issue Context** (`src/lib/contexts/issue-context.tsx`):
+```typescript
+import { useIssueCounts } from '@/lib/contexts/issue-context';
+const { active, total } = useIssueCounts(); // For sidebar badge
+
+import { useIssueContext } from '@/lib/contexts/issue-context';
+const { counts, refresh } = useIssueContext(); // For pages that modify issues
+```
+
+**Issue Components** (`src/components/issues/`):
+- `IssueReportDialog` — report from episode page (knows episode context)
+- `IssueReportSearchDialog` — report from anywhere (search show → pick episode → report)
+- `IssueEditDialog` — view/edit issue details, change status (admin), add resolution
+
+**Issue Utilities** (`src/lib/issue-utils.ts`):
+- `ISSUE_TYPE_LABELS`, `ISSUE_STATUS_LABELS` — display mappings
+- `getIssueTypeVariant()`, `getIssueStatusVariant()` — Badge variant helpers
 
 ### FFprobe Service
 - Located in `src/lib/ffprobe/`
@@ -296,6 +367,7 @@ const { running, pending, total } = useTaskCounts();
 - Template: `.env.example` (committed)
 - Required: `DATABASE_URL`, plus at least one of `TV_SHOWS_PATH` or `MOVIES_PATH`
 - Integrations: `TMDB_API_KEY`, `FFPROBE_PATH`, `FFPROBE_TIMEOUT`
+- Authentication: `AUTH_MODE`, `PLEX_URL`, `PLEX_TOKEN`
 - Scanner: `SCAN_CONCURRENCY`, `SCAN_BATCH_SIZE`
 - Tasks: `TASK_RETENTION_MS`
 - Docker: `TZ`, `PUID`, `PGID`
@@ -348,3 +420,6 @@ formatDateWithFormat(new Date(dateString), dateFormat);
 - Validate user input at API boundaries
 - Use parameterized queries (Prisma handles this)
 - **Plex database**: Read-only access only (never write)
+- **Auth cookies**: HTTP-only, secure, SameSite=Lax
+- **API mutations**: All require `requireAdmin()` — GET routes are read-only for any authenticated user
+- **Plex token**: Server admin token, stable (does not rotate), stored in env var only

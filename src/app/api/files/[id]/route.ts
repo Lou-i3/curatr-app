@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { FileQuality, Action } from '@/generated/prisma/client';
+import { checkAdmin } from '@/lib/auth';
 
 const VALID_QUALITIES: FileQuality[] = ['UNVERIFIED', 'OK', 'BROKEN'];
 const VALID_ACTIONS: Action[] = ['NOTHING', 'REDOWNLOAD', 'CONVERT', 'ORGANIZE', 'REPAIR'];
@@ -15,6 +16,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const fileId = parseInt(id, 10);
 

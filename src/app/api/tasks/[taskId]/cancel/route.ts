@@ -12,12 +12,16 @@ import {
   type ScanTaskProgress,
 } from '@/lib/tasks';
 import { cancelScan } from '@/lib/scanner/scan';
+import { checkAdmin } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ taskId: string }>;
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const authError = await checkAdmin();
+  if (authError) return authError;
+
   const { taskId } = await params;
 
   const tracker = getTaskTracker(taskId);

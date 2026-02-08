@@ -64,6 +64,31 @@ enum TrackType {
   SUBTITLE
 }
 
+/// User role for access control
+enum UserRole {
+  ADMIN
+  USER
+}
+
+/// Issue type reported by users
+enum IssueType {
+  PLAYBACK       // Won't play / buffering
+  QUALITY        // Bad quality / artifacts
+  AUDIO          // Audio issues (sync, missing, wrong language)
+  SUBTITLE       // Subtitle issues (missing, wrong, out of sync)
+  CONTENT        // Wrong content / mismatch
+  OTHER
+}
+
+/// Issue lifecycle status
+enum IssueStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 // TV Show Models
 model TVShow {
   id            Int           @id @default(autoincrement())
@@ -140,6 +165,7 @@ model Episode {
   voteAverage   Float?
 
   files         EpisodeFile[]
+  issues        Issue[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -276,4 +302,63 @@ model Settings {
   dateFormat       String   @default("EU") // EU (DD/MM/YYYY), US (MM/DD/YYYY), ISO (YYYY-MM-DD)
   maxParallelTasks Int      @default(2) // Maximum number of concurrent tasks
   updatedAt        DateTime @updatedAt
+}
+
+// User & Auth Models
+
+/// Application user (Plex-authenticated or seeded Local Admin)
+model User {
+  id          Int       @id @default(autoincrement())
+  plexId      String    @unique          // Plex account ID ("local" for seeded admin)
+  username    String
+  email       String?
+  thumbUrl    String?                    // Plex avatar URL
+  role        UserRole  @default(USER)
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sessions       Session[]
+  reportedIssues Issue[]   @relation("reporter")
+  resolvedIssues Issue[]   @relation("resolver")
+}
+
+/// Session for cookie-based authentication
+model Session {
+  id        String   @id                 // Random token (crypto.randomUUID)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// User-reported issue on an episode
+model Issue {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  user         User        @relation("reporter", fields: [userId], references: [id])
+  episodeId    Int
+  episode      Episode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  type         IssueType
+  status       IssueStatus @default(OPEN)
+  description  String?                   // Optional detailed description
+  platform     String?                   // Device/platform name
+  audioLang    String?                   // Audio language user was using
+  subtitleLang String?                   // Subtitle language user was using
+
+  resolvedById Int?
+  resolvedBy   User?       @relation("resolver", fields: [resolvedById], references: [id])
+  resolution   String?                   // Admin notes on how it was resolved
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  resolvedAt   DateTime?
+
+  @@index([episodeId])
+  @@index([userId])
+  @@index([status])
 }

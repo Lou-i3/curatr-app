@@ -219,7 +219,7 @@ export default async function ShowDetailPage({ params }: Props) {
       {/* Seasons */}
       <div>
         <h2 className="text-2xl font-bold mb-6">Seasons</h2>
-        <SeasonsList showId={show.id} showTmdbId={show.tmdbId} seasons={seasonsWithQuality} />
+        <SeasonsList showId={show.id} showTitle={show.title} showTmdbId={show.tmdbId} seasons={seasonsWithQuality} />
       </div>
     </div>
   );

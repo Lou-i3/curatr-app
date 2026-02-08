@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { matchShow, unmatchShow, TMDBError, isTmdbConfigured } from '@/lib/tmdb';
 import { prisma } from '@/lib/prisma';
+import { checkAdmin } from '@/lib/auth';
 
 interface MatchRequest {
   showId: number;
@@ -14,6 +15,9 @@ interface MatchRequest {
 }
 
 export async function POST(request: Request) {
+  const authError = await checkAdmin();
+  if (authError) return authError;
+
   if (!isTmdbConfigured()) {
     return NextResponse.json(
       { error: 'TMDB API key not configured' },

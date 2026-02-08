@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MonitorStatus } from '@/generated/prisma/client';
+import { checkAdmin } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -16,6 +17,9 @@ const VALID_MONITOR_STATUSES: MonitorStatus[] = ['WANTED', 'UNWANTED'];
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const showId = parseInt(id, 10);
 
@@ -123,6 +127,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const showId = parseInt(id, 10);
 

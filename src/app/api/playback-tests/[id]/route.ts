@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PlaybackStatus } from '@/generated/prisma/client';
 import { recomputeFileQuality } from '@/lib/playback-status';
+import { checkAdmin } from '@/lib/auth';
 
 const VALID_STATUSES: PlaybackStatus[] = ['PASS', 'PARTIAL', 'FAIL'];
 
@@ -57,6 +58,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const testId = parseInt(id, 10);
 
@@ -129,6 +133,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const testId = parseInt(id, 10);
 

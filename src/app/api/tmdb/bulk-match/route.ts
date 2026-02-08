@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma';
 import { isTmdbConfigured } from '@/lib/tmdb';
 import { getTmdbApiKey } from '@/lib/tmdb/config';
 import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
+import { checkAdmin } from '@/lib/auth';
 
 export async function POST() {
   if (!isTmdbConfigured()) {
@@ -20,6 +21,9 @@ export async function POST() {
   }
 
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     // Ensure task queue settings are loaded from DB
     await ensureSettingsLoaded();
     // Get all unmatched shows

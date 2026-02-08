@@ -9,6 +9,7 @@ import {
   type QualityStatus,
   type DisplayMonitorStatus,
 } from '@/lib/status';
+import { checkAdmin } from '@/lib/auth';
 
 type TmdbStatus = 'all' | 'unmatched' | 'needs-sync' | 'fully-synced';
 
@@ -282,6 +283,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const body = await request.json();
     const { title, year, monitorStatus, notes, description, posterPath, backdropPath } = body;
 

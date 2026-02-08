@@ -51,13 +51,30 @@ A **self-hosted** web application for tracking media file quality, playback comp
   - Analyze button on episode file pages
   - Dedicated integration page with setup instructions and statistics
   - User-configured via FFPROBE_PATH environment variable
+- **Plex Authentication** - Optional multi-user access with Plex account login
+  - Two modes: `AUTH_MODE=none` (default, single-user) or `AUTH_MODE=plex` (multi-user)
+  - Plex OAuth PIN-based login flow with server access verification
+  - Role-based access control: server owner = admin, shared users = regular users
+  - Admin: full control (editing, scanning, settings, issue management)
+  - Users: browse library, report issues, view their own submissions
+  - Cookie-based sessions (30-day expiry, server-side validation)
+  - User management in Settings (promote/demote, activate/deactivate)
+  - Integration page at `/integrations/plex` with setup guide and connectivity status
+- **Issue Reporting** - Track and manage quality issues across your library
+  - Quick report from episode pages or from the issues page via show search
+  - Issue types: Playback, Quality, Audio, Subtitle, Content, Other
+  - Status workflow: Open → Acknowledged → In Progress → Resolved / Closed
+  - Optional context: device platform, audio/subtitle language, description
+  - Admin inline status changes, resolution notes, and issue editing
+  - Sidebar badge shows active issue count with polling
+  - Works in both auth modes (no-auth: issues attributed to built-in admin user)
 - **Playback Testing** - Record and track playback compatibility across platforms
   - Configurable platforms (TV, Web Player, Mobile, custom)
   - Mark platforms as required for quality verification
   - Auto-compute file quality: VERIFIED when all required platforms pass
   - Test history with notes and timestamps
   - Add/edit/delete tests from episode list or detail pages
-- **Settings** - Configurable date format (EU/US/ISO), max parallel tasks, and playback platforms
+- **Settings** - Configurable date format (EU/US/ISO), max parallel tasks, playback platforms, and user management (when auth enabled)
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **Dark Mode** - Full dark mode UI with system preference support
 - **Custom Theme** - Nunito font, green accent colors, consistent design
@@ -110,6 +127,14 @@ docker compose up --build
 
 *At least one of `TV_SHOWS_PATH` or `MOVIES_PATH` is required.
 
+### Authentication
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AUTH_MODE` | `none` | Authentication mode: `none` (single-user) or `plex` (multi-user with Plex login) |
+| `PLEX_URL` | - | Plex server URL (e.g., `http://192.168.1.100:32400`). Required when `AUTH_MODE=plex` |
+| `PLEX_TOKEN` | - | Plex authentication token. Required when `AUTH_MODE=plex` |
+
 ### Integrations
 
 | Variable | Default | Description |
@@ -156,6 +181,11 @@ DATABASE_URL="file:./prisma/dev.db"
 TV_SHOWS_PATH="/media/TV Shows"
 TMDB_API_KEY="your-read-access-token"
 FFPROBE_PATH="/opt/homebrew/bin/ffprobe"
+
+# Optional: Enable multi-user Plex authentication
+# AUTH_MODE="plex"
+# PLEX_URL="http://192.168.1.100:32400"
+# PLEX_TOKEN="your-plex-token"
 ```
 
 ### Example docker-compose.yml
@@ -183,16 +213,25 @@ services:
 
 ```
 src/
+├── proxy.ts                        # Auth route protection (cookie check, no DB)
 ├── app/
 │   ├── page.tsx                    # Dashboard
-│   ├── layout.tsx                  # Root layout with sidebar
+│   ├── layout.tsx                  # Root layout with sidebar + providers
+│   ├── login/
+│   │   ├── page.tsx                # Login page
+│   │   └── plex-login-button.tsx   # Plex OAuth button component
 │   ├── scans/
 │   │   └── page.tsx                # Scanner UI
 │   ├── tasks/
 │   │   └── page.tsx                # Background tasks management
+│   ├── issues/
+│   │   ├── page.tsx                # Issues list with filters & admin actions
+│   │   └── issue-columns.tsx       # DataTable column definitions
 │   ├── settings/
 │   │   ├── page.tsx                # Settings page
-│   │   └── platform-settings.tsx   # Platform management component
+│   │   ├── platform-settings.tsx   # Platform management component
+│   │   ├── user-management.tsx     # User management (admin, plex mode)
+│   │   └── user-columns.tsx        # User DataTable column definitions
 │   ├── changelog/
 │   │   └── page.tsx                # Changelog (GitHub releases)
 │   ├── integrations/
@@ -200,9 +239,11 @@ src/
 │   │   ├── tmdb/
 │   │   │   ├── page.tsx            # TMDB integration config & status
 │   │   │   └── tmdb-integration-help-dialog.tsx # Help documentation
-│   │   └── ffprobe/
-│   │       ├── page.tsx            # FFprobe integration config & status
-│   │       └── ffprobe-help-dialog.tsx # Help documentation
+│   │   ├── ffprobe/
+│   │   │   ├── page.tsx            # FFprobe integration config & status
+│   │   │   └── ffprobe-help-dialog.tsx # Help documentation
+│   │   └── plex/
+│   │       └── page.tsx            # Plex Auth integration & setup guide
 │   ├── tv-shows/
 │   │   ├── page.tsx                # TV Shows list (grid/table)
 │   │   ├── toolbar.tsx             # Search, filter, view toggle
@@ -215,14 +256,31 @@ src/
 │   │       ├── tmdb-help-dialog.tsx # TMDB features help
 │   │       └── episodes/
 │   │           └── [episodeId]/
-│   │               ├── page.tsx              # Episode detail with files
+│   │               ├── page.tsx              # Episode detail (files + issues)
 │   │               ├── episode-detail-status-badges.tsx  # Status controls
+│   │               ├── episode-issues-list.tsx # Issue sidebar component
 │   │               └── file-status-badges.tsx # File quality/action badges
 │   └── api/
 │       ├── settings/route.ts       # Settings API
+│       ├── auth/                   # Authentication API
+│       │   ├── session/route.ts    # GET: current user session
+│       │   ├── status/route.ts     # GET: auth config & Plex server status
+│       │   ├── logout/route.ts     # POST: logout
+│       │   └── plex/
+│       │       ├── pin/route.ts    # POST: create Plex auth PIN
+│       │       └── callback/route.ts # POST: complete Plex auth
+│       ├── issues/                 # Issue management API
+│       │   ├── route.ts            # GET: list, POST: create
+│       │   ├── [id]/route.ts       # GET, PATCH, DELETE
+│       │   └── counts/route.ts     # GET: counts by status
+│       ├── users/                  # User management API (admin)
+│       │   ├── route.ts            # GET: list users
+│       │   └── [id]/route.ts       # PATCH: update role/active
 │       ├── tv-shows/               # TV Shows CRUD
 │       │   ├── route.ts            # POST: create
-│       │   └── [id]/route.ts       # PATCH: update, DELETE: delete
+│       │   └── [id]/
+│       │       ├── route.ts        # PATCH: update, DELETE: delete
+│       │       └── episodes/route.ts # GET: seasons & episodes (lightweight)
 │       ├── scan/                   # Scanner API routes
 │       │   ├── route.ts            # POST: start, GET: list
 │       │   └── [id]/
@@ -247,11 +305,17 @@ src/
 │           └── import/route.ts     # Import seasons/episodes
 ├── lib/
 │   ├── prisma.ts                   # Prisma client
+│   ├── auth.ts                     # Session management, requireAuth/requireAdmin
+│   ├── issue-utils.ts              # Issue type/status labels and badge variants
 │   ├── settings.ts                 # Settings utilities (server)
 │   ├── settings-shared.ts          # Settings types (client-safe)
 │   ├── format.ts                   # Formatting utilities
 │   ├── status.ts                   # Status badge helpers
 │   ├── playback-status.ts          # Playback test quality computation
+│   ├── plex/                       # Plex integration
+│   │   ├── auth.ts                 # Plex OAuth PIN flow
+│   │   ├── client.ts               # Shared Plex API HTTP client
+│   │   └── types.ts                # Plex API type definitions
 │   ├── scanner/                    # Scanner service
 │   │   ├── config.ts               # Environment config
 │   │   ├── filesystem.ts           # File discovery
@@ -267,7 +331,9 @@ src/
 │   │   ├── task-worker.js          # Worker compiled (gitignored)
 │   │   └── index.ts                # Barrel export
 │   ├── contexts/
-│   │   └── task-context.tsx        # Task state & notifications (client)
+│   │   ├── auth-context.tsx        # Auth state provider + useAuth hook
+│   │   ├── task-context.tsx        # Task state & notifications (client)
+│   │   └── issue-context.tsx       # Issue counts provider + hooks
 │   ├── tmdb/                       # TMDB integration service
 │   │   ├── config.ts               # API configuration
 │   │   ├── types.ts                # TMDB API types
@@ -281,7 +347,7 @@ src/
 │       ├── service.ts              # Analysis operations
 │       └── index.ts                # Barrel export
 ├── components/
-│   ├── app-sidebar.tsx             # Collapsible navigation sidebar
+│   ├── app-sidebar.tsx             # Collapsible navigation sidebar (role-aware)
 │   ├── page-header.tsx             # Reusable page header with title/description/action
 │   ├── version-badge.tsx           # Version display with update indicator
 │   ├── badge-selector.tsx          # Unified status badge selector with cascade support
@@ -289,6 +355,10 @@ src/
 │   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
 │   ├── tmdb-import-dialog.tsx      # Import seasons/episodes from TMDB
 │   ├── playback-test-dialog.tsx    # Record/edit playback tests per episode
+│   ├── issues/                     # Issue reporting components
+│   │   ├── issue-report-dialog.tsx       # Report from episode page
+│   │   ├── issue-report-search-dialog.tsx # Report via show search
+│   │   └── issue-edit-dialog.tsx         # View/edit issue details
 │   └── ui/                         # shadcn/ui components
 └── generated/
     └── prisma/                     # Generated Prisma types
@@ -299,6 +369,34 @@ prisma/
 ```
 
 ## API Routes
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/auth/session` | Get current user session info |
+| `GET` | `/api/auth/status` | Get auth config and Plex server connectivity |
+| `POST` | `/api/auth/plex/pin` | Create a Plex auth PIN for OAuth flow |
+| `POST` | `/api/auth/plex/callback` | Complete Plex OAuth (exchange PIN for session) |
+| `POST` | `/api/auth/logout` | Logout (delete session, clear cookie) |
+
+### Issues
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/issues` | List issues (filter by status, type, episodeId, showId) |
+| `POST` | `/api/issues` | Create a new issue |
+| `GET` | `/api/issues/[id]` | Get single issue with relations |
+| `PATCH` | `/api/issues/[id]` | Update issue (status, resolution, details) |
+| `DELETE` | `/api/issues/[id]` | Delete issue (reporter own open, or admin any) |
+| `GET` | `/api/issues/counts` | Get issue counts by status (for sidebar badge) |
+
+### Users (Admin)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/users` | List all users |
+| `PATCH` | `/api/users/[id]` | Update user role or active status |
 
 ### TV Shows
 
@@ -407,8 +505,12 @@ prisma/
 | `EpisodeFile` | `filepath`, `quality`, `action`, codec/resolution fields | Media file with quality state |
 | `Platform` | `name`, `isRequired`, `sortOrder` | Playback test platforms |
 | `PlaybackTest` | `platformId`, `status`, `testedAt`, `notes` | Playback test results per file |
+| `MediaTrack` | `trackType`, `codec`, `language`, `channels` | Per-track media info from FFprobe |
 | `ScanHistory` | `scanType`, `status`, file counts | Scan operation logs |
 | `Settings` | `dateFormat`, `maxParallelTasks` | Application settings |
+| `User` | `plexId`, `username`, `role`, `isActive` | User accounts (Plex or local admin) |
+| `Session` | `userId`, `expiresAt` | Login sessions (cookie-backed) |
+| `Issue` | `episodeId`, `userId`, `type`, `status`, `description` | Reported quality issues |
 
 ### Status Enums
 
@@ -417,6 +519,9 @@ enum MonitorStatus { WANTED, UNWANTED }
 enum FileQuality { UNVERIFIED, VERIFIED, OK, BROKEN }
 enum FileAction { NOTHING, REDOWNLOAD, CONVERT, ORGANIZE, REPAIR }
 enum PlaybackStatus { PASS, PARTIAL, FAIL }
+enum UserRole { ADMIN, USER }
+enum IssueType { PLAYBACK, QUALITY, AUDIO, SUBTITLE, CONTENT, OTHER }
+enum IssueStatus { OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED }
 ```
 
 ## Filename Parsing
@@ -582,16 +687,25 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [x] Single show files scan button + endpoint
 - [x] Media files playback testing
 - [x] FFprobe media analysis integration
+- [x] Plex authentication (multi-user with role-based access)
+- [x] Issue reporting system (report, track, resolve quality issues)
+- [x] User management (admin controls for Plex users)
+- [x] Plex Auth integration page with setup guide
+- [x] Fix in app documentation for scanner and TMDB features to reflect real implementation
 - [ ] Mobile responsive design improvements
 - [ ] Add manifest for PWA support
-- [x] Fix in app documentation for scanner and TMDB features to reflect real implementation
 - [ ] Refactor codebase to store prisma client in the default location
 - [ ] Check modules utilization and relevance and remove unused ones
 - [ ] Transform API documentation into a swagger
 - [ ] Movies support
-- [ ] Plex database sync
+- [ ] Plex database sync (read-only metadata enrichment)
 - [ ] Bulk status operations
 - [ ] Sonarr/Radarr integration
+- [ ] Media request system (users request new content)
+- [ ] Issue enhancements:
+  - [ ] Issue comments/threads
+  - [ ] Issue deduplication (group reports on same episode)
+  - [ ] Issue analytics on dashboard
 - [ ] Task system improvements:
   - [ ] Dismissible task dialogs with "you can close this" message
   - [ ] Task persistence in database (survive app restart)

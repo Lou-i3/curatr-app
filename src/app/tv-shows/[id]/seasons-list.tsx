@@ -34,10 +34,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ChevronRight, PlayCircle } from 'lucide-react';
+import { ChevronRight, PlayCircle, AlertTriangle } from 'lucide-react';
 import { SeasonDialog } from './season-dialog';
 import { EpisodeDialog } from './episode-dialog';
 import { PlaybackTestDialog } from '@/components/playback-test-dialog';
+import { IssueReportDialog } from '@/components/issues/issue-report-dialog';
 import { BadgeSelector } from '@/components/badge-selector';
 import type { MonitorStatus } from '@/generated/prisma/client';
 
@@ -73,11 +74,12 @@ interface Season {
 
 interface SeasonsListProps {
   showId: number;
+  showTitle: string;
   showTmdbId?: number | null;
   seasons: Season[];
 }
 
-export function SeasonsList({ showId, showTmdbId, seasons }: SeasonsListProps) {
+export function SeasonsList({ showId, showTitle, showTmdbId, seasons }: SeasonsListProps) {
   const router = useRouter();
 
   if (seasons.length === 0) {
@@ -246,6 +248,15 @@ export function SeasonsList({ showId, showTmdbId, seasons }: SeasonsListProps) {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <IssueReportDialog
+                              episodeId={episode.id}
+                              episodeLabel={`${showTitle} — S${String(season.seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`}
+                              trigger={
+                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Report issue">
+                                  <AlertTriangle className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
                             {episode.files.length > 0 && (
                               <PlaybackTestDialog
                                 episodeId={episode.id}

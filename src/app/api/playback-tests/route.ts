@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PlaybackStatus } from '@/generated/prisma/client';
 import { recomputeFileQuality } from '@/lib/playback-status';
+import { checkAdmin } from '@/lib/auth';
 
 const VALID_STATUSES: PlaybackStatus[] = ['PASS', 'PARTIAL', 'FAIL'];
 
@@ -53,6 +54,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const body = await request.json();
     const { episodeFileId, platformId, status, notes, testedAt } = body;
 

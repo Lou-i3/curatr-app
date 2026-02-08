@@ -5,9 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { startScan, getRecentScans } from '@/lib/scanner';
+import { checkAdmin } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const body = await request.json().catch(() => ({}));
 
     const { scanId, taskId } = await startScan({

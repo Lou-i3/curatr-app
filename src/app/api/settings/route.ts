@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { setMaxParallelTasks } from '@/lib/tasks';
+import { checkAdmin } from '@/lib/auth';
 
 const VALID_DATE_FORMATS = ['EU', 'US', 'ISO'];
 
@@ -28,6 +29,9 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const body = await request.json();
     const { dateFormat, maxParallelTasks } = body;
 

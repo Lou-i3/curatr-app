@@ -13,6 +13,8 @@ import { isTmdbConfigured } from '@/lib/tmdb';
 import { isFFprobeAvailable } from '@/lib/ffprobe';
 import { prisma } from '@/lib/prisma';
 import { PageHeader } from '@/components/page-header';
+import { getAuthMode } from '@/lib/auth';
+import { isPlexConfigured } from '@/lib/plex/auth';
 
 /** Integration definition */
 interface Integration {
@@ -70,6 +72,21 @@ async function getIntegrations(): Promise<Integration[]> {
     ffprobeStats = `${analyzedFiles}/${totalFiles} files analyzed`;
   }
 
+  const authMode = getAuthMode();
+  const plexConfigured = isPlexConfigured();
+  const plexEnabled = authMode === 'plex';
+
+  let plexStats: string | undefined;
+  if (plexConfigured) {
+    const plexUserCount = await prisma.user.count({ where: { plexId: { not: 'local' } } });
+    if (plexUserCount > 0) {
+      plexStats = `${plexUserCount} user${plexUserCount === 1 ? '' : 's'}`;
+    }
+    if (!plexEnabled) {
+      plexStats = 'Configured but not enabled';
+    }
+  }
+
   return [
     {
       id: 'tmdb',
@@ -91,14 +108,27 @@ async function getIntegrations(): Promise<Integration[]> {
     },
     {
       id: 'plex',
-      name: 'Plex',
-      description: 'Sync metadata and watch status from your Plex Media Server database.',
+      name: 'Plex Authentication',
+      description: 'Enable multi-user access with Plex account login. Users can browse the library and report issues.',
       icon: (
         <svg className="size-8" viewBox="0 0 24 24" fill="currentColor">
           <path d="M11.643 0L2.805 24H12.357L21.195 0H11.643Z" />
         </svg>
       ),
       href: '/integrations/plex',
+      configured: plexEnabled,
+      stats: plexStats,
+    },
+    {
+      id: 'plex-db',
+      name: 'Plex DB Sync',
+      description: 'Read-only sync with your Plex database for file matching and metadata enrichment.',
+      icon: (
+        <svg className="size-8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.643 0L2.805 24H12.357L21.195 0H11.643Z" />
+        </svg>
+      ),
+      href: '/integrations/plex-db',
       configured: false,
       comingSoon: true,
     },

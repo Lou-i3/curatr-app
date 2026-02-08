@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlatformSettings } from './platform-settings';
+import { UserManagement } from './user-management';
 import {
   Select,
   SelectContent,
@@ -135,6 +136,8 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           <p className="text-sm text-success-foreground">{savedMessage}</p>
         )}
       </div>
+
+      <UserManagement dateFormat={dateFormat} />
     </div>
   );
 }

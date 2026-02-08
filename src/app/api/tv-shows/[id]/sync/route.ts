@@ -8,6 +8,7 @@ import { access, constants } from 'fs/promises';
 import { prisma } from '@/lib/prisma';
 import { startScan } from '@/lib/scanner';
 import { getShowFolderPath } from '@/lib/scanner/config';
+import { checkAdmin } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -15,6 +16,9 @@ interface Params {
 
 export async function POST(request: NextRequest, { params }: Params) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const showId = parseInt(id, 10);
 

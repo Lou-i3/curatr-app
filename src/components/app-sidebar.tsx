@@ -3,14 +3,18 @@
 /**
  * Application sidebar using shadcn/ui Sidebar component
  * Provides navigation with collapsible and mobile-responsive behavior
+ * Role-aware: hides admin-only items for regular users
  */
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tv, ScanSearch, Plug, Settings, PanelLeftClose, PanelLeft, ChevronRight, Film, ListTodo, Loader2, FileSearch } from 'lucide-react';
+import { Home, Tv, ScanSearch, Plug, Settings, PanelLeftClose, PanelLeft, ChevronRight, Film, ListTodo, Loader2, FileSearch, AlertTriangle, LogOut, Shield, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { VersionBadge } from '@/components/version-badge';
 import { useTaskCounts } from '@/lib/contexts/task-context';
+import { useIssueCounts } from '@/lib/contexts/issue-context';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 import {
   Sidebar,
@@ -35,25 +39,30 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Image from 'next/image';
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'TV Shows', href: '/tv-shows', icon: Tv },
-  { name: 'Scans', href: '/scans', icon: ScanSearch },
-];
-
 const integrationItems = [
   { name: 'TMDB', href: '/integrations/tmdb', icon: Film },
   { name: 'FFprobe', href: '/integrations/ffprobe', icon: FileSearch },
+  { name: 'Plex Auth', href: '/integrations/plex', icon: Shield },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
   const taskCounts = useTaskCounts();
+  const issueCounts = useIssueCounts();
+  const { user, isAdmin, authMode, loading: authLoading, logout } = useAuth();
+
+  // Build navigation items based on role
+  const navigation = [
+    { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'TV Shows', href: '/tv-shows', icon: Tv },
+    ...(isAdmin ? [{ name: 'Scans', href: '/scans', icon: ScanSearch }] : []),
+  ];
 
   return (
     <Sidebar collapsible="icon">
@@ -96,102 +105,124 @@ export function AppSidebar() {
             );
           })}
 
-          {/* Integrations with submenu */}
-          {state === 'collapsed' ? (
-            // Dropdown menu for collapsed sidebar
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    isActive={pathname.startsWith('/integrations')}
-                    tooltip="Integrations"
-                  >
-                    <Plug />
-                    <span>Integrations</span>
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" sideOffset={4}>
-                  {integrationItems.map((item) => (
-                    <DropdownMenuItem key={item.name} asChild>
-                      <Link href={item.href} className="flex items-center gap-2">
-                        <item.icon className="size-4" />
-                        <span>{item.name}</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuItem asChild>
-                    <Link href="/integrations" className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Other Integrations</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          ) : (
-            // Collapsible submenu for expanded sidebar
-            <Collapsible
-              asChild
-              defaultOpen={pathname.startsWith('/integrations')}
-              className="group/collapsible"
-            >
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton
-                    isActive={pathname.startsWith('/integrations')}
-                  >
-                    <Plug />
-                    <span>Integrations</span>
-                    <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {integrationItems.map((item) => (
-                      <SidebarMenuSubItem key={item.name}>
-                        <SidebarMenuSubButton asChild isActive={pathname === item.href}>
-                          <Link href={item.href}>
-                            <item.icon className="size-4" />
-                            <span>{item.name}</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild isActive={pathname === '/integrations'}>
-                        <Link href="/integrations">
-                          <span className="text-muted-foreground">Other Integrations</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-          )}
-
-
-          {/* Tasks with activity indicator */}
+          {/* Issues - visible to all roles */}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === '/tasks'}
-              tooltip={taskCounts.total > 0 ? `Tasks (${taskCounts.running} running, ${taskCounts.pending} queued)` : 'Tasks'}
+              isActive={pathname.startsWith('/issues')}
+              tooltip={issueCounts.active > 0 ? `Issues (${issueCounts.active} active)` : 'Issues'}
             >
-              <Link href="/tasks" className="relative">
-                {taskCounts.running > 0 ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <ListTodo />
-                )}
-                <span>Tasks</span>
-                {taskCounts.total > 0 && (
-                  <Badge variant="secondary" className="ml-auto h-5 min-w-5 px-1 text-xs">
-                    {taskCounts.total}
+              <Link href="/issues">
+                <AlertTriangle />
+                <span>Issues</span>
+                {issueCounts.active > 0 && (
+                  <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1 text-xs">
+                    {issueCounts.active}
                   </Badge>
                 )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* Integrations with submenu - admin only */}
+          {isAdmin && (
+            <>
+              {state === 'collapsed' ? (
+                <SidebarMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton
+                        isActive={pathname.startsWith('/integrations')}
+                        tooltip="Integrations"
+                      >
+                        <Plug />
+                        <span>Integrations</span>
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="right" align="start" sideOffset={4}>
+                      {integrationItems.map((item) => (
+                        <DropdownMenuItem key={item.name} asChild>
+                          <Link href={item.href} className="flex items-center gap-2">
+                            <item.icon className="size-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuItem asChild>
+                        <Link href="/integrations" className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Other Integrations</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
+              ) : (
+                <Collapsible
+                  asChild
+                  defaultOpen={pathname.startsWith('/integrations')}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        isActive={pathname.startsWith('/integrations')}
+                      >
+                        <Plug />
+                        <span>Integrations</span>
+                        <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {integrationItems.map((item) => (
+                          <SidebarMenuSubItem key={item.name}>
+                            <SidebarMenuSubButton asChild isActive={pathname === item.href}>
+                              <Link href={item.href}>
+                                <item.icon className="size-4" />
+                                <span>{item.name}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={pathname === '/integrations'}>
+                            <Link href="/integrations">
+                              <span className="text-muted-foreground">Other Integrations</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
+            </>
+          )}
+
+          {/* Tasks with activity indicator - admin only */}
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/tasks'}
+                tooltip={taskCounts.total > 0 ? `Tasks (${taskCounts.running} running, ${taskCounts.pending} queued)` : 'Tasks'}
+              >
+                <Link href="/tasks" className="relative">
+                  {taskCounts.running > 0 ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <ListTodo />
+                  )}
+                  <span>Tasks</span>
+                  {taskCounts.total > 0 && (
+                    <Badge variant="secondary" className="ml-auto h-5 min-w-5 px-1 text-xs">
+                      {taskCounts.total}
+                    </Badge>
+                  )}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
 
         </SidebarMenu>
       </SidebarContent>
@@ -200,6 +231,64 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarSeparator className="mx-0" />
         <SidebarMenu>
+          {/* User menu - shown when Plex auth is enabled */}
+          {authLoading && (
+            <SidebarMenuItem>
+              <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center">
+                <Skeleton className="size-6 rounded-full flex-shrink-0" />
+                <Skeleton className="h-4 w-20 group-data-[collapsible=icon]:hidden" />
+              </div>
+            </SidebarMenuItem>
+          )}
+          {!authLoading && authMode === 'plex' && user && (
+            <SidebarMenuItem>
+              {state === 'collapsed' ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton tooltip={user.username}>
+                      {user.thumbUrl ? (
+                        <img src={user.thumbUrl} alt="" className="size-4 rounded-full" />
+                      ) : (
+                        <User className="size-4" />
+                      )}
+                      <span>{user.username}</span>
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="right" align="end" sideOffset={4}>
+                    <DropdownMenuItem className="flex items-center gap-2 text-muted-foreground" disabled>
+                      <Shield className="size-3" />
+                      <span>{user.role === 'ADMIN' ? 'Admin' : 'User'}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="flex items-center gap-2">
+                      <LogOut className="size-3" />
+                      <span>Sign Out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="flex items-center gap-2 px-2 py-1.5">
+                  {user.thumbUrl ? (
+                    <img src={user.thumbUrl} alt="" className="size-6 rounded-full flex-shrink-0" />
+                  ) : (
+                    <User className="size-6 flex-shrink-0 text-muted-foreground" />
+                  )}
+                  <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                    <p className="text-sm font-medium truncate">{user.username}</p>
+                    <p className="text-xs text-muted-foreground">{user.role === 'ADMIN' ? 'Admin' : 'User'}</p>
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors group-data-[collapsible=icon]:hidden"
+                    title="Sign Out"
+                  >
+                    <LogOut className="size-4" />
+                  </button>
+                </div>
+              )}
+            </SidebarMenuItem>
+          )}
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="GitHub">
               <a
@@ -213,18 +302,21 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <VersionBadge pathname={pathname} />
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === '/settings'}
-              tooltip="Settings"
-            >
-              <Link href="/settings">
-                <Settings />
-                <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {/* Settings - admin only */}
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/settings'}
+                tooltip="Settings"
+              >
+                <Link href="/settings">
+                  <Settings />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarSeparator className="mx-0" />
           <SidebarMenuItem className="hidden md:block">
             <SidebarMenuButton onClick={toggleSidebar} tooltip={state === 'expanded' ? 'Collapse' : 'Expand'}>

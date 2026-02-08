@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkAdmin } from '@/lib/auth';
 
 export async function GET(
   request: Request,
@@ -48,6 +49,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const platformId = parseInt(id, 10);
 
@@ -111,6 +115,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const { id } = await params;
     const platformId = parseInt(id, 10);
 

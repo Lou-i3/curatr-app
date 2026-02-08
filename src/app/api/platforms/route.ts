@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkAdmin } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -30,6 +31,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const body = await request.json();
     const { name, isRequired = false } = body;
 
