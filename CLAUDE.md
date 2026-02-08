@@ -117,6 +117,11 @@ When uncertain about implementation:
 - Check `src/components/ui/` for installed components; see [shadcn/ui docs](https://ui.shadcn.com/docs/components) for full list
 
 **Custom Components:**
+- **PageHeader** (`src/components/page-header.tsx`): Reusable page header component
+  - Consistent title/description/action layout across all pages
+  - Supports optional description text and action button
+  - Custom title sizing via `titleClassName` prop
+  - Example: `<PageHeader title="Settings" description="Configure preferences" action={<Button>Save</Button>} />`
 - **DataTable** (`src/components/ui/data-table.tsx`): Generic reusable table component powered by TanStack Table v8
   - Supports client-side sorting, column visibility, and custom cell renderers
   - Use when you need sortable/filterable tables (e.g., TV shows, scan history)

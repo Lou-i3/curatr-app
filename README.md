@@ -23,6 +23,7 @@ A **self-hosted** web application for tracking media file quality, playback comp
 - **Real-time Progress** - Live scan progress with percentage and file count
 - **TV Show Management** - Full CRUD operations with search, filter, and grid/table views
   - Expandable seasons with inline episode tables (no page navigation)
+  - Column visibility toggle in table view (show/hide columns)
   - Edit poster/backdrop paths directly in show dialog
   - Personal notes displayed with styled background
 - **TMDB Integration** - Enrich shows with posters, descriptions, ratings, and air dates from The Movie Database
@@ -205,6 +206,7 @@ src/
 │   ├── tv-shows/
 │   │   ├── page.tsx                # TV Shows list (grid/table)
 │   │   ├── toolbar.tsx             # Search, filter, view toggle
+│   │   ├── column-visibility-toggle.tsx  # Show/hide columns in table view
 │   │   ├── show-dialog.tsx         # Create/Edit TV show dialog
 │   │   └── [id]/
 │   │       ├── page.tsx            # Show detail with expandable seasons
@@ -280,6 +282,7 @@ src/
 │       └── index.ts                # Barrel export
 ├── components/
 │   ├── app-sidebar.tsx             # Collapsible navigation sidebar
+│   ├── page-header.tsx             # Reusable page header with title/description/action
 │   ├── version-badge.tsx           # Version display with update indicator
 │   ├── badge-selector.tsx          # Unified status badge selector with cascade support
 │   ├── task-progress.tsx           # Real-time task progress display
