@@ -6,6 +6,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 interface IssueCounts {
   active: number;
@@ -21,6 +22,7 @@ const IssueContext = createContext<IssueContextValue | null>(null);
 
 export function IssueProvider({ children }: { children: ReactNode }) {
   const [counts, setCounts] = useState<IssueCounts>({ active: 0, total: 0 });
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const fetchCounts = useCallback(async () => {
     try {
@@ -34,10 +36,13 @@ export function IssueProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Don't poll until auth state is resolved and user is authenticated
+    if (authLoading || !isAuthenticated) return;
+
     fetchCounts();
     const intervalId = setInterval(fetchCounts, 30000);
     return () => clearInterval(intervalId);
-  }, [fetchCounts]);
+  }, [fetchCounts, authLoading, isAuthenticated]);
 
   const refresh = useCallback(async () => {
     await fetchCounts();

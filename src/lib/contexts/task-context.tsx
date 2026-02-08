@@ -7,6 +7,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 export interface TaskData {
   taskId: string;
@@ -67,6 +68,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<TaskData[]>([]);
   const [counts, setCounts] = useState<TaskCounts>({ running: 0, pending: 0, total: 0 });
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   // Track previous task statuses for notification detection
   const previousStatuses = useRef<Map<string, string>>(new Map());
@@ -141,6 +143,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Don't poll until auth state is resolved and user is authenticated
+    if (authLoading || !isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     let intervalId: NodeJS.Timeout;
     let hasActiveTasks = false;
 
@@ -164,7 +172,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     intervalId = setInterval(poll, 5000);
 
     return () => clearInterval(intervalId);
-  }, [fetchTasks]);
+  }, [fetchTasks, authLoading, isAuthenticated]);
 
   // Wrapper to match expected Promise<void> return type
   const refresh = useCallback(async () => {
