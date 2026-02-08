@@ -8,16 +8,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Table as TableInstance } from '@tanstack/react-table';
 import { getPosterUrl } from '@/lib/tmdb/images';
 import {
   getQualityStatusVariant,
   QUALITY_STATUS_LABELS,
-  type QualityStatus,
-  type DisplayMonitorStatus,
 } from '@/lib/status';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -30,27 +28,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TVShowsToolbar } from './toolbar';
 import { TVShowDialog } from './show-dialog';
 import { ShowStatusBadges } from './show-status-badges';
-import { MonitorStatus } from '@/generated/prisma/client';
+import { TVShowsTable } from './tv-shows-table';
+import type { TVShow } from './tv-show-columns';
 import { Star, Film, HardDrive } from 'lucide-react';
 import { formatFileSize } from '@/lib/settings-shared';
-
-interface TVShow {
-  id: number;
-  title: string;
-  year: number | null;
-  description: string | null;
-  notes: string | null;
-  posterPath: string | null;
-  tmdbId: number | null;
-  voteAverage: number | null;
-  monitorStatus: MonitorStatus;
-  displayMonitorStatus: DisplayMonitorStatus;
-  qualityStatus: QualityStatus;
-  seasonCount: number;
-  episodeCount: number;
-  fileCount: number;
-  totalSize: string;
-}
 
 function ShowCardSkeleton() {
   return (
@@ -108,6 +89,7 @@ export default function TVShowsPage() {
 
   const [shows, setShows] = useState<TVShow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [table, setTable] = useState<TableInstance<TVShow> | null>(null);
 
   const fetchShows = useCallback(async () => {
     setLoading(true);
@@ -149,7 +131,7 @@ export default function TVShowsPage() {
         </div>
 
         {/* Toolbar */}
-        <TVShowsToolbar />
+        <TVShowsToolbar table={table} />
       </div>
 
       <div className="mt-6">
@@ -200,89 +182,8 @@ export default function TVShowsPage() {
             </CardContent>
           </Card>
         ) : isTableView ? (
-          /* Table View */
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Year</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Seasons</TableHead>
-                    <TableHead>Episodes</TableHead>
-                    <TableHead>Files</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Monitor</TableHead>
-                    <TableHead>Quality</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shows.map((show) => (
-                    <TableRow key={show.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{show.title}</span>
-                          {show.tmdbId && (
-                            <Badge variant="outline" className="text-xs">TMDB</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {show.year ?? '—'}
-                      </TableCell>
-                      <TableCell>
-                        {show.voteAverage ? (
-                          <span className="flex items-center gap-1 text-warning-foreground">
-                            <Star className="size-3 fill-current" />
-                            {show.voteAverage.toFixed(1)}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{show.seasonCount}</TableCell>
-                      <TableCell>{show.episodeCount}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {show.fileCount}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">
-                        {show.fileCount > 0 ? formatFileSize(BigInt(show.totalSize)) : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <ShowStatusBadges
-                          showId={show.id}
-                          monitorStatus={show.monitorStatus}
-                          displayMonitorStatus={show.displayMonitorStatus}
-                          qualityStatus={show.qualityStatus}
-                          hasChildren={show.seasonCount > 0}
-                          showQuality={false}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {show.monitorStatus !== 'UNWANTED' ? (
-                          <Badge variant={getQualityStatusVariant(show.qualityStatus)}>
-                            {QUALITY_STATUS_LABELS[show.qualityStatus]}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <TVShowDialog show={show} trigger="button" />
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/tv-shows/${show.id}`}>View</Link>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          /* Table View - DataTable with sorting */
+          <TVShowsTable shows={shows} onTableReady={setTable} />
         ) : (
           /* Grid View */
           <div className="grid gap-4">

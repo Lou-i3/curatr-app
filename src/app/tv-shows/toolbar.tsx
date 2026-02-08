@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useTransition } from 'react';
+import { Table as TableInstance } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +14,8 @@ import {
 } from '@/components/ui/select';
 import { Search, LayoutGrid, Table } from 'lucide-react';
 import { TVShowDialog } from './show-dialog';
+import { ColumnVisibilityToggle } from './column-visibility-toggle';
+import type { TVShow } from './tv-show-columns';
 
 const MONITOR_STATUS_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -20,7 +23,11 @@ const MONITOR_STATUS_OPTIONS = [
   { value: 'UNWANTED', label: 'Unwanted' },
 ];
 
-export function TVShowsToolbar() {
+interface TVShowsToolbarProps {
+  table: TableInstance<TVShow> | null;
+}
+
+export function TVShowsToolbar({ table = null }: TVShowsToolbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -83,6 +90,9 @@ export function TVShowsToolbar() {
           ))}
         </SelectContent>
       </Select>
+
+      {/* Column Visibility Toggle (only in table view) */}
+      <ColumnVisibilityToggle table={table} />
 
       {/* View Toggle */}
       <div className="flex border rounded-md">

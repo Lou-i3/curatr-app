@@ -116,6 +116,20 @@ When uncertain about implementation:
   - **For borders**: Use base colors: `border-success`, `border-warning`, `border-destructive`
 - Check `src/components/ui/` for installed components; see [shadcn/ui docs](https://ui.shadcn.com/docs/components) for full list
 
+**Custom Components:**
+- **DataTable** (`src/components/ui/data-table.tsx`): Generic reusable table component powered by TanStack Table v8
+  - Supports client-side sorting, column visibility, and custom cell renderers
+  - Use when you need sortable/filterable tables (e.g., TV shows, scan history)
+  - Requires column definitions specific to your data model (e.g., `tv-show-columns.tsx`)
+  - Exposes table instance via `onTableReady` callback for advanced features (column visibility toggle)
+- **DataTableColumnHeader** (`src/components/ui/data-table-column-header.tsx`): Sortable column header with visual indicators
+  - Use in column definitions: `header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />`
+  - Shows sort state: unsorted (↕), ascending (↑), descending (↓)
+- **BadgeSelector** (`src/components/badge-selector.tsx`): Unified component for status badge selection
+  - Supports optimistic updates for immediate visual feedback
+  - Optional cascade confirmation dialog via `cascadeOptions` prop for hierarchical updates
+  - Works with any enum/status type (MonitorStatus, FileQuality, FileAction, etc.)
+
 **Component Gotchas:**
 - **CollapsibleTrigger + SidebarMenuButton with tooltip**: Causes hydration errors due to complex nesting. Remove the `tooltip` prop from buttons inside `CollapsibleTrigger asChild`.
 
