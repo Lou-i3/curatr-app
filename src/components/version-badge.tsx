@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 type UpdateStatus = 'loading' | 'up-to-date' | 'update-available' | 'no-releases' | 'error';
 
@@ -27,12 +28,16 @@ interface VersionBadgeProps {
 
 export function VersionBadge({ pathname }: VersionBadgeProps) {
   const currentVersion = packageJson.version;
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [state, setState] = useState<VersionState>({
     status: 'loading',
     latestVersion: null,
   });
 
   useEffect(() => {
+    // Don't fetch until auth state is resolved and user is authenticated
+    if (authLoading || !isAuthenticated) return;
+
     async function checkForUpdates() {
       try {
         const res = await fetch(
@@ -73,7 +78,7 @@ export function VersionBadge({ pathname }: VersionBadgeProps) {
     }
 
     checkForUpdates();
-  }, [currentVersion]);
+  }, [currentVersion, authLoading, isAuthenticated]);
 
   const tooltipText = getTooltipText(state.status, state.latestVersion, currentVersion);
 
