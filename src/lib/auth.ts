@@ -133,17 +133,27 @@ export async function deleteSession(token: string): Promise<void> {
 
 /**
  * Get session cookie configuration
+ * @param token - Session token value
+ * @param secure - Whether to set the Secure flag (should match the request protocol)
  */
-export function getSessionCookieConfig(token: string) {
+export function getSessionCookieConfig(token: string, secure: boolean) {
   return {
     name: SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure,
     sameSite: 'lax' as const,
     maxAge: SESSION_DURATION_MS / 1000, // seconds
     path: '/',
   };
+}
+
+/**
+ * Detect if a request is over HTTPS (direct or via reverse proxy)
+ */
+export function isSecureRequest(request: Request): boolean {
+  return request.headers.get('x-forwarded-proto') === 'https'
+    || new URL(request.url).protocol === 'https:';
 }
 
 /**

@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import { createSession, getAuthMode, getSessionCookieConfig } from '@/lib/auth';
+import { createSession, getAuthMode, getSessionCookieConfig, isSecureRequest } from '@/lib/auth';
 import {
   checkPlexPin,
   getPlexUser,
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
 
     // Set session cookie
     const cookieStore = await cookies();
-    const cookieConfig = getSessionCookieConfig(token);
+    const cookieConfig = getSessionCookieConfig(token, isSecureRequest(request));
     cookieStore.set(cookieConfig);
 
     return NextResponse.json({
