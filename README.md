@@ -174,6 +174,9 @@ docker compose up --build
 | macOS (Homebrew, Apple Silicon) | `/opt/homebrew/bin/ffprobe` |
 | macOS (Homebrew, Intel) | `/usr/local/bin/ffprobe` |
 | Docker (after `apk add ffmpeg`) | `/usr/bin/ffprobe` |
+| Docker (static binary mount) | `/ffprobe/ffprobe` |
+
+> **Docker / NAS users**: FFprobe is not included in the Docker image. See the [FFprobe Docker Setup Guide](docs/ffprobe-docker-setup.md) for instructions on using a static binary with volume mounts — works on Synology, QNAP, Unraid, and other NAS devices.
 
 ### Example .env
 
