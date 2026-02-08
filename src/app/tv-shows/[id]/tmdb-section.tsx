@@ -55,13 +55,13 @@ export function TmdbSection({
   const [refreshing, setRefreshing] = useState(false);
 
   // Check if there's a running/pending TMDB sync task for this show
-  // Exclude show-sync (file sync) and tmdb-import tasks
+  // Exclude show-scan (file scan) and tmdb-import tasks
   const activeSyncTask = tasks.find(
     (t) =>
       (t.status === 'running' || t.status === 'pending') &&
       t.title?.includes(showTitle) &&
       t.type !== 'tmdb-import' &&
-      t.type !== 'show-sync'
+      t.type !== 'show-scan'
   );
   const isSyncActive = !!activeSyncTask;
   const isSyncQueued = activeSyncTask?.status === 'pending';

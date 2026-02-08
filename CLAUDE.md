@@ -202,10 +202,10 @@ Every feature interface should help users understand what's happening:
 - Follows async generator pattern for memory efficiency
 - Uses batch processing for database operations
 - Progress tracking via subscriber pattern
-- Supports single-show sync via `targetShowId` and `targetFolderName` options
+- Supports single-show scan via `targetShowId` and `targetFolderName` options
   - Only scans the specified show's folder
   - Only marks files as deleted within that show's scope
-  - Uses task type `show-sync` (distinct from full `scan`)
+  - Uses task type `show-scan` (distinct from full `scan`)
 
 ### Task System
 - Located in `src/lib/tasks/`
@@ -213,7 +213,7 @@ Every feature interface should help users understand what's happening:
 - **Worker threads** for TMDB operations (keeps main thread responsive)
 - Queue system with configurable max parallel tasks
 - Task retention: 1 hour (configurable via `TASK_RETENTION_MS`)
-- Task types: `scan`, `show-sync`, `tmdb-bulk-match`, `tmdb-refresh-missing`, `tmdb-bulk-refresh`, `tmdb-import`, `ffprobe-analyze`
+- Task types: `scan`, `show-scan`, `tmdb-bulk-match`, `tmdb-refresh-missing`, `tmdb-bulk-refresh`, `tmdb-import`, `ffprobe-analyze`
 
 **Critical: Global Singleton Pattern**
 
@@ -264,10 +264,10 @@ const { running, pending, total } = useTaskCounts();
 
 **Single-Show vs Bulk Tasks:**
 - Bulk tasks (auto-match, refresh-missing, bulk-refresh) have NO custom title
-- Single-show tasks have a custom title like `"TMDB Refresh: Show Name"` or `"Sync: Show Name"`
+- Single-show tasks have a custom title like `"TMDB Refresh: Show Name"` or `"Scan: Show Name"`
 - Use `t.title` to differentiate in UI (null = bulk, has value = single-show)
 - Use `t.type` to distinguish between different operations:
-  - `show-sync` - Single-show file sync (scans only that show's folder)
+  - `show-scan` - Single-show file scan (scans only that show's folder)
   - `scan` - Full library scan
   - `tmdb-*` - TMDB metadata operations
 

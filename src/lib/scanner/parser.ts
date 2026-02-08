@@ -253,8 +253,27 @@ function extractEpisodeNumber(filename: string): number | null {
 }
 
 /**
+ * Quality patterns to strip from episode titles
+ * Matches: 1080p, 720p, BluRay, Bluray-1080p, HDTV, WEB-DL, etc.
+ */
+const QUALITY_PATTERN =
+  /\s*[-.]?\s*(?:(?:BluRay|Blu-Ray|Bluray|HDTV|WEB[-.]?DL|WEB[-.]?Rip|WEB|DVDRip|BDRip|BRRip)[-.]?)?(?:\d{3,4}p)?(?:[-.]?(?:BluRay|Blu-Ray|Bluray|HDTV|WEB[-.]?DL|WEB[-.]?Rip|WEB|DVDRip|BDRip|BRRip|x264|x265|HEVC|H\.?264|H\.?265|AAC|AC3|DTS|10bit|HDR|SDR))*\s*$/i;
+
+/**
+ * Strip quality info from the end of a title
+ * Examples:
+ * - "Episode Title 1080p" -> "Episode Title"
+ * - "Episode Title BluRay-1080p" -> "Episode Title"
+ * - "Episode Title HDTV" -> "Episode Title"
+ */
+function stripQualityFromTitle(title: string): string {
+  return title.replace(QUALITY_PATTERN, '').trim();
+}
+
+/**
  * Try to extract episode title from filename
  * Looks for patterns like "S01E05 - Episode Title" or "S01E05.Episode.Title"
+ * Strips quality info (1080p, BluRay, etc.) from the end of titles
  */
 function extractEpisodeTitle(filename: string): string | undefined {
   // Remove file extension
@@ -265,9 +284,10 @@ function extractEpisodeTitle(filename: string): string | undefined {
     /[sS]\d{1,2}[eE]\d{1,3}\s*-\s*(.+?)(?:\s*-\s*|\s*\[|\s*$)/
   );
   if (dashPattern && dashPattern[1]) {
-    const title = dashPattern[1].trim();
-    // Don't return if it looks like quality info
-    if (!title.match(/^\d{3,4}p$/i) && !title.match(/^(HDTV|WEB|BluRay)/i)) {
+    const rawTitle = dashPattern[1].trim();
+    const title = stripQualityFromTitle(rawTitle);
+    // Don't return if it's only quality info
+    if (title && !title.match(/^\d{3,4}p$/i) && !title.match(/^(HDTV|WEB|BluRay)/i)) {
       return title;
     }
   }

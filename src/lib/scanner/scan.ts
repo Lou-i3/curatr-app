@@ -67,11 +67,11 @@ export async function startScan(options: ScanOptions = {}): Promise<StartScanRes
   const config = getConfig();
 
   // Create scan history record
-  const scanType = options.targetShowId ? 'show-sync' : (options.scanType ?? 'full');
+  const scanType = options.targetShowId ? 'show-scan' : (options.scanType ?? 'full');
   const scanId = await createScanHistory(scanType);
 
   // Create progress tracker (also registers with task system)
-  const taskType = options.targetShowId ? 'show-sync' : 'scan';
+  const taskType = options.targetShowId ? 'show-scan' : 'scan';
   const tracker = new ScanProgressTracker(scanId, options.targetShowTitle, taskType);
   activeScanners.set(scanId, tracker);
   const taskId = tracker.getTaskId();

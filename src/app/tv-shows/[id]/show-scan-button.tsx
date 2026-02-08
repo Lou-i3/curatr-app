@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * Sync button for the show detail page
+ * Scan button for the show detail page
  * Triggers a scan of just this show's folder
  */
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { RefreshCw, Loader2 } from 'lucide-react';
+import { ScanSearch, Loader2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,9 +18,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useTasks } from '@/lib/contexts/task-context';
+import { UpdateRulesHelpSection } from '@/components/scan-help-content';
 
-interface ShowSyncButtonProps {
+interface ShowScanButtonProps {
   show: {
     id: number;
     title: string;
@@ -28,18 +34,19 @@ interface ShowSyncButtonProps {
   };
 }
 
-export function ShowSyncButton({ show }: ShowSyncButtonProps) {
+export function ShowScanButton({ show }: ShowScanButtonProps) {
   const router = useRouter();
   const { tasks, refresh: refreshTasks } = useTasks();
   const [open, setOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Check if there's already a sync task for this show
   const activeSyncTask = tasks.find(
     (t) =>
-      t.type === 'show-sync' &&
+      t.type === 'show-scan' &&
       (t.status === 'running' || t.status === 'pending') &&
-      t.title === `Sync: ${show.title}`
+      t.title === `Scan: ${show.title}`
   );
   const isSyncActive = !!activeSyncTask;
   const isSyncQueued = activeSyncTask?.status === 'pending';
@@ -83,14 +90,14 @@ export function ShowSyncButton({ show }: ShowSyncButtonProps) {
           {isSyncActive ? (
             <Loader2 className="size-4 mr-1 animate-spin" />
           ) : (
-            <RefreshCw className="size-4 mr-1" />
+            <ScanSearch className="size-4 mr-1" />
           )}
-          {isSyncQueued ? 'Queued...' : isSyncActive ? 'Syncing...' : 'Sync'}
+          {isSyncQueued ? 'Queued...' : isSyncActive ? 'Scanning...' : 'Scan'}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Sync Files for {show.title}</DialogTitle>
+          <DialogTitle>Scan Files for {show.title}</DialogTitle>
           <DialogDescription>
             This will scan the show&apos;s folder to discover new files and
             detect removed files.
@@ -106,13 +113,29 @@ export function ShowSyncButton({ show }: ShowSyncButtonProps) {
           </div>
 
           <div className="text-sm text-muted-foreground">
-            <p>The sync will:</p>
+            <p>The scan will:</p>
             <ul className="list-disc list-inside mt-1 space-y-1">
               <li>Discover new video files in this folder</li>
-              <li>Update file information for existing files</li>
-              <li>Mark files as deleted if they no longer exist</li>
+              <li>Create new seasons and episodes for any new files found</li>
+              <li>Update file information if size or date changed</li>
+              <li>Mark files as deleted if they no longer exist on disk</li>
             </ul>
+            <p className="mt-2 text-xs">
+              Only this show is affected — other shows remain unchanged.
+            </p>
           </div>
+
+          <Collapsible open={helpOpen} onOpenChange={setHelpOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
+                <span>What gets updated?</span>
+                <ChevronDown className={`size-4 transition-transform ${helpOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <UpdateRulesHelpSection compact />
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         <DialogFooter>
@@ -127,8 +150,8 @@ export function ShowSyncButton({ show }: ShowSyncButtonProps) {
               </>
             ) : (
               <>
-                <RefreshCw className="size-4 mr-1" />
-                Start Sync
+                <ScanSearch className="size-4 mr-1" />
+                Start Scan
               </>
             )}
           </Button>

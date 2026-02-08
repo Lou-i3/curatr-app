@@ -10,7 +10,7 @@ A **self-hosted** web application for tracking media file quality, playback comp
 ## Features
 
 - **Library Scanner** - Scan TV show directories to discover and catalog media files
-- **Single-Show Sync** - Sync files for individual shows without rescanning the entire library
+- **Single-Show Scan** - Scan files for individual shows without rescanning the entire library
 - **Batch Processing** - Optimized database operations for fast scanning of large libraries
 - **Plex-style Parsing** - Automatically parse `Show Name (Year)/Season 01/S01E05.mkv` naming
 - **Smart Show Detection** - Extracts show names from folder structure for reliable matching
@@ -576,12 +576,12 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [x] Import seasons & episodes from TMDB
 - [x] Two-dimensional status system (monitor intent + quality state)
 - [x] Clickable status badges with cascade updates
-- [x] Single show files sync button + endpoint
+- [x] Single show files scan button + endpoint
 - [x] Media files playback testing
 - [x] FFprobe media analysis integration
 - [ ] Mobile responsive design improvements
 - [ ] Add manifest for PWA support
-- [ ] Fix in app documentation for scanner and TMDB features to reflect real implementation
+- [x] Fix in app documentation for scanner and TMDB features to reflect real implementation
 - [ ] Refactor codebase to store prisma client in the default location
 - [ ] Check modules utilization and relevance and remove unused ones
 - [ ] Transform API documentation into a swagger

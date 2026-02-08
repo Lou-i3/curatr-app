@@ -55,7 +55,7 @@ export function TmdbHelpDialog() {
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
               <li>Search by show name to find the matching TMDB entry</li>
               <li>Confidence scores help identify the best match</li>
-              <li>Once matched, you can sync metadata and import episodes</li>
+              <li>Matching immediately syncs show, season, and episode metadata</li>
               <li>Use &quot;Fix Match&quot; to correct a wrong match</li>
             </ul>
           </div>
@@ -78,11 +78,12 @@ export function TmdbHelpDialog() {
                   <span className="text-sm font-medium">Always Updated</span>
                 </div>
                 <ul className="list-disc list-inside space-y-0.5 text-xs text-muted-foreground ml-6">
-                  <li>Show title, description, and genres</li>
+                  <li>Show title, year, description, and genres</li>
                   <li>Poster and backdrop images</li>
                   <li>First air date, status (Ended, Returning, etc.)</li>
                   <li>Vote average and vote count</li>
                   <li>Network and origin country</li>
+                  <li>Season and episode metadata (names, air dates, images)</li>
                 </ul>
               </div>
 

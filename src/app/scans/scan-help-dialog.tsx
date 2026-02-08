@@ -15,6 +15,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { FolderOpen, FileVideo, CheckCircle2, HelpCircle } from 'lucide-react';
+import {
+  RecognitionHelpSection,
+  UpdateRulesHelpSection,
+  ScanResultsHelpSection,
+} from '@/components/scan-help-content';
 
 interface ScanHelpDialogProps {
   tvShowsPath?: string;
@@ -75,7 +80,7 @@ export function ScanHelpDialog({ tvShowsPath, moviesPath }: ScanHelpDialogProps)
           <div>
             <h4 className="font-medium mb-2">Scan Phases</h4>
             <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-              <li><strong className="text-foreground">Discovering</strong> — Finds all media files (.mkv, .mp4, .avi, etc.)</li>
+              <li><strong className="text-foreground">Discovering</strong> — Finds all video files (.mkv, .mp4, .avi, .m4v, .ts, .mov, etc.) - hidden files are skipped</li>
               <li><strong className="text-foreground">Parsing</strong> — Extracts show name, season, and episode from filenames</li>
               <li><strong className="text-foreground">Saving</strong> — Creates or updates shows, seasons, episodes, and files in the database</li>
               <li><strong className="text-foreground">Cleanup</strong> — Marks files that no longer exist on disk</li>
@@ -94,6 +99,15 @@ export function ScanHelpDialog({ tvShowsPath, moviesPath }: ScanHelpDialogProps)
                 <p>TV Shows/Show Name (2020)/Season 01/Show Name - S01E05 - Title.mkv</p>
               </div>
               <div className="bg-muted rounded-md p-3 space-y-1 font-mono text-xs">
+                <p className="text-muted-foreground"># With quality info (automatically stripped from title)</p>
+                <p>Show Name - S01E05 - Episode Title 1080p.mkv</p>
+                <p>Show Name - S01E05 - Episode Title BluRay-1080p.mkv</p>
+              </div>
+              <div className="bg-muted rounded-md p-3 space-y-1 font-mono text-xs">
+                <p className="text-muted-foreground"># Specials folder (Season 0)</p>
+                <p>TV Shows/Show Name (2020)/Specials/Show Name - S00E01 - Behind the Scenes.mkv</p>
+              </div>
+              <div className="bg-muted rounded-md p-3 space-y-1 font-mono text-xs">
                 <p className="text-muted-foreground"># Standard SxxExx</p>
                 <p>Show.Name.S01E05.Episode.Title.1080p.BluRay.mkv</p>
               </div>
@@ -102,6 +116,15 @@ export function ScanHelpDialog({ tvShowsPath, moviesPath }: ScanHelpDialogProps)
                 <p>Show Name 1x05.mkv</p>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Quality patterns like 1080p, 720p, BluRay, HDTV, WEB-DL are automatically stripped from episode titles.
+            </p>
+          </div>
+
+          {/* Recognition Logic */}
+          <div>
+            <h4 className="font-medium mb-2">How Files Are Recognized</h4>
+            <RecognitionHelpSection />
           </div>
 
           {/* What Happens */}
@@ -110,13 +133,13 @@ export function ScanHelpDialog({ tvShowsPath, moviesPath }: ScanHelpDialogProps)
               <CheckCircle2 className="size-4" />
               What Happens After a Scan
             </h4>
-            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-              <li>New shows are created with <Badge variant="secondary" className="text-xs mx-1">Wanted</Badge> status</li>
-              <li>New files are added with <Badge variant="warning" className="text-xs mx-1">Unverified</Badge> quality</li>
-              <li>Existing files are updated with new file size and modification date</li>
-              <li>Missing files (deleted from disk) are flagged but not removed from database</li>
-              <li>Match shows to TMDB to enrich with posters, descriptions, and air dates</li>
-            </ul>
+            <ScanResultsHelpSection />
+          </div>
+
+          {/* What Gets Updated */}
+          <div>
+            <h4 className="font-medium mb-2">What Gets Updated on Rescan</h4>
+            <UpdateRulesHelpSection />
           </div>
         </div>
       </DialogContent>

@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 export interface TaskData {
   taskId: string;
   type: string;
-  title?: string; // Custom display title (e.g., "Sync: Arrow")
+  title?: string; // Custom display title (e.g., "Scan: Arrow")
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   total: number;
   processed: number;

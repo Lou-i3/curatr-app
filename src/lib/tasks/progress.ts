@@ -248,7 +248,7 @@ function onTaskComplete(taskId: string): void {
 /**
  * Create and queue a TMDB task
  * Returns the tracker immediately; task starts when a slot is available
- * @param title - Optional custom title for display (e.g., "Sync: Arrow")
+ * @param title - Optional custom title for display (e.g., "Scan: Arrow")
  */
 export function createTmdbTask(
   type: 'tmdb-bulk-match' | 'tmdb-refresh-missing' | 'tmdb-bulk-refresh' | 'tmdb-import',
@@ -335,13 +335,13 @@ export function createFfprobeTask(
 /**
  * Create a new scan task
  * @param scanId - Database scan history ID
- * @param customTitle - Optional custom title for display (e.g., "Sync: Show Name")
+ * @param customTitle - Optional custom title for display (e.g., "Scan: Show Name")
  * @param taskType - Task type, defaults to 'scan'
  */
 export function createScanTask(
   scanId: number,
   customTitle?: string,
-  taskType: 'scan' | 'show-sync' = 'scan'
+  taskType: 'scan' | 'show-scan' = 'scan'
 ): TaskProgressTracker<ScanTaskProgress> {
   const canRunNow = getRunningTaskCount() < getMaxParallelTasksValue();
 

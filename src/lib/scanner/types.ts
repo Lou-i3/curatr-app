@@ -71,7 +71,7 @@ export interface ScanOptions {
   targetShowId?: number;
   /** Folder name on disk for the target show */
   targetFolderName?: string;
-  /** Custom title for task display (e.g., "Sync: Show Name") */
+  /** Custom title for task display (e.g., "Scan: Show Name") */
   targetShowTitle?: string;
 }
 

@@ -63,14 +63,14 @@ export async function POST(request: NextRequest, { params }: Params) {
       skipMetadata: true,
       targetShowId: show.id,
       targetFolderName: show.folderName,
-      targetShowTitle: `Sync: ${show.title}`,
+      targetShowTitle: `Scan: ${show.title}`,
     });
 
     return NextResponse.json({
       scanId,
       taskId,
       status: 'started',
-      message: `Sync started for "${show.title}"`,
+      message: `Scan started for "${show.title}"`,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start sync';

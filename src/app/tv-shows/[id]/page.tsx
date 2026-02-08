@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Star, Calendar, Tv, Film } from "lucide-react";
 import { TmdbSection } from "./tmdb-section";
 import { ShowEditButton } from "./show-edit-button";
-import { ShowSyncButton } from "./show-sync-button";
+import { ShowScanButton } from "./show-scan-button";
 import { ShowDetailStatusBadges } from "./show-detail-status-badges";
 import { SeasonsList } from "./seasons-list";
 
@@ -137,7 +137,7 @@ export default async function ShowDetailPage({ params }: Props) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ShowSyncButton show={{
+                <ShowScanButton show={{
                   id: show.id,
                   title: show.title,
                   folderName: show.folderName,

@@ -136,8 +136,7 @@ export async function findOrCreateHierarchy(
       title: parsed.episodeTitle,
     },
     update: {
-      // Update title if we now have one and the episode doesn't
-      ...(parsed.episodeTitle ? { title: parsed.episodeTitle } : {}),
+      // Don't overwrite existing title - preserve DB value
     },
   });
 
@@ -505,13 +504,8 @@ export class BatchProcessor {
           });
           episodeId = newEpisode.id;
           this.episodeCache.byKey.set(episodeKey, episodeId);
-        } else if (parsed.episodeTitle) {
-          // Update title if we have one
-          await tx.episode.update({
-            where: { id: episodeId },
-            data: { title: parsed.episodeTitle },
-          });
         }
+        // Don't update existing episode titles - preserve DB value
 
         // 4. Create or update file
         const existingFile = this.fileCache.byPath.get(file.filepath);

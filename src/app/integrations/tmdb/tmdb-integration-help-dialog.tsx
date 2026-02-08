@@ -89,9 +89,9 @@ export function TmdbIntegrationHelpDialog() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Searches TMDB for each unmatched show and automatically matches those with
-                  high confidence (80%+). Shows with uncertain matches are skipped and can
-                  be matched manually. <strong>Does not sync season/episode metadata</strong> —
-                  run &quot;Refresh Missing&quot; afterward.
+                  high confidence (70%+). Shows with uncertain matches are skipped for manual
+                  review. <strong>Does not sync season/episode metadata</strong> —
+                  run &quot;Refresh Missing Metadata&quot; afterward to fetch seasons and episodes.
                 </p>
               </div>
 
@@ -101,9 +101,9 @@ export function TmdbIntegrationHelpDialog() {
                   <span className="font-medium">Refresh Missing Metadata</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Syncs season and episode data <strong>only for shows that need it</strong> —
-                  matched shows where some seasons or episodes are missing TMDB metadata.
-                  Faster than refreshing everything.
+                  Syncs season and episode data <strong>only for shows that need it</strong>.
+                  Creates seasons and episodes in your database if they don&apos;t exist yet,
+                  matching by season and episode number. Faster than refreshing everything.
                 </p>
               </div>
 
@@ -113,9 +113,10 @@ export function TmdbIntegrationHelpDialog() {
                   <span className="font-medium">Refresh All Metadata</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Re-fetches metadata for <strong>all matched shows</strong>, including
-                  show details, seasons, and episodes. Use this periodically to catch
-                  updates on TMDB (new posters, corrected descriptions, etc.).
+                  Re-fetches metadata for <strong>all matched shows</strong>, updating
+                  show details and existing seasons/episodes. Does not create new seasons
+                  or episodes — use &quot;Refresh Missing&quot; for that. Use periodically to
+                  catch TMDB updates (new posters, corrected descriptions, etc.).
                 </p>
               </div>
             </div>
