@@ -362,6 +362,69 @@ const { counts, refresh } = useIssueContext(); // For pages that modify issues
 - Success format varies by endpoint
 - SSE for real-time updates (scan progress)
 
+### API Documentation (OpenAPI/Swagger)
+
+Interactive API docs are served at `/api-docs` via Swagger UI, generated from `@swagger` JSDoc annotations in route files.
+
+**How it works:**
+1. Each API route file (`src/app/api/**/route.ts`) has a `@swagger` JSDoc block with OpenAPI YAML
+2. `scripts/generate-openapi.mjs` runs at build time (`npm run build:openapi`), scans all route files, and outputs `public/openapi.json`
+3. The `/api-docs` page renders the spec using `swagger-ui-react`
+4. `build:openapi` runs automatically as part of `npm run dev` and `npm run build`
+
+**Key files:**
+- `scripts/generate-openapi.mjs` — Build script with base OpenAPI definition, shared schemas (Prisma enums), tags, and security schemes
+- `src/app/api-docs/page.tsx` — Server component page
+- `src/app/api-docs/api-docs-client.tsx` — Client component rendering Swagger UI (with search filter and collapsed categories)
+- `src/app/globals.css` — Swagger UI theme overrides (scoped to `.swagger-ui-wrapper`)
+- `public/openapi.json` — Generated spec (gitignored, build artifact)
+
+**Adding docs to a new API route:**
+
+Add a `@swagger` JSDoc block above the imports in the route file. Use `$ref` for shared schemas defined in the generate script:
+
+```typescript
+/**
+ * Description of the route file
+ *
+ * @swagger
+ * /api/your-route:
+ *   get:
+ *     summary: Short description
+ *     description: Longer description of what this endpoint does.
+ *     tags: [YourTag]
+ *     parameters:
+ *       - in: query
+ *         name: param
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+```
+
+**Shared schemas** (defined in `generate-openapi.mjs`): `Error`, `Success`, `MonitorStatus`, `FileQuality`, `Action`, `PlaybackStatus`, `ScanStatus`, `TrackType`, `UserRole`, `IssueType`, `IssueStatus`, `TaskStatus`
+
+**Tags** (for grouping in Swagger UI): Auth, TV Shows, Seasons, Episodes, Files, Playback Tests, Platforms, Scanner, Tasks, TMDB, Issues, Users, Settings, FFprobe
+
+**Important notes:**
+- When adding a new Prisma enum, add it to the `schemas` object in `generate-openapi.mjs` too
+- When adding a new API route group, add a tag entry in `generate-openapi.mjs`
+- Mutation endpoints should include `security: [cookieAuth: []]`
+- Run `npm run build:openapi` to regenerate after changes, then refresh `/api-docs`
+- The `.mjs` extension is required because `swagger-jsdoc` is an ESM-only package
+
 ### Environment Variables
 - Development: `.env` (gitignored)
 - Template: `.env.example` (committed)

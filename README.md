@@ -77,6 +77,7 @@ A **self-hosted** web application for tracking media file quality, playback comp
 - **Settings** - Configurable date format (EU/US/ISO), max parallel tasks, playback platforms, and user management (when auth enabled)
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **PWA Support** - Installable as a Progressive Web App on phones (iOS/Android) and desktop
+- **API Documentation** - Interactive Swagger UI at `/api-docs` with search and collapsible categories, generated from JSDoc annotations
 - **Dark Mode** - Full dark mode UI with system preference support
 - **Custom Theme** - Nunito font, green accent colors, consistent design
 
@@ -216,6 +217,9 @@ services:
 ## Project Structure
 
 ```
+scripts/
+└── generate-openapi.mjs            # Build-time OpenAPI spec generator
+
 src/
 ├── proxy.ts                        # Auth route protection (cookie check, no DB)
 ├── app/
@@ -223,6 +227,9 @@ src/
 │   ├── manifest.ts                 # PWA web app manifest
 │   ├── apple-icon.png              # Apple touch icon (180x180)
 │   ├── layout.tsx                  # Root layout with sidebar + providers
+│   ├── api-docs/
+│   │   ├── page.tsx                # API documentation page
+│   │   └── api-docs-client.tsx     # Swagger UI client component
 │   ├── login/
 │   │   ├── page.tsx                # Login page
 │   │   └── plex-login-button.tsx   # Plex OAuth button component
@@ -376,130 +383,11 @@ prisma/
 
 ## API Routes
 
-### Authentication
+Interactive API documentation is available at `/api-docs` when the app is running.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/auth/session` | Get current user session info |
-| `GET` | `/api/auth/status` | Get auth config and Plex server connectivity |
-| `POST` | `/api/auth/plex/pin` | Create a Plex auth PIN for OAuth flow |
-| `POST` | `/api/auth/plex/callback` | Complete Plex OAuth (exchange PIN for session) |
-| `POST` | `/api/auth/logout` | Logout (delete session, clear cookie) |
+The documentation includes all endpoints with request/response schemas, parameter descriptions, and authentication requirements. It is generated from JSDoc annotations in the route source files using OpenAPI 3.0.
 
-### Issues
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/issues` | List issues (filter by status, type, episodeId, showId) |
-| `POST` | `/api/issues` | Create a new issue |
-| `GET` | `/api/issues/[id]` | Get single issue with relations |
-| `PATCH` | `/api/issues/[id]` | Update issue (status, resolution, details) |
-| `DELETE` | `/api/issues/[id]` | Delete issue (reporter own open, or admin any) |
-| `GET` | `/api/issues/counts` | Get issue counts by status (for sidebar badge) |
-
-### Users (Admin)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/users` | List all users |
-| `PATCH` | `/api/users/[id]` | Update user role or active status |
-
-### TV Shows
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/tv-shows` | Create a new TV show |
-| `PATCH` | `/api/tv-shows/[id]` | Update a TV show (supports `cascade` for monitorStatus) |
-| `DELETE` | `/api/tv-shows/[id]` | Delete a TV show |
-
-### Seasons & Episodes
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `PATCH` | `/api/seasons/[id]` | Update a season (supports `cascade` for monitorStatus) |
-| `PATCH` | `/api/episodes/[id]` | Update an episode |
-
-### Files
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `PATCH` | `/api/files/[id]` | Update file quality/action |
-| `POST` | `/api/files/[id]/analyze` | Analyze file with FFprobe |
-| `GET` | `/api/episodes/[id]/files` | Get episode files with playback tests |
-
-### FFprobe Integration
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/ffprobe/status` | Get FFprobe availability and analysis statistics |
-
-### Platforms
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/platforms` | List all platforms |
-| `POST` | `/api/platforms` | Create new platform |
-| `PATCH` | `/api/platforms/[id]` | Update platform |
-| `DELETE` | `/api/platforms/[id]` | Delete platform |
-
-### Playback Tests
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/playback-tests` | List tests (filter by fileId) |
-| `POST` | `/api/playback-tests` | Create new test |
-| `PATCH` | `/api/playback-tests/[id]` | Update test |
-| `DELETE` | `/api/playback-tests/[id]` | Delete test |
-
-### Settings
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/settings` | Get current settings |
-| `PATCH` | `/api/settings` | Update settings |
-
-### Scanner
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/scan` | Start a new scan |
-| `GET` | `/api/scan` | List recent scans |
-| `GET` | `/api/scan/[id]` | Get scan status |
-| `POST` | `/api/scan/[id]/cancel` | Cancel running scan |
-| `GET` | `/api/scan/[id]/progress` | SSE progress stream |
-| `POST` | `/api/tv-shows/[id]/sync` | Sync files for a single show |
-
-### Tasks
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/tasks` | List all active and recent tasks |
-| `GET` | `/api/tasks/[taskId]` | Get task status |
-| `GET` | `/api/tasks/[taskId]/progress` | SSE progress stream |
-| `POST` | `/api/tasks/[taskId]/cancel` | Cancel running task |
-
-### TMDB Integration
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/tmdb/search?q=title&year=2020` | Search TMDB for shows |
-| `GET` | `/api/tmdb/status` | Get integration status (shows/seasons/episodes counts) |
-| `POST` | `/api/tmdb/match` | Match a show to TMDB ID (syncSeasons: false by default) |
-| `POST` | `/api/tmdb/bulk-match` | Auto-match all unmatched shows (match only, no season sync) |
-| `POST` | `/api/tmdb/refresh-missing` | Sync metadata for shows that need it |
-| `POST` | `/api/tmdb/bulk-refresh` | Refresh all metadata for all matched shows |
-| `POST` | `/api/tmdb/refresh/[showId]` | Refresh metadata for a single show |
-| `GET` | `/api/tmdb/import-preview/[showId]` | Preview seasons/episodes available for import |
-| `POST` | `/api/tmdb/import` | Import selected seasons/episodes from TMDB |
-
-### Start Scan Request
-
-```json
-{
-  "scanType": "full",
-  "skipMetadata": true
-}
-```
+The raw OpenAPI spec is available at `/openapi.json`.
 
 ## Database Schema
 
@@ -628,9 +516,10 @@ All status badges are clickable and open dropdowns to change values:
 ## Development Commands
 
 ```bash
-npm run dev          # Start dev server (compiles worker automatically)
-npm run build        # Production build (compiles worker automatically)
+npm run dev          # Start dev server (compiles worker + OpenAPI spec automatically)
+npm run build        # Production build (compiles worker + OpenAPI spec automatically)
 npm run build:worker # Compile TypeScript worker to JS (esbuild)
+npm run build:openapi # Generate OpenAPI spec from @swagger JSDoc annotations
 npm start            # Start production server
 
 npx prisma studio    # Open DB viewer
@@ -702,7 +591,7 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [x] Add manifest for PWA support
 - [ ] Refactor codebase to store prisma client in the default location
 - [ ] Check modules utilization and relevance and remove unused ones
-- [ ] Transform API documentation into a swagger
+- [x] Transform API documentation into a swagger
 - [ ] Movies support
 - [ ] Plex database sync (read-only metadata enrichment)
 - [ ] Bulk status operations
