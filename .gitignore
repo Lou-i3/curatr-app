@@ -44,6 +44,9 @@ next-env.d.ts
 # Compiled worker (built from TypeScript)
 /src/lib/tasks/task-worker.js
 
+# Generated OpenAPI spec
+/public/openapi.json
+
 # Prisma
 /src/generated/prisma
 
