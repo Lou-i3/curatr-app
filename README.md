@@ -17,17 +17,32 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
 
 ## Table of Contents
 
-- [Features](#features)
-- [Self-Hosted](#self-hosted)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Tech Stack](#tech-stack)
-- [Development](#development)
-- [API Documentation](#api-documentation)
-- [Versioning & Releases](#versioning--releases)
-- [Roadmap](#roadmap)
-- [Further Documentation](#further-documentation)
-- [License](#license)
+- [Curatr App](#curatr-app)
+  - [Disclaimer](#disclaimer)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Self-Hosted](#self-hosted)
+  - [Quick Start](#quick-start)
+    - [Development](#development)
+    - [Docker (Production)](#docker-production)
+  - [Configuration](#configuration)
+  - [Tech Stack](#tech-stack)
+  - [Development](#development-1)
+  - [API Documentation](#api-documentation)
+  - [Versioning \& Releases](#versioning--releases)
+    - [Creating a Release](#creating-a-release)
+    - [Pre-releases](#pre-releases)
+  - [Roadmap](#roadmap)
+    - [Core Features](#core-features)
+    - [UI / UX](#ui--ux)
+    - [Issue System](#issue-system)
+    - [Integrations](#integrations)
+    - [Task System](#task-system)
+    - [Notifications](#notifications)
+    - [Infrastructure](#infrastructure)
+    - [Localization](#localization)
+  - [Further Documentation](#further-documentation)
+  - [License](#license)
 
 ---
 
@@ -304,7 +319,7 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 ### Integrations
 
 - 🟡 Plex database sync (read-only metadata enrichment)
-- 🟡 Plex users sync button (fetch all users from server)
+- 🔵 Plex users sync button (fetch all users from server)
 - 🔵 Sonarr/Radarr integration
 - 🔵 Tautulli integration (import playback history to inform quality decisions)
 - 🔵 Jellyfin support (alternative media server)
