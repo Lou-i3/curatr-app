@@ -101,6 +101,8 @@ Curatr is designed to run on your own hardware - no cloud services or subscripti
 
 ### Development
 
+> Don't forget to set your `.env` file from the `.env.example` template with the required environment variables before starting.
+
 ```bash
 # Install dependencies
 npm install
@@ -121,7 +123,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ```bash
 # Build and run
-docker compose up --build
+docker compose up
 ```
 
 ## Environment Variables
@@ -185,20 +187,6 @@ docker compose up --build
 | Docker (static binary mount) | `/ffprobe/ffprobe` |
 
 > **Docker / NAS users**: FFprobe is not included in the Docker image. See the [FFprobe Docker Setup Guide](docs/ffprobe-docker-setup.md) for instructions on using a static binary with volume mounts — works on Synology, QNAP, Unraid, and other NAS devices.
-
-### Example .env
-
-```bash
-DATABASE_URL="file:./prisma/dev.db"
-TV_SHOWS_PATH="/media/TV Shows"
-TMDB_API_KEY="your-read-access-token"
-FFPROBE_PATH="/opt/homebrew/bin/ffprobe"
-
-# Optional: Enable multi-user Plex authentication
-# AUTH_MODE="plex"
-# PLEX_URL="http://192.168.1.100:32400"
-# PLEX_TOKEN="your-plex-token"
-```
 
 ### Example docker-compose.yml
 
@@ -423,21 +411,6 @@ enum PlaybackStatus { PASS, PARTIAL, FAIL }
 enum UserRole { ADMIN, USER }
 enum IssueType { PLAYBACK, QUALITY, AUDIO, SUBTITLE, CONTENT, OTHER }
 enum IssueStatus { OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED }
-```
-
-## Filename Parsing
-
-The scanner supports multiple naming conventions:
-
-```
-# Plex-style (recommended)
-/TV Shows/Breaking Bad (2008)/Season 1/Breaking Bad - S01E01 - Pilot.mkv
-
-# Standard SxxExx
-Breaking.Bad.S01E01.720p.BluRay.mkv
-
-# Alternative XxYY
-Breaking Bad 1x01.mkv
 ```
 
 ## Status System
