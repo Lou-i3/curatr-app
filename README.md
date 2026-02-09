@@ -7,12 +7,29 @@
 
 A **self-hosted** web application for tracking media file quality, playback compatibility, and maintenance status across your Plex media library. Deploy on your own server with Docker and keep full control of your data.
 
-
 ## Disclaimer
 
 This project is vibe coded with [Claude](https://claude.ai) and provided **as-is**, with no warranty or guarantee of any kind. Use it at your own risk — always **back up your data** before using any features that modify files or metadata.
 
 We are not liable for any data loss, corruption, or unexpected behavior. Pull requests and issues are welcome, but this is a personal project maintained in our spare time — response times may vary.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Self-Hosted](#self-hosted)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Tech Stack](#tech-stack)
+- [Development](#development)
+- [API Documentation](#api-documentation)
+- [Versioning & Releases](#versioning--releases)
+- [Roadmap](#roadmap)
+- [Further Documentation](#further-documentation)
+- [License](#license)
+
+---
 
 ## Features
 
@@ -126,69 +143,8 @@ Open [http://localhost:3000](http://localhost:3000)
 docker compose up
 ```
 
-## Environment Variables
-
-### Required
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | - | SQLite database path (e.g., `file:./prisma/dev.db`) |
-| `TV_SHOWS_PATH` | - | Path to TV shows directory* |
-| `MOVIES_PATH` | - | Path to movies directory* |
-
-*At least one of `TV_SHOWS_PATH` or `MOVIES_PATH` is required.
-
-### Authentication
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AUTH_MODE` | `none` | Authentication mode: `none` (single-user) or `plex` (multi-user with Plex login) |
-| `PLEX_URL` | - | Plex server URL (e.g., `http://192.168.1.100:32400`). Required when `AUTH_MODE=plex` |
-| `PLEX_TOKEN` | - | Plex authentication token. Required when `AUTH_MODE=plex` |
-
-### Integrations
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TMDB_API_KEY` | - | TMDB API Read Access Token for metadata ([get one here](https://www.themoviedb.org/settings/api)) |
-| `FFPROBE_PATH` | - | Path to ffprobe binary for media analysis (not set = disabled) |
-| `FFPROBE_TIMEOUT` | `30000` | FFprobe execution timeout in milliseconds |
-| `PLEX_DB_PATH` | - | Path to Plex database for future sync (not yet implemented) |
-
-### Scanner Settings
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SCAN_CONCURRENCY` | `4` | Number of parallel file operations during scan |
-| `SCAN_BATCH_SIZE` | `100` | Number of files to process per database batch |
-
-### Task System
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TASK_RETENTION_MS` | `3600000` | How long to keep completed tasks in memory (1 hour) |
-
-### Docker Settings
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TZ` | `UTC` | Timezone (e.g., `Europe/Paris`, `America/New_York`) |
-| `PUID` | `1000` | User ID for file permissions |
-| `PGID` | `1000` | Group ID for file permissions |
-
-### FFprobe Installation Paths
-
-| Platform | Path |
-|----------|------|
-| Linux | `/usr/bin/ffprobe` |
-| macOS (Homebrew, Apple Silicon) | `/opt/homebrew/bin/ffprobe` |
-| macOS (Homebrew, Intel) | `/usr/local/bin/ffprobe` |
-| Docker (after `apk add ffmpeg`) | `/usr/bin/ffprobe` |
-| Docker (static binary mount) | `/ffprobe/ffprobe` |
-
-> **Docker / NAS users**: FFprobe is not included in the Docker image. See the [FFprobe Docker Setup Guide](docs/ffprobe-docker-setup.md) for instructions on using a static binary with volume mounts — works on Synology, QNAP, Unraid, and other NAS devices.
-
-### Example docker-compose.yml
+<details>
+<summary><strong>Example docker-compose.yml</strong></summary>
 
 ```yaml
 services:
@@ -209,282 +165,47 @@ services:
       - /path/to/media:/media:ro
 ```
 
-## Project Structure
+</details>
 
-```
-scripts/
-└── generate-openapi.mjs            # Build-time OpenAPI spec generator
+## Configuration
 
-src/
-├── proxy.ts                        # Auth route protection (cookie check, no DB)
-├── app/
-│   ├── page.tsx                    # Dashboard
-│   ├── manifest.ts                 # PWA web app manifest
-│   ├── apple-icon.png              # Apple touch icon (180x180)
-│   ├── layout.tsx                  # Root layout with sidebar + providers
-│   ├── api-docs/
-│   │   ├── page.tsx                # API documentation page
-│   │   └── api-docs-client.tsx     # Swagger UI client component
-│   ├── login/
-│   │   ├── page.tsx                # Login page
-│   │   └── plex-login-button.tsx   # Plex OAuth button component
-│   ├── scans/
-│   │   └── page.tsx                # Scanner UI
-│   ├── tasks/
-│   │   └── page.tsx                # Background tasks management
-│   ├── issues/
-│   │   ├── page.tsx                # Issues list with filters & admin actions
-│   │   └── issue-columns.tsx       # DataTable column definitions
-│   ├── settings/
-│   │   ├── page.tsx                # Settings page
-│   │   ├── platform-settings.tsx   # Platform management component
-│   │   ├── user-management.tsx     # User management (admin, plex mode)
-│   │   └── user-columns.tsx        # User DataTable column definitions
-│   ├── changelog/
-│   │   └── page.tsx                # Changelog (GitHub releases)
-│   ├── integrations/
-│   │   ├── page.tsx                # Integrations hub
-│   │   ├── tmdb/
-│   │   │   ├── page.tsx            # TMDB integration config & status
-│   │   │   └── tmdb-integration-help-dialog.tsx # Help documentation
-│   │   ├── ffprobe/
-│   │   │   ├── page.tsx            # FFprobe integration config & status
-│   │   │   └── ffprobe-help-dialog.tsx # Help documentation
-│   │   └── plex/
-│   │       └── page.tsx            # Plex Auth integration & setup guide
-│   ├── tv-shows/
-│   │   ├── page.tsx                # TV Shows list (grid/table)
-│   │   ├── toolbar.tsx             # Search, filter, view toggle
-│   │   ├── column-visibility-toggle.tsx  # Show/hide columns in table view
-│   │   ├── show-dialog.tsx         # Create/Edit TV show dialog
-│   │   └── [id]/
-│   │       ├── page.tsx            # Show detail with expandable seasons
-│   │       ├── seasons-list.tsx    # Accordion seasons with episode tables
-│   │       ├── tmdb-section.tsx    # TMDB integration controls
-│   │       ├── tmdb-help-dialog.tsx # TMDB features help
-│   │       └── episodes/
-│   │           └── [episodeId]/
-│   │               ├── page.tsx              # Episode detail (files + issues)
-│   │               ├── episode-detail-status-badges.tsx  # Status controls
-│   │               ├── episode-issues-list.tsx # Issue sidebar component
-│   │               └── file-status-badges.tsx # File quality/action badges
-│   └── api/
-│       ├── settings/route.ts       # Settings API
-│       ├── auth/                   # Authentication API
-│       │   ├── session/route.ts    # GET: current user session
-│       │   ├── status/route.ts     # GET: auth config & Plex server status
-│       │   ├── logout/route.ts     # POST: logout
-│       │   └── plex/
-│       │       ├── pin/route.ts    # POST: create Plex auth PIN
-│       │       └── callback/route.ts # POST: complete Plex auth
-│       ├── issues/                 # Issue management API
-│       │   ├── route.ts            # GET: list, POST: create
-│       │   ├── [id]/route.ts       # GET, PATCH, DELETE
-│       │   └── counts/route.ts     # GET: counts by status
-│       ├── users/                  # User management API (admin)
-│       │   ├── route.ts            # GET: list users
-│       │   └── [id]/route.ts       # PATCH: update role/active
-│       ├── tv-shows/               # TV Shows CRUD
-│       │   ├── route.ts            # POST: create
-│       │   └── [id]/
-│       │       ├── route.ts        # PATCH: update, DELETE: delete
-│       │       └── episodes/route.ts # GET: seasons & episodes (lightweight)
-│       ├── scan/                   # Scanner API routes
-│       │   ├── route.ts            # POST: start, GET: list
-│       │   └── [id]/
-│       │       ├── route.ts        # GET: status
-│       │       ├── cancel/         # POST: cancel scan
-│       │       └── progress/       # GET: SSE stream
-│       ├── platforms/              # Platform management
-│       │   ├── route.ts            # GET: list, POST: create
-│       │   └── [id]/route.ts       # PATCH: update, DELETE: delete
-│       ├── playback-tests/         # Playback test management
-│       │   ├── route.ts            # GET: list, POST: create
-│       │   └── [id]/route.ts       # GET, PATCH, DELETE
-│       └── tmdb/                   # TMDB integration API
-│           ├── search/route.ts     # Search TMDB
-│           ├── match/route.ts      # Match show to TMDB
-│           ├── status/route.ts     # Enhanced integration status
-│           ├── bulk-match/route.ts # Auto-match all unmatched
-│           ├── refresh-missing/route.ts # Sync shows needing metadata
-│           ├── bulk-refresh/route.ts # Refresh all metadata
-│           ├── refresh/[showId]/   # Refresh single show
-│           ├── import-preview/[showId]/ # Preview import data
-│           └── import/route.ts     # Import seasons/episodes
-├── lib/
-│   ├── prisma.ts                   # Prisma client
-│   ├── auth.ts                     # Session management, requireAuth/requireAdmin
-│   ├── issue-utils.ts              # Issue type/status labels and badge variants
-│   ├── settings.ts                 # Settings utilities (server)
-│   ├── settings-shared.ts          # Settings types (client-safe)
-│   ├── format.ts                   # Formatting utilities
-│   ├── status.ts                   # Status badge helpers
-│   ├── playback-status.ts          # Playback test quality computation
-│   ├── plex/                       # Plex integration
-│   │   ├── auth.ts                 # Plex OAuth PIN flow
-│   │   ├── client.ts               # Shared Plex API HTTP client
-│   │   └── types.ts                # Plex API type definitions
-│   ├── scanner/                    # Scanner service
-│   │   ├── config.ts               # Environment config
-│   │   ├── filesystem.ts           # File discovery
-│   │   ├── parser.ts               # Filename parsing
-│   │   ├── database.ts             # DB operations (batch processing)
-│   │   ├── progress.ts             # Progress tracking
-│   │   └── scan.ts                 # Orchestrator
-│   ├── tasks/                      # Background task system
-│   │   ├── types.ts                # Task types and interfaces
-│   │   ├── progress.ts             # Task tracker and queue
-│   │   ├── worker-manager.ts       # Worker thread spawning
-│   │   ├── task-worker.ts          # Worker source (TypeScript)
-│   │   ├── task-worker.js          # Worker compiled (gitignored)
-│   │   └── index.ts                # Barrel export
-│   ├── contexts/
-│   │   ├── auth-context.tsx        # Auth state provider + useAuth hook
-│   │   ├── task-context.tsx        # Task state & notifications (client)
-│   │   └── issue-context.tsx       # Issue counts provider + hooks
-│   ├── tmdb/                       # TMDB integration service
-│   │   ├── config.ts               # API configuration
-│   │   ├── types.ts                # TMDB API types
-│   │   ├── client.ts               # HTTP client with rate limiting
-│   │   ├── service.ts              # Match, sync, refresh operations
-│   │   └── images.ts               # Poster/backdrop URL helpers
-│   └── ffprobe/                    # FFprobe media analysis
-│       ├── config.ts               # Path/timeout configuration
-│       ├── types.ts                # FFprobe output types
-│       ├── extract.ts              # Core extraction logic
-│       ├── service.ts              # Analysis operations
-│       └── index.ts                # Barrel export
-├── components/
-│   ├── app-sidebar.tsx             # Collapsible navigation sidebar (role-aware)
-│   ├── page-header.tsx             # Reusable page header with title/description/action
-│   ├── version-badge.tsx           # Version display with update indicator
-│   ├── badge-selector.tsx          # Unified status badge selector with cascade support
-│   ├── task-progress.tsx           # Real-time task progress display
-│   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
-│   ├── tmdb-import-dialog.tsx      # Import seasons/episodes from TMDB
-│   ├── playback-test-dialog.tsx    # Record/edit playback tests per episode
-│   ├── issues/                     # Issue reporting components
-│   │   ├── issue-report-dialog.tsx       # Report from episode page
-│   │   ├── issue-report-search-dialog.tsx # Report via show search
-│   │   └── issue-edit-dialog.tsx         # View/edit issue details
-│   └── ui/                         # shadcn/ui components
-└── generated/
-    └── prisma/                     # Generated Prisma types
+All environment variables can be set in `.env` (development) or in your `docker-compose.yml` (production). See `.env.example` for a template.
 
-prisma/
-├── schema.prisma                   # Database schema
-└── migrations/                     # Migration history
-```
+| Category | Variable | Default | Description |
+|----------|----------|---------|-------------|
+| **Required** | `DATABASE_URL` | - | SQLite database path (e.g., `file:./prisma/dev.db`) |
+| | `TV_SHOWS_PATH` | - | Path to TV shows directory* |
+| | `MOVIES_PATH` | - | Path to movies directory* |
+| **Auth** | `AUTH_MODE` | `none` | `none` (single-user) or `plex` (multi-user with Plex login) |
+| | `PLEX_URL` | - | Plex server URL. Required when `AUTH_MODE=plex` |
+| | `PLEX_TOKEN` | - | Plex authentication token. Required when `AUTH_MODE=plex` |
+| **Integrations** | `TMDB_API_KEY` | - | TMDB API Read Access Token ([get one here](https://www.themoviedb.org/settings/api)) |
+| | `FFPROBE_PATH` | - | Path to ffprobe binary (not set = disabled) |
+| | `FFPROBE_TIMEOUT` | `30000` | FFprobe execution timeout in ms |
+| | `PLEX_DB_PATH` | - | Path to Plex database (not yet implemented) |
+| **Scanner** | `SCAN_CONCURRENCY` | `4` | Parallel file operations during scan |
+| | `SCAN_BATCH_SIZE` | `100` | Files per database batch |
+| **Tasks** | `TASK_RETENTION_MS` | `3600000` | Completed task retention (1 hour) |
+| **Docker** | `TZ` | `UTC` | Timezone (e.g., `Europe/Paris`) |
+| | `PUID` | `1000` | User ID for file permissions |
+| | `PGID` | `1000` | Group ID for file permissions |
 
-## API Routes
+*At least one of `TV_SHOWS_PATH` or `MOVIES_PATH` is required.
 
-Interactive API documentation is available at `/api-docs` when the app is running.
+<details>
+<summary><strong>FFprobe installation paths</strong></summary>
 
-The documentation includes all endpoints with request/response schemas, parameter descriptions, and authentication requirements. It is generated from JSDoc annotations in the route source files using OpenAPI 3.0.
+| Platform | Path |
+|----------|------|
+| Linux | `/usr/bin/ffprobe` |
+| macOS (Homebrew, Apple Silicon) | `/opt/homebrew/bin/ffprobe` |
+| macOS (Homebrew, Intel) | `/usr/local/bin/ffprobe` |
+| Docker (after `apk add ffmpeg`) | `/usr/bin/ffprobe` |
+| Docker (static binary mount) | `/ffprobe/ffprobe` |
 
-The raw OpenAPI spec is available at `/openapi.json`.
+> **Docker / NAS users**: FFprobe is not included in the Docker image. See the [FFprobe Docker Setup Guide](docs/ffprobe-docker-setup.md) for instructions on using a static binary with volume mounts — works on Synology, QNAP, Unraid, and other NAS devices.
 
-## Database Schema
-
-| Model | Key Fields | Description |
-|-------|------------|-------------|
-| `TVShow` | `title`, `year`, `folderName`, `monitorStatus`, TMDB fields | TV series with monitoring intent |
-| `Season` | `seasonNumber`, `name`, `monitorStatus`, TMDB fields | Season within a show |
-| `Episode` | `episodeNumber`, `title`, `monitorStatus`, TMDB fields | Episode within a season |
-| `EpisodeFile` | `filepath`, `quality`, `action`, codec/resolution fields | Media file with quality state |
-| `Platform` | `name`, `isRequired`, `sortOrder` | Playback test platforms |
-| `PlaybackTest` | `platformId`, `status`, `testedAt`, `notes` | Playback test results per file |
-| `MediaTrack` | `trackType`, `codec`, `language`, `channels` | Per-track media info from FFprobe |
-| `ScanHistory` | `scanType`, `status`, file counts | Scan operation logs |
-| `Settings` | `dateFormat`, `maxParallelTasks` | Application settings |
-| `User` | `plexId`, `username`, `role`, `isActive` | User accounts (Plex or local admin) |
-| `Session` | `userId`, `expiresAt` | Login sessions (cookie-backed) |
-| `Issue` | `episodeId`, `userId`, `type`, `status`, `description` | Reported quality issues |
-
-### Status Enums
-
-```prisma
-enum MonitorStatus { WANTED, UNWANTED }
-enum FileQuality { UNVERIFIED, VERIFIED, OK, BROKEN }
-enum FileAction { NOTHING, REDOWNLOAD, CONVERT, ORGANIZE, REPAIR }
-enum PlaybackStatus { PASS, PARTIAL, FAIL }
-enum UserRole { ADMIN, USER }
-enum IssueType { PLAYBACK, QUALITY, AUDIO, SUBTITLE, CONTENT, OTHER }
-enum IssueStatus { OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED }
-```
-
-## Status System
-
-The application uses a two-dimensional status system that separates **user intent** from **computed state**.
-
-### Monitor Status (User Intent)
-
-Stored on shows, seasons, and episodes. Represents what the user wants to track.
-
-| Status | Description | Badge Color |
-|--------|-------------|-------------|
-| `WANTED` | User wants this content | Blue (default) |
-| `UNWANTED` | User doesn't want this content | Gray (outline) |
-| `PARTIAL` | Mixed children (display only, not stored) | Gray (secondary) |
-
-**Cascade Updates**: When changing a show or season to `UNWANTED`, a dialog asks whether to apply to all children.
-
-### Quality Status (Computed State)
-
-Computed from children, never stored directly. Represents the current state of the content.
-
-| Status | Description | Badge Color |
-|--------|-------------|-------------|
-| `OK` | All files verified good | Green (default) |
-| `UNVERIFIED` | Files exist but not verified | Yellow (warning) |
-| `BROKEN` | At least one file has issues | Red (destructive) |
-| `MISSING` | Wanted but no files exist | Gray (secondary) |
-
-**Computation Logic** (worst status wins):
-- Episode: Computed from its files
-- Season: Worst quality among its episodes
-- Show: Worst quality among its seasons
-
-### File Quality
-
-Stored on individual files. Can be auto-computed from playback tests.
-
-| Status | Description | Badge Color |
-|--------|-------------|-------------|
-| `UNVERIFIED` | Not yet tested | Yellow (warning) |
-| `VERIFIED` | All required platform tests pass | Green (success) |
-| `OK` | Reserved for future quality property checks | Green (success) |
-| `BROKEN` | At least one required platform test fails | Red (destructive) |
-
-**Auto-computation**: When playback tests are recorded, file quality is automatically updated based on required platforms.
-
-### Playback Status
-
-| Status | Description | Badge Color |
-|--------|-------------|-------------|
-| `PASS` | Plays without issues | Green (success) |
-| `PARTIAL` | Plays with conditions (e.g., needs transcoding) | Yellow (warning) |
-| `FAIL` | Does not play | Red (destructive) |
-
-### File Actions
-
-| Action | Description |
-|--------|-------------|
-| `NOTHING` | No action needed |
-| `REDOWNLOAD` | Should be re-downloaded |
-| `CONVERT` | Needs format conversion |
-| `ORGANIZE` | Needs file organization |
-| `REPAIR` | Needs repair |
-
-### UI Components
-
-All status badges are clickable and open dropdowns to change values:
-
-- **BadgeSelector**: Unified component for status selection with dropdown menus
-  - Supports optimistic updates for immediate visual feedback
-  - Optional cascade confirmation dialog for hierarchical entities (shows → seasons → episodes)
-  - Works with any status type (monitor status, quality status, file actions, etc.)
-  - Located at `src/components/badge-selector.tsx`
+</details>
 
 ## Tech Stack
 
@@ -493,7 +214,7 @@ All status badges are clickable and open dropdowns to change values:
 - **UI**: shadcn/ui (Radix + Tailwind CSS)
 - **Deployment**: Docker with multi-stage build (~420MB image)
 
-## Development Commands
+## Development
 
 ```bash
 npm run dev          # Start dev server (compiles worker + OpenAPI spec automatically)
@@ -506,6 +227,14 @@ npx prisma studio    # Open DB viewer
 npx prisma migrate dev   # Run migrations
 npx prisma generate  # Generate client
 ```
+
+## API Documentation
+
+Interactive API documentation is available at `/api-docs` when the app is running.
+
+The documentation includes all endpoints with request/response schemas, parameter descriptions, and authentication requirements. It is generated from JSDoc annotations in the route source files using OpenAPI 3.0.
+
+The raw OpenAPI spec is available at `/openapi.json`.
 
 ## Versioning & Releases
 
@@ -535,10 +264,6 @@ git push origin v1.0.0-beta.1
 ```
 
 Pre-releases are marked as such on GitHub and get their own Docker tag.
-
-### Changelog
-
-View the [Changelog](/changelog) page in the app to see all releases. The version badge in the sidebar shows update availability.
 
 ## Roadmap
 
@@ -611,6 +336,13 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 ### Localization
 
 - 🔵 Multi-language support (FR/EN) for issues/requests/dashboard
+
+## Further Documentation
+
+- [Project Structure](docs/project-structure.md)
+- [Status System](docs/status-system.md)
+- [Database Schema](docs/database-schema.md)
+- [FFprobe Docker Setup](docs/ffprobe-docker-setup.md)
 
 ## License
 
