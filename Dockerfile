@@ -12,6 +12,7 @@ RUN npm ci --frozen-lockfile
 
 # Copy source code
 COPY src ./src
+COPY scripts ./scripts
 COPY tsconfig.json next.config.ts postcss.config.mjs ./
 COPY public ./public
 COPY components.json ./
