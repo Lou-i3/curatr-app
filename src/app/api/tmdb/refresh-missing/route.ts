@@ -3,6 +3,50 @@
  * POST /api/tmdb/refresh-missing - Sync seasons/episodes for shows that need it (non-blocking)
  *
  * Runs in a separate worker thread to avoid blocking the main event loop.
+ *
+ * @swagger
+ * /api/tmdb/refresh-missing:
+ *   post:
+ *     summary: Sync missing metadata for matched shows
+ *     description: Starts a background task that syncs seasons and episodes from TMDB for matched shows that are missing metadata.
+ *     tags: [TMDB]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Refresh task started or all shows already synced
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 taskId:
+ *                   type: string
+ *                   nullable: true
+ *                 status:
+ *                   $ref: '#/components/schemas/TaskStatus'
+ *                 total:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: TMDB not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

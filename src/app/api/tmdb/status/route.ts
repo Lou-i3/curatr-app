@@ -1,6 +1,31 @@
 /**
  * TMDB integration status API route
  * GET /api/tmdb/status - Get integration health and sync statistics
+ *
+ * @swagger
+ * /api/tmdb/status:
+ *   get:
+ *     summary: Get TMDB integration status
+ *     description: Returns the current TMDB integration configuration status and sync statistics.
+ *     tags: [TMDB]
+ *     responses:
+ *       200:
+ *         description: Integration status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 configured:
+ *                   type: boolean
+ *                 hasApiKey:
+ *                   type: boolean
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

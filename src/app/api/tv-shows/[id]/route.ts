@@ -2,6 +2,119 @@
  * TV Show CRUD API
  * PATCH: Update show details including monitorStatus with optional cascade
  * DELETE: Delete show and all related data
+ *
+ * @swagger
+ * /api/tv-shows/{id}:
+ *   patch:
+ *     summary: Update a TV show
+ *     description: >
+ *       Update show details. When cascade is true and monitorStatus is provided,
+ *       all child seasons and episodes are updated to match.
+ *     tags: [TV Shows]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: TV show ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               folderName:
+ *                 type: string
+ *                 nullable: true
+ *               year:
+ *                 type: integer
+ *                 nullable: true
+ *               monitorStatus:
+ *                 $ref: '#/components/schemas/MonitorStatus'
+ *               cascade:
+ *                 type: boolean
+ *                 description: When true with monitorStatus, updates all seasons and episodes
+ *               notes:
+ *                 type: string
+ *                 nullable: true
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               posterPath:
+ *                 type: string
+ *                 nullable: true
+ *               backdropPath:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Updated TV show object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   delete:
+ *     summary: Delete a TV show
+ *     description: Delete a TV show and all related data (seasons, episodes, files) via cascade.
+ *     tags: [TV Shows]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: TV show ID
+ *     responses:
+ *       200:
+ *         description: Show deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextRequest, NextResponse } from 'next/server';

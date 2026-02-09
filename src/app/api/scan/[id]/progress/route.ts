@@ -1,5 +1,38 @@
 /**
  * GET /api/scan/[id]/progress - SSE stream for live progress updates
+ *
+ * @swagger
+ * /api/scan/{id}/progress:
+ *   get:
+ *     summary: Stream scan progress via SSE
+ *     description: Opens a Server-Sent Events stream for real-time scan progress updates
+ *     tags: [Scanner]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Scan ID
+ *     responses:
+ *       200:
+ *         description: SSE stream of scan progress events
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Invalid scan ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Scan not found or already completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextRequest } from 'next/server';

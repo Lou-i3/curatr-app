@@ -1,6 +1,41 @@
 /**
  * Auth Status API — returns current authentication configuration and stats
  * Used by the Plex Auth integration page
+ *
+ * @swagger
+ * /api/auth/status:
+ *   get:
+ *     summary: Get auth mode status
+ *     description: Returns current authentication configuration including auth mode, Plex config status, and server connectivity.
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Auth status info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 authMode:
+ *                   type: string
+ *                   enum: [none, plex]
+ *                 plexConfigured:
+ *                   type: boolean
+ *                 plexUrl:
+ *                   type: string
+ *                   nullable: true
+ *                 serverReachable:
+ *                   type: boolean
+ *                 users:
+ *                   type: integer
+ *                 activeSessions:
+ *                   type: integer
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

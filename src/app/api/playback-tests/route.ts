@@ -2,6 +2,139 @@
  * Playback Tests API
  * GET: List tests (filter by fileId, platformId)
  * POST: Create new test
+ *
+ * @swagger
+ * /api/playback-tests:
+ *   get:
+ *     summary: List playback tests
+ *     description: Returns playback tests, optionally filtered by file ID and/or platform ID. Includes platform info.
+ *     tags: [Playback Tests]
+ *     parameters:
+ *       - in: query
+ *         name: fileId
+ *         schema:
+ *           type: integer
+ *         description: Filter by episode file ID
+ *       - in: query
+ *         name: platformId
+ *         schema:
+ *           type: integer
+ *         description: Filter by platform ID
+ *     responses:
+ *       200:
+ *         description: Array of playback tests with platform info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   episodeFileId:
+ *                     type: integer
+ *                   platformId:
+ *                     type: integer
+ *                   status:
+ *                     $ref: '#/components/schemas/PlaybackStatus'
+ *                   notes:
+ *                     type: string
+ *                     nullable: true
+ *                   testedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   platform:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   post:
+ *     summary: Create a playback test
+ *     description: Creates a new playback test for an episode file on a platform. Recomputes file quality after creation.
+ *     tags: [Playback Tests]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [episodeFileId, platformId, status]
+ *             properties:
+ *               episodeFileId:
+ *                 type: integer
+ *               platformId:
+ *                 type: integer
+ *               status:
+ *                 $ref: '#/components/schemas/PlaybackStatus'
+ *               notes:
+ *                 type: string
+ *               testedAt:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       201:
+ *         description: Playback test created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 episodeFileId:
+ *                   type: integer
+ *                 platformId:
+ *                   type: integer
+ *                 status:
+ *                   $ref: '#/components/schemas/PlaybackStatus'
+ *                 notes:
+ *                   type: string
+ *                   nullable: true
+ *                 testedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 platform:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *       400:
+ *         description: Missing or invalid required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: File or platform not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

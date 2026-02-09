@@ -1,6 +1,42 @@
 /**
  * Session API
  * GET: Returns the current user session info (for client components)
+ *
+ * @swagger
+ * /api/auth/session:
+ *   get:
+ *     summary: Get current session info
+ *     description: Returns user session data including authentication status, auth mode, and user details. Always returns 200.
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Session info (authenticated or not)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 authenticated:
+ *                   type: boolean
+ *                 authMode:
+ *                   type: string
+ *                   enum: [none, plex]
+ *                 user:
+ *                   nullable: true
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     username:
+ *                       type: string
+ *                     role:
+ *                       $ref: '#/components/schemas/UserRole'
+ *                     thumbUrl:
+ *                       type: string
+ *                       nullable: true
+ *                     email:
+ *                       type: string
+ *                       nullable: true
  */
 
 import { cookies } from 'next/headers';

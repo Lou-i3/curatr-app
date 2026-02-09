@@ -3,6 +3,201 @@
  * GET: Get single test
  * PATCH: Update test
  * DELETE: Delete test
+ *
+ * @swagger
+ * /api/playback-tests/{id}:
+ *   get:
+ *     summary: Get playback test details
+ *     description: Returns a single playback test by ID, including platform and episode file info.
+ *     tags: [Playback Tests]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Playback test ID
+ *     responses:
+ *       200:
+ *         description: Playback test details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 episodeFileId:
+ *                   type: integer
+ *                 platformId:
+ *                   type: integer
+ *                 status:
+ *                   $ref: '#/components/schemas/PlaybackStatus'
+ *                 notes:
+ *                   type: string
+ *                   nullable: true
+ *                 testedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 platform:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *                 episodeFile:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     filename:
+ *                       type: string
+ *                     quality:
+ *                       type: string
+ *                       nullable: true
+ *       400:
+ *         description: Invalid test ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Test not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   patch:
+ *     summary: Update a playback test
+ *     description: Updates playback test fields. Only provided fields are changed. Recomputes file quality if status changes.
+ *     tags: [Playback Tests]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Playback test ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 $ref: '#/components/schemas/PlaybackStatus'
+ *               notes:
+ *                 type: string
+ *               testedAt:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Updated playback test
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 episodeFileId:
+ *                   type: integer
+ *                 platformId:
+ *                   type: integer
+ *                 status:
+ *                   $ref: '#/components/schemas/PlaybackStatus'
+ *                 notes:
+ *                   type: string
+ *                   nullable: true
+ *                 testedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 platform:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *       400:
+ *         description: Invalid test ID or invalid status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Test not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   delete:
+ *     summary: Delete a playback test
+ *     description: Deletes a playback test. Recomputes file quality after deletion.
+ *     tags: [Playback Tests]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Playback test ID
+ *     responses:
+ *       200:
+ *         description: Test deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Invalid test ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Test not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

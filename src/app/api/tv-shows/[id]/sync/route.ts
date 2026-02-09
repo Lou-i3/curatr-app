@@ -1,6 +1,65 @@
 /**
  * Single-show file sync API
  * POST: Start a sync for a single show's folder
+ *
+ * @swagger
+ * /api/tv-shows/{id}/sync:
+ *   post:
+ *     summary: Start a file scan for a single show
+ *     description: >
+ *       Starts a file scan limited to this show's folder. The show must have
+ *       a folder name assigned and the folder must be accessible on disk.
+ *     tags: [Scanner]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: TV show ID
+ *     responses:
+ *       200:
+ *         description: Scan started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 scanId:
+ *                   type: integer
+ *                 taskId:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                   example: started
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Validation error (invalid ID, no folder, folder not accessible)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Show not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextRequest, NextResponse } from 'next/server';

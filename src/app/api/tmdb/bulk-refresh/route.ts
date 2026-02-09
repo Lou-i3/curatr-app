@@ -2,6 +2,50 @@
  * Bulk refresh metadata for all matched shows (non-blocking)
  *
  * Runs in a separate worker thread to avoid blocking the main event loop.
+ *
+ * @swagger
+ * /api/tmdb/bulk-refresh:
+ *   post:
+ *     summary: Refresh all TMDB metadata
+ *     description: Starts a background task that refreshes metadata from TMDB for all matched shows.
+ *     tags: [TMDB]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Bulk refresh task started or no matched shows
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 taskId:
+ *                   type: string
+ *                   nullable: true
+ *                 status:
+ *                   $ref: '#/components/schemas/TaskStatus'
+ *                 total:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: TMDB not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

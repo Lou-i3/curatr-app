@@ -3,6 +3,149 @@
  * GET: Get issue details
  * PATCH: Update issue (reporter can edit own open issues, admin can change status/resolution)
  * DELETE: Delete issue (reporter can delete own open issues, admin can delete any)
+ *
+ * @swagger
+ * /api/issues/{id}:
+ *   get:
+ *     summary: Get issue details
+ *     description: Returns full issue details including episode, show, reporter, and resolver info.
+ *     tags: [Issues]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Issue ID
+ *     responses:
+ *       200:
+ *         description: Issue details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       404:
+ *         description: Issue not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   patch:
+ *     summary: Update an issue
+ *     description: Updates issue fields. Reporters can edit their own open issues. Admins can change status and resolution.
+ *     tags: [Issues]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Issue ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 $ref: '#/components/schemas/IssueStatus'
+ *               resolution:
+ *                 type: string
+ *                 description: Resolution notes (admin only)
+ *               type:
+ *                 $ref: '#/components/schemas/IssueType'
+ *               description:
+ *                 type: string
+ *               platform:
+ *                 type: string
+ *               audioLang:
+ *                 type: string
+ *               subtitleLang:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Updated issue
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Validation error or no valid fields to update
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Issue not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   delete:
+ *     summary: Delete an issue
+ *     description: Deletes an issue. Reporters can delete their own open issues. Admins can delete any issue.
+ *     tags: [Issues]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Issue ID
+ *     responses:
+ *       200:
+ *         description: Issue deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Not authorized to delete this issue
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Issue not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

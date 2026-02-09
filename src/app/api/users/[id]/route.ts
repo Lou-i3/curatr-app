@@ -1,6 +1,80 @@
 /**
  * Single User API
  * PATCH: Update user role or active status (admin only)
+ *
+ * @swagger
+ * /api/users/{id}:
+ *   patch:
+ *     summary: Update user role or status
+ *     description: Updates a user's role or active status. Admin only. Cannot modify own account or the system admin.
+ *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role:
+ *                 $ref: '#/components/schemas/UserRole'
+ *               isActive:
+ *                 type: boolean
+ *                 description: Whether the user account is active. Deactivating deletes all sessions.
+ *     responses:
+ *       200:
+ *         description: Updated user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 role:
+ *                   $ref: '#/components/schemas/UserRole'
+ *                 isActive:
+ *                   type: boolean
+ *       400:
+ *         description: Validation error (invalid role, self-modification, system admin, or no fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

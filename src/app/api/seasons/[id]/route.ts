@@ -2,6 +2,124 @@
  * Season CRUD API
  * PATCH: Update season details including monitorStatus with optional cascade
  * DELETE: Delete season (only if no episode files attached)
+ *
+ * @swagger
+ * /api/seasons/{id}:
+ *   patch:
+ *     summary: Update a season
+ *     description: >
+ *       Update season details. When cascade is true and monitorStatus is provided,
+ *       all child episodes are updated to match.
+ *     tags: [Seasons]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Season ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 nullable: true
+ *               seasonNumber:
+ *                 type: integer
+ *               monitorStatus:
+ *                 $ref: '#/components/schemas/MonitorStatus'
+ *               cascade:
+ *                 type: boolean
+ *                 description: When true with monitorStatus, updates all episodes
+ *               notes:
+ *                 type: string
+ *                 nullable: true
+ *               posterPath:
+ *                 type: string
+ *                 nullable: true
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               airDate:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Updated season object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   delete:
+ *     summary: Delete a season
+ *     description: >
+ *       Delete a season. Fails if any episodes in the season have files attached.
+ *     tags: [Seasons]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Season ID
+ *     responses:
+ *       200:
+ *         description: Season deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Cannot delete season with files attached to episodes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Season not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

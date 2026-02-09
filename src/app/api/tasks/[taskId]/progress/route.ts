@@ -1,6 +1,33 @@
 /**
  * Task progress SSE endpoint
  * GET /api/tasks/[taskId]/progress - Stream real-time progress updates
+ *
+ * @swagger
+ * /api/tasks/{taskId}/progress:
+ *   get:
+ *     summary: Stream task progress via SSE
+ *     description: Opens a Server-Sent Events stream for real-time task progress updates
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: SSE stream of task progress events
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *       404:
+ *         description: Task not found or already completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextRequest, NextResponse } from 'next/server';

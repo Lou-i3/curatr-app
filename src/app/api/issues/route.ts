@@ -2,6 +2,111 @@
  * Issues API
  * GET: List issues with filters (status, type, episodeId, showId)
  * POST: Create new issue (any authenticated user, or local admin in no-auth mode)
+ *
+ * @swagger
+ * /api/issues:
+ *   get:
+ *     summary: List issues with optional filters
+ *     description: Returns a list of issues, optionally filtered by status, type, episode, or show.
+ *     tags: [Issues]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/IssueStatus'
+ *         description: Filter by issue status
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/IssueType'
+ *         description: Filter by issue type
+ *       - in: query
+ *         name: episodeId
+ *         schema:
+ *           type: integer
+ *         description: Filter by episode ID
+ *       - in: query
+ *         name: showId
+ *         schema:
+ *           type: integer
+ *         description: Filter by TV show ID
+ *     responses:
+ *       200:
+ *         description: List of issues
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   post:
+ *     summary: Create an issue
+ *     description: Creates a new issue for an episode. Requires authentication.
+ *     tags: [Issues]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [episodeId, type]
+ *             properties:
+ *               episodeId:
+ *                 type: integer
+ *                 description: ID of the episode this issue relates to
+ *               type:
+ *                 $ref: '#/components/schemas/IssueType'
+ *               description:
+ *                 type: string
+ *                 description: Detailed description of the issue
+ *               platform:
+ *                 type: string
+ *                 description: Platform where the issue was observed
+ *               audioLang:
+ *                 type: string
+ *                 description: Audio language when issue occurred
+ *               subtitleLang:
+ *                 type: string
+ *                 description: Subtitle language when issue occurred
+ *     responses:
+ *       201:
+ *         description: Issue created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Validation error (missing or invalid fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Episode not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

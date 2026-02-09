@@ -1,6 +1,60 @@
 /**
  * TV Show Episodes API — lightweight endpoint for listing seasons/episodes
  * Used by the issue report search dialog for episode selection
+ *
+ * @swagger
+ * /api/tv-shows/{id}/episodes:
+ *   get:
+ *     summary: List seasons and episodes for a show
+ *     description: >
+ *       Returns a lightweight list of seasons with nested episodes,
+ *       used for episode selection in the issue report search dialog.
+ *     tags: [Episodes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: TV show ID
+ *     responses:
+ *       200:
+ *         description: Array of seasons with nested episodes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   seasonNumber:
+ *                     type: integer
+ *                   episodes:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         episodeNumber:
+ *                           type: integer
+ *                         title:
+ *                           type: string
+ *                           nullable: true
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

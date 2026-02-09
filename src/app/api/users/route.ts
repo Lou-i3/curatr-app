@@ -1,6 +1,71 @@
 /**
  * Users API
  * GET: List all users (admin only)
+ *
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: List all users
+ *     description: Returns all users with their profile info, role, activity status, and reported issue count. Admin only.
+ *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   plexId:
+ *                     type: string
+ *                   username:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                     nullable: true
+ *                   thumbUrl:
+ *                     type: string
+ *                     nullable: true
+ *                   role:
+ *                     $ref: '#/components/schemas/UserRole'
+ *                   isActive:
+ *                     type: boolean
+ *                   lastLoginAt:
+ *                     type: string
+ *                     format: date-time
+ *                     nullable: true
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   _count:
+ *                     type: object
+ *                     properties:
+ *                       reportedIssues:
+ *                         type: integer
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

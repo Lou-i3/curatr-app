@@ -3,6 +3,50 @@
  * POST /api/tmdb/bulk-match - Start auto-matching unmatched shows (non-blocking)
  *
  * Runs in a separate worker thread to avoid blocking the main event loop.
+ *
+ * @swagger
+ * /api/tmdb/bulk-match:
+ *   post:
+ *     summary: Auto-match all unmatched shows to TMDB
+ *     description: Starts a background task that automatically matches all unmatched local shows to TMDB entries.
+ *     tags: [TMDB]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Bulk match task started or no unmatched shows
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 taskId:
+ *                   type: string
+ *                   nullable: true
+ *                 status:
+ *                   $ref: '#/components/schemas/TaskStatus'
+ *                 total:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: TMDB not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

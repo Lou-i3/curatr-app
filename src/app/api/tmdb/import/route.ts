@@ -3,6 +3,78 @@
  * Creates selected seasons and episodes in database as a background task
  *
  * Runs in a separate worker thread to avoid blocking the main event loop.
+ *
+ * @swagger
+ * /api/tmdb/import:
+ *   post:
+ *     summary: Import seasons and episodes from TMDB
+ *     description: Starts a background task that creates selected seasons and episodes in the database from TMDB data.
+ *     tags: [TMDB]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [showId, items]
+ *             properties:
+ *               showId:
+ *                 type: integer
+ *                 description: Local show ID
+ *               items:
+ *                 type: array
+ *                 description: Seasons and episodes to import
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Import task started or no episodes to import
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 taskId:
+ *                   type: string
+ *                   nullable: true
+ *                 status:
+ *                   $ref: '#/components/schemas/TaskStatus'
+ *                 total:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid request body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Show not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: TMDB not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

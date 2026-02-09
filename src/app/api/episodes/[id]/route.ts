@@ -2,6 +2,125 @@
  * Episode CRUD API
  * PATCH: Update episode details including monitorStatus
  * DELETE: Delete episode (only if no files attached)
+ *
+ * @swagger
+ * /api/episodes/{id}:
+ *   patch:
+ *     summary: Update an episode
+ *     description: Update episode details including metadata and monitor status.
+ *     tags: [Episodes]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Episode ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 nullable: true
+ *               episodeNumber:
+ *                 type: integer
+ *               monitorStatus:
+ *                 $ref: '#/components/schemas/MonitorStatus'
+ *               notes:
+ *                 type: string
+ *                 nullable: true
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               airDate:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               runtime:
+ *                 type: integer
+ *                 nullable: true
+ *               stillPath:
+ *                 type: string
+ *                 nullable: true
+ *               voteAverage:
+ *                 type: number
+ *                 format: float
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Updated episode object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   delete:
+ *     summary: Delete an episode
+ *     description: Delete an episode. Fails if the episode has files attached.
+ *     tags: [Episodes]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Episode ID
+ *     responses:
+ *       200:
+ *         description: Episode deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Cannot delete episode with files attached
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Episode not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

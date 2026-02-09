@@ -2,6 +2,66 @@
  * Refresh metadata for a single show (non-blocking)
  *
  * Runs in a separate worker thread to avoid blocking the main event loop.
+ *
+ * @swagger
+ * /api/tmdb/refresh/{showId}:
+ *   post:
+ *     summary: Refresh metadata for a single show
+ *     description: Starts a background task that refreshes TMDB metadata for a specific matched show.
+ *     tags: [TMDB]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: showId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Local show ID
+ *     responses:
+ *       200:
+ *         description: Refresh task started
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 taskId:
+ *                   type: string
+ *                 status:
+ *                   $ref: '#/components/schemas/TaskStatus'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid show ID or show not matched to TMDB
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Show not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: TMDB not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextRequest, NextResponse } from 'next/server';

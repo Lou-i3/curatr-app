@@ -2,6 +2,75 @@
  * TMDB Import Preview API
  * Fetches all seasons/episodes from TMDB and compares with existing DB records
  * Supports episode groups for alternative orderings (DVD order, absolute order, etc.)
+ *
+ * @swagger
+ * /api/tmdb/import-preview/{showId}:
+ *   get:
+ *     summary: Preview TMDB import data for a show
+ *     description: Fetches all seasons and episodes from TMDB for the given show and compares with existing database records. Supports episode groups for alternative orderings.
+ *     tags: [TMDB]
+ *     parameters:
+ *       - in: path
+ *         name: showId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Local show ID
+ *       - in: query
+ *         name: episodeGroup
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional TMDB episode group ID for alternative ordering
+ *     responses:
+ *       200:
+ *         description: Import preview data with seasons and episodes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 show:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     title:
+ *                       type: string
+ *                     tmdbId:
+ *                       type: integer
+ *                 seasons:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 episodeGroups:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Invalid show ID or show not matched to TMDB
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Show not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: TMDB not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

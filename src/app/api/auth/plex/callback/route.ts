@@ -2,6 +2,71 @@
  * Plex Auth Callback API
  * POST: Checks if a PIN has been claimed and completes the auth flow
  * Creates/updates the user, creates a session, and sets the cookie
+ *
+ * @swagger
+ * /api/auth/plex/callback:
+ *   post:
+ *     summary: Complete Plex OAuth callback
+ *     description: Checks if a Plex PIN has been claimed, validates server access, creates/updates the user, and establishes a session.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [pinId]
+ *             properties:
+ *               pinId:
+ *                 type: integer
+ *                 description: The Plex PIN ID to check
+ *     responses:
+ *       200:
+ *         description: Auth result — either authenticated with user data, or pending if PIN not yet claimed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       enum: [authenticated]
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         username:
+ *                           type: string
+ *                         role:
+ *                           $ref: '#/components/schemas/UserRole'
+ *                         thumbUrl:
+ *                           type: string
+ *                           nullable: true
+ *                 - type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       enum: [pending]
+ *       400:
+ *         description: Missing or invalid pinId, or Plex auth not enabled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: User not authorized for this Plex server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

@@ -1,6 +1,26 @@
 /**
  * Logout API
  * POST: Destroys the session and clears the cookie
+ *
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Log out current session
+ *     description: Destroys the current session and clears the session cookie.
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

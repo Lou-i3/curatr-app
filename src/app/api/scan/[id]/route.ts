@@ -1,5 +1,44 @@
 /**
  * GET /api/scan/[id] - Get scan status/details
+ *
+ * @swagger
+ * /api/scan/{id}:
+ *   get:
+ *     summary: Get scan status and details
+ *     description: Returns the current status and details for a specific scan
+ *     tags: [Scanner]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Scan ID
+ *     responses:
+ *       200:
+ *         description: Scan details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Invalid scan ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Scan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextRequest, NextResponse } from 'next/server';

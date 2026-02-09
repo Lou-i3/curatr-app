@@ -32,15 +32,120 @@ export interface TVShowListItem {
 }
 
 /**
- * GET /api/tv-shows - List TV shows with optional filters
- * Query params:
- * - q: search term for title
- * - monitor: filter by monitor status (WANTED, UNWANTED, all)
- * - full: "true" to include quality status and file stats (for list view)
- * - unmatched: "true" to filter shows without TMDB match (legacy, prefer tmdbStatus)
- * - tmdbStatus: "all" | "unmatched" | "needs-sync" | "fully-synced"
- * - includeStats: "true" to include season/episode sync counts
- * - limit: number of results (default: no limit for full, 50 for others)
+ * @swagger
+ * /api/tv-shows:
+ *   get:
+ *     summary: List TV shows
+ *     description: List TV shows with optional filters for search, monitor status, TMDB sync status, and quality stats
+ *     tags: [TV Shows]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search term for title
+ *       - in: query
+ *         name: monitor
+ *         schema:
+ *           type: string
+ *           enum: [WANTED, UNWANTED, all]
+ *         description: Filter by monitor status
+ *       - in: query
+ *         name: full
+ *         schema:
+ *           type: string
+ *           enum: ['true']
+ *         description: Include quality status and file stats (for list view)
+ *       - in: query
+ *         name: tmdbStatus
+ *         schema:
+ *           type: string
+ *           enum: [all, unmatched, needs-sync, fully-synced]
+ *         description: Filter by TMDB sync status
+ *       - in: query
+ *         name: includeStats
+ *         schema:
+ *           type: string
+ *           enum: ['true']
+ *         description: Include season/episode sync counts
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Max number of results
+ *     responses:
+ *       200:
+ *         description: TV show list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 shows:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 count:
+ *                   type: integer
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   post:
+ *     summary: Create a TV show
+ *     tags: [TV Shows]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title:
+ *                 type: string
+ *               year:
+ *                 type: integer
+ *                 nullable: true
+ *               monitorStatus:
+ *                 $ref: '#/components/schemas/MonitorStatus'
+ *               notes:
+ *                 type: string
+ *                 nullable: true
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               posterPath:
+ *                 type: string
+ *                 nullable: true
+ *               backdropPath:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       201:
+ *         description: Created TV show
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 export async function GET(request: NextRequest) {
   try {

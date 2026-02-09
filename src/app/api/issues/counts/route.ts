@@ -1,6 +1,43 @@
 /**
  * Issue Counts API
  * GET: Returns issue counts by status (for sidebar badge)
+ *
+ * @swagger
+ * /api/issues/counts:
+ *   get:
+ *     summary: Get issue counts by status
+ *     description: Returns issue counts grouped by status, plus computed active and total counts.
+ *     tags: [Issues]
+ *     responses:
+ *       200:
+ *         description: Issue counts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 open:
+ *                   type: integer
+ *                 acknowledged:
+ *                   type: integer
+ *                 inProgress:
+ *                   type: integer
+ *                 resolved:
+ *                   type: integer
+ *                 closed:
+ *                   type: integer
+ *                 active:
+ *                   type: integer
+ *                   description: Sum of open, acknowledged, and in-progress
+ *                 total:
+ *                   type: integer
+ *                   description: Sum of all statuses
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

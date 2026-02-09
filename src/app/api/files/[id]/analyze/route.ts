@@ -1,6 +1,83 @@
 /**
  * File media analysis API
  * POST /api/files/[id]/analyze - Analyze file with FFprobe and store results
+ *
+ * @swagger
+ * /api/files/{id}/analyze:
+ *   post:
+ *     summary: Analyze file with FFprobe
+ *     description: >
+ *       Runs FFprobe analysis on the file and stores media track information.
+ *       The file must exist on disk and FFprobe must be configured via FFPROBE_PATH.
+ *     tags: [FFprobe]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: File ID
+ *     responses:
+ *       200:
+ *         description: Analysis completed or queued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - type: object
+ *                   description: Task queued
+ *                   properties:
+ *                     taskId:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       example: pending
+ *                     message:
+ *                       type: string
+ *                 - type: object
+ *                   description: Completed immediately
+ *                   properties:
+ *                     taskId:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       example: completed
+ *                     summary:
+ *                       type: string
+ *                     trackCount:
+ *                       type: integer
+ *       400:
+ *         description: Validation error or file no longer exists on disk
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: File not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: FFprobe not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

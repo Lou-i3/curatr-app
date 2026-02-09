@@ -1,6 +1,60 @@
 /**
  * Task cancel API route
  * POST /api/tasks/[taskId]/cancel - Request cancellation of a running task
+ *
+ * @swagger
+ * /api/tasks/{taskId}/cancel:
+ *   post:
+ *     summary: Cancel a task
+ *     description: Requests cancellation of a running task. Scan tasks use the scanner cancellation mechanism; worker-based tasks terminate the worker immediately.
+ *     tags: [Tasks]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Task cancelled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 taskId:
+ *                   type: string
+ *       400:
+ *         description: Task is not running
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextRequest, NextResponse } from 'next/server';

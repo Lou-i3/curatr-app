@@ -1,6 +1,78 @@
 /**
  * TMDB show details API route
  * GET /api/tmdb/show/[tmdbId] - Get show details for preview before matching
+ *
+ * @swagger
+ * /api/tmdb/show/{tmdbId}:
+ *   get:
+ *     summary: Get TMDB show details for preview
+ *     description: Fetches detailed show information from TMDB for previewing before matching to a local show.
+ *     tags: [TMDB]
+ *     parameters:
+ *       - in: path
+ *         name: tmdbId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: TMDB show ID
+ *     responses:
+ *       200:
+ *         description: Show details from TMDB
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 name:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 posterUrl:
+ *                   type: string
+ *                   nullable: true
+ *                 backdropUrl:
+ *                   type: string
+ *                   nullable: true
+ *                 firstAirDate:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                 numberOfSeasons:
+ *                   type: integer
+ *                 numberOfEpisodes:
+ *                   type: integer
+ *                 genres:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 networks:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 seasons:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Invalid TMDB ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: TMDB not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

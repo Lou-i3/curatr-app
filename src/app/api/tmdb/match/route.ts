@@ -1,6 +1,77 @@
 /**
  * TMDB match API route
  * POST /api/tmdb/match - Match a local show to a TMDB show
+ *
+ * @swagger
+ * /api/tmdb/match:
+ *   post:
+ *     summary: Match a show to a TMDB ID
+ *     description: Links a local TV show to a TMDB entry by ID, or unmatches it by passing null.
+ *     tags: [TMDB]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [showId, tmdbId]
+ *             properties:
+ *               showId:
+ *                 type: integer
+ *                 description: Local show ID
+ *               tmdbId:
+ *                 type: integer
+ *                 nullable: true
+ *                 description: TMDB show ID, or null to unmatch
+ *               syncSeasons:
+ *                 type: boolean
+ *                 description: Whether to immediately sync season metadata
+ *     responses:
+ *       200:
+ *         description: Show matched or unmatched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 show:
+ *                   type: object
+ *       400:
+ *         description: Missing or invalid parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Show not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       503:
+ *         description: TMDB not configured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 
 import { NextResponse } from 'next/server';

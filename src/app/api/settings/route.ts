@@ -5,6 +5,73 @@ import { checkAdmin } from '@/lib/auth';
 
 const VALID_DATE_FORMATS = ['EU', 'US', 'ISO'];
 
+/**
+ * @swagger
+ * /api/settings:
+ *   get:
+ *     summary: Get application settings
+ *     tags: [Settings]
+ *     responses:
+ *       200:
+ *         description: Current settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 dateFormat:
+ *                   type: string
+ *                   enum: [EU, US, ISO]
+ *                 maxParallelTasks:
+ *                   type: integer
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   patch:
+ *     summary: Update application settings
+ *     tags: [Settings]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               dateFormat:
+ *                 type: string
+ *                 enum: [EU, US, ISO]
+ *               maxParallelTasks:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 10
+ *     responses:
+ *       200:
+ *         description: Updated settings
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET() {
   try {
     // Get or create settings with default values
