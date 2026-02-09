@@ -708,10 +708,27 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [ ] Bulk status operations
 - [ ] Sonarr/Radarr integration
 - [ ] Media request system (users request new content)
+- [ ] Bulk FFprobe analyze (season, show, whole library)
+- [ ] Rethink displayed info in UI
+- [ ] Better logo/app icon for PWA
+- [ ] Create docs
+- [ ] Refactor db documentation to dbml
+- [ ] Use data table for all tables
+- [ ] Create logical dashboard for user/admin profiles
+- [ ] In app notifications for issues/requests
+- [ ] Push notifications
+- [ ] Plex users sync button (to get all users from server)
+- [ ] Automated tasks (on a configurable schedule)
+- [ ] Refactor sidebar
+- [ ] Add light theme support
+- [ ] Multi-language support (FR / EN) at least for issues/requests/dashboard
+- [ ] Files tab tbd
 - [ ] Issue enhancements:
   - [ ] Issue comments/threads
   - [ ] Issue deduplication (group reports on same episode)
   - [ ] Issue analytics on dashboard
+  - [ ] Transform issues to playback test
+  - [ ] Issue data enhancement by admin
 - [ ] Task system improvements:
   - [ ] Dismissible task dialogs with "you can close this" message
   - [ ] Task persistence in database (survive app restart)
