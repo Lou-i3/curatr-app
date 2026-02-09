@@ -7,6 +7,13 @@
 
 A **self-hosted** web application for tracking media file quality, playback compatibility, and maintenance status across your Plex media library. Deploy on your own server with Docker and keep full control of your data.
 
+
+## Disclaimer
+
+This project is vibe coded with [Claude](https://claude.ai) and provided **as-is**, with no warranty or guarantee of any kind. Use it at your own risk — always **back up your data** before using any features that modify files or metadata.
+
+We are not liable for any data loss, corruption, or unexpected behavior. Pull requests and issues are welcome, but this is a personal project maintained in our spare time — response times may vary.
+
 ## Features
 
 - **Library Scanner** - Scan TV show directories to discover and catalog media files
@@ -78,7 +85,7 @@ A **self-hosted** web application for tracking media file quality, playback comp
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **PWA Support** - Installable as a Progressive Web App on phones (iOS/Android) and desktop
 - **API Documentation** - Interactive Swagger UI at `/api-docs` with search and collapsible categories, generated from JSDoc annotations
-- **Dark Mode** - Full dark mode UI with system preference support
+- **Dark Mode** - Full dark mode UI
 - **Custom Theme** - Nunito font, green accent colors, consistent design
 
 ## Self-Hosted
@@ -562,70 +569,75 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 
 ## Roadmap
 
-- [x] TV Show hierarchy browser
-- [x] Library scanner with progress tracking
-- [x] Batch processing for optimized scans
-- [x] Plex-style filename parsing
-- [x] Smart folder-based show detection
-- [x] shadcn/ui components
-- [x] Docker deployment
-- [x] Collapsible sidebar with mobile drawer
-- [x] TV Shows CRUD (create, edit, delete)
-- [x] Search & filter toolbar
-- [x] Grid/Table view toggle
-- [x] Date format settings (EU/US/ISO)
-- [x] TMDB integration (metadata, posters, auto-match)
-- [x] Expandable seasons with inline episode tables
-- [x] Import seasons & episodes from TMDB
-- [x] Two-dimensional status system (monitor intent + quality state)
-- [x] Clickable status badges with cascade updates
-- [x] Single show files scan button + endpoint
-- [x] Media files playback testing
-- [x] FFprobe media analysis integration
-- [x] Plex authentication (multi-user with role-based access)
-- [x] Issue reporting system (report, track, resolve quality issues)
-- [x] User management (admin controls for Plex users)
-- [x] Plex Auth integration page with setup guide
-- [x] Fix in app documentation for scanner and TMDB features to reflect real implementation
-- [ ] Mobile responsive design improvements
-- [x] Add manifest for PWA support
-- [ ] Refactor codebase to store prisma client in the default location
-- [ ] Check modules utilization and relevance and remove unused ones
-- [x] Transform API documentation into a swagger
-- [ ] Movies support
-- [ ] Plex database sync (read-only metadata enrichment)
-- [ ] Bulk status operations
-- [ ] Sonarr/Radarr integration
-- [ ] Media request system (users request new content)
-- [ ] Bulk FFprobe analyze (season, show, whole library)
-- [ ] Rethink displayed info in UI
-- [ ] Better logo/app icon for PWA
-- [ ] Create docs
-- [ ] Refactor db documentation to dbml
-- [ ] Use data table for all tables
-- [ ] Create logical dashboard for user/admin profiles
-- [ ] In app notifications for issues/requests
-- [ ] Push notifications
-- [ ] Plex users sync button (to get all users from server)
-- [ ] Automated tasks (on a configurable schedule)
-- [ ] Refactor sidebar
-- [ ] Add light theme support
-- [ ] Multi-language support (FR / EN) at least for issues/requests/dashboard
-- [ ] Files tab tbd
-- [ ] Issue enhancements:
-  - [ ] Issue comments/threads
-  - [ ] Issue deduplication (group reports on same episode)
-  - [ ] Issue analytics on dashboard
-  - [ ] Transform issues to playback test
-  - [ ] Issue data enhancement by admin
-- [ ] Task system improvements:
-  - [ ] Dismissible task dialogs with "you can close this" message
-  - [ ] Task persistence in database (survive app restart)
-  - [ ] Resume interrupted tasks after app crash/restart
+> 🔴 Top Priority · 🟡 Next Up · 🔵 Later · ⚪️ Idea · ⚫️ Dropped
 
-## Disclaimer
+### Core Features
 
-This project is vibe coded with [Claude](https://claude.ai).
+- 🔴 Bulk status operations
+- 🔴 Bulk FFprobe analyze (season, show, whole library)
+- 🟡 Library statistics page (quality distribution, codec breakdown, resolution spread, storage by show)
+- 🔵 Movies support
+- 🔵 Files tab (TBD)
+- 🔵 Duplicate file detection (find duplicate episodes across the library)
+- 🔵 Playback tests page (centralized view of all tests across the library)
+- 🔵 Storage analytics (disk space usage breakdown by show/quality/codec)
+
+### UI / UX
+
+- 🔴 Mobile responsive design improvements
+- 🟡 Create logical dashboard for user/admin profiles
+- 🟡 Rethink displayed info in UI
+- 🟡 Global search (search across shows, episodes, files, and issues)
+- 🔵 Better logo/app icon for PWA
+- 🔵 Refactor sidebar
+- 🔵 Add light theme support
+- 🔵 Use data table for all tables
+- ⚪️ Keyboard shortcuts (power-user navigation)
+- 🔵 Persistent filters (remember filter/sort preferences per page)
+
+### Issue System
+
+- 🟡 Issue comments/threads
+- 🟡 Issue deduplication (group reports on same episode)
+- 🟡 Issue analytics on dashboard
+- 🟡 Transform issues to playback tests
+- 🟡 Issue data enhancement by admin
+
+### Integrations
+
+- 🟡 Plex database sync (read-only metadata enrichment)
+- 🟡 Plex users sync button (fetch all users from server)
+- 🔵 Sonarr/Radarr integration
+- 🔵 Tautulli integration (import playback history to inform quality decisions)
+- 🔵 Jellyfin support (alternative media server)
+- ⚪️ Webhook support (notify external services on events)
+
+### Task System
+
+- 🔵 Dismissible task dialogs with "you can close this" message
+- 🔵 Task persistence in database (survive app restart)
+- ⚪️ Resume interrupted tasks after crash/restart
+- 🔵 Automated tasks (configurable schedule)
+
+### Notifications
+
+- 🔵 In-app notifications for issues/requests
+- 🔵 Push notifications
+- 🔵 Media request system (users request new content)
+
+### Infrastructure
+
+- 🟡 Database backup/restore (export and import from the UI)
+- 🔵 Refactor Prisma client to default location
+- 🔵 Audit module utilization, remove unused (from package.json)
+- 🔵 Refactor DB documentation to DBML
+- 🔵 Create docs site
+- 🔵 Activity/audit log (track who did what and when)
+- 🔵 API key authentication (programmatic access for scripts/automation)
+
+### Localization
+
+- 🔵 Multi-language support (FR/EN) for issues/requests/dashboard
 
 ## License
 
