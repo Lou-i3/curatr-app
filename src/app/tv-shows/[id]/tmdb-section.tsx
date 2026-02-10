@@ -112,15 +112,15 @@ export function TmdbSection({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <Film className="size-5" />
               TMDB Integration
             </CardTitle>
             <TmdbHelpDialog />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:flex-shrink-0">
             <Badge variant={isMatched ? 'default' : 'secondary'}>
               {isMatched ? (
                 <>
@@ -139,7 +139,7 @@ export function TmdbSection({
                 href={`https://www.themoviedb.org/tv/${tmdbId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-mono text-muted-foreground hover:text-primary hover:underline"
+                className="text-xs sm:text-sm font-mono text-muted-foreground hover:text-primary hover:underline"
               >
                 #{tmdbId}
               </a>
@@ -168,7 +168,7 @@ export function TmdbSection({
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
                 {/* Sync Metadata */}
@@ -221,7 +221,7 @@ export function TmdbSection({
               </div>
 
               {/* Last Sync */}
-              <p className="text-xs text-muted-foreground whitespace-nowrap">
+              <p className="text-xs text-muted-foreground sm:whitespace-nowrap">
                 {lastMetadataSync
                   ? `Last synced on ${formatDateTimeWithFormat(lastMetadataSync, dateFormat)}`
                   : 'Never synced'}
