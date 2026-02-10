@@ -58,7 +58,7 @@ export default async function RootLayout({
                 <SidebarProvider>
                   <AppSidebar />
                   <SidebarInset>
-                    <header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
+                    <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b px-4 bg-background md:hidden">
                       <SidebarTrigger />
                       <span className="font-semibold">Curatr App</span>
                     </header>

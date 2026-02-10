@@ -122,7 +122,7 @@ export default function TVShowsPage() {
   return (
     <PageContainer maxWidth="wide">
       {/* Sticky header + toolbar wrapper */}
-      <div className="sticky top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
+      <div className="sticky top-12 md:top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
         <PageHeader
           title={`TV Shows ${!loading ? `(${shows.length})` : ''}`}
           description="Browse and manage your TV show library"

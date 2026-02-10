@@ -189,7 +189,7 @@ export default function IssuesPage() {
   return (
     <PageContainer maxWidth="wide">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
+      <div className="sticky top-12 md:top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
         <div className="mb-4">
           <div className="flex items-center justify-between gap-4 mb-2">
             <div className="flex items-center gap-2">
