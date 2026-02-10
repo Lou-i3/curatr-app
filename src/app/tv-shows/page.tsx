@@ -38,11 +38,11 @@ import { PageContainer } from '@/components/layout';
 function ShowCardSkeleton() {
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex gap-4">
-          <Skeleton className="w-20 h-30 flex-shrink-0" />
+      <CardContent className="p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Skeleton className="w-24 h-36 sm:w-20 sm:h-30 flex-shrink-0 mx-auto sm:mx-0" />
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0 mb-2">
               <div className="flex-1">
                 <Skeleton className="h-6 w-48 mb-2" />
                 <Skeleton className="h-4 w-24" />
@@ -162,7 +162,7 @@ export default function TVShowsPage() {
             </Card>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="space-y-4 md:space-y-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <ShowCardSkeleton key={i} />
               ))}
@@ -186,16 +186,15 @@ export default function TVShowsPage() {
           </div>
         ) : (
           /* Grid View */
-          <div className="grid gap-4">
+          <div className="space-y-4 md:space-y-6">
             {shows.map((show) => (
-              <div key={show.id} className="block">
-                <Card className="hover:bg-accent/50 transition-colors p-0">
-                  <CardContent className="p-6">
-                    <div className="flex gap-4">
+              <Card key={show.id} className="hover:bg-accent/50 transition-colors p-0">
+                  <CardContent className="p-4 md:p-6">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       {/* Poster */}
-                      <Link href={`/tv-shows/${show.id}`} className="flex-shrink-0">
+                      <Link href={`/tv-shows/${show.id}`} className="flex-shrink-0 mx-auto sm:mx-0">
                         {show.posterPath ? (
-                          <div className="w-20 h-30 rounded overflow-hidden bg-muted">
+                          <div className="w-24 h-36 sm:w-20 sm:h-30 rounded overflow-hidden bg-muted">
                             <img
                               src={getPosterUrl(show.posterPath, 'w154') || ''}
                               alt={show.title}
@@ -203,7 +202,7 @@ export default function TVShowsPage() {
                             />
                           </div>
                         ) : (
-                          <div className="w-20 h-30 rounded bg-muted flex items-center justify-center">
+                          <div className="w-24 h-36 sm:w-20 sm:h-30 rounded bg-muted flex items-center justify-center">
                             <Film className="size-8 text-muted-foreground" />
                           </div>
                         )}
@@ -211,7 +210,7 @@ export default function TVShowsPage() {
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0 mb-2">
                           <Link href={`/tv-shows/${show.id}`} className="flex-1 min-w-0">
                             <h2 className="text-xl font-semibold hover:underline truncate">{show.title}</h2>
                             <div className="flex items-center gap-2 mt-1">
@@ -229,7 +228,7 @@ export default function TVShowsPage() {
                               )}
                             </div>
                           </Link>
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 sm:flex-shrink-0">
                             <ShowStatusBadges
                               showId={show.id}
                               monitorStatus={show.monitorStatus}
@@ -274,7 +273,6 @@ export default function TVShowsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
             ))}
           </div>
         )}

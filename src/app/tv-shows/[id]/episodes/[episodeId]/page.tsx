@@ -100,7 +100,7 @@ export default async function EpisodeDetailPage({ params }: Props) {
 
       {/* Header */}
       <div className="mb-6 md:mb-8">
-        <div className="flex items-start justify-between mb-4 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl md:text-3xl font-bold">
               S{String(episode.season.seasonNumber).padStart(2, "0")}E{String(episode.episodeNumber).padStart(2, "0")}: {episode.title || "Untitled"}
@@ -109,11 +109,13 @@ export default async function EpisodeDetailPage({ params }: Props) {
               {episode.season.tvShow.title}
             </p>
           </div>
-          <EpisodeDetailStatusBadges
-            episodeId={episode.id}
-            monitorStatus={episode.monitorStatus}
-            qualityStatus={qualityStatus}
-          />
+          <div className="sm:flex-shrink-0">
+            <EpisodeDetailStatusBadges
+              episodeId={episode.id}
+              monitorStatus={episode.monitorStatus}
+              qualityStatus={qualityStatus}
+            />
+          </div>
         </div>
 
         {episode.notes && (
@@ -138,12 +140,12 @@ export default async function EpisodeDetailPage({ params }: Props) {
               {episode.files.map((file) => (
                 <Card key={file.id}>
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg break-all">{file.filename}</CardTitle>
-                        <p className="text-sm text-muted-foreground break-all mt-1">{file.filepath}</p>
+                        <CardTitle className="text-base sm:text-lg break-all">{file.filename}</CardTitle>
+                        <p className="text-xs sm:text-sm text-muted-foreground break-all mt-1">{file.filepath}</p>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:flex-shrink-0">
                         {file.fileExists ? (
                           <Badge variant="outline" className="gap-1">
                             <FileCheck className="h-3 w-3" />
