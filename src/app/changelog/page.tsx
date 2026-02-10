@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, RefreshCw, ExternalLink } from 'lucide-react';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 import { PageHeader } from '@/components/page-header';
+import { PageContainer } from '@/components/layout';
 
 interface GitHubRelease {
   id: number;
@@ -86,7 +87,7 @@ export default function ChangelogPage() {
   }, [fetchReleases]);
 
   return (
-    <div className="p-8">
+    <PageContainer maxWidth="wide">
       <PageHeader
         title="Changelog"
         description="Release history and version notes"
@@ -103,7 +104,7 @@ export default function ChangelogPage() {
         }
       />
 
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {loading ? (
           <>
             <Skeleton className="h-48 w-full" />
@@ -123,7 +124,7 @@ export default function ChangelogPage() {
           ))
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }
 
@@ -182,14 +183,14 @@ function ReleaseCard({ release, dateFormat }: { release: GitHubRelease; dateForm
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+          <CardTitle className="flex items-center gap-2 flex-wrap">
             {release.tag_name}
             {release.prerelease && (
               <Badge variant="outline">Pre-release</Badge>
             )}
           </CardTitle>
-          <span className="text-sm text-muted-foreground">{publishedDate}</span>
+          <span className="text-xs sm:text-sm text-muted-foreground sm:flex-shrink-0">{publishedDate}</span>
         </div>
         {release.name && release.name !== release.tag_name && (
           <CardDescription>{release.name}</CardDescription>
