@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageContainer } from '@/components/layout';
 
 interface FFprobeStatus {
   configured: boolean;
@@ -75,16 +76,16 @@ export default function FfprobeIntegrationPage() {
   // Loading skeleton
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
+      <PageContainer maxWidth="wide">
+        <div className="flex items-center gap-4 mb-6 md:mb-8">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/integrations">
               <ArrowLeft className="size-4" />
             </Link>
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold">FFprobe Integration</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl md:text-2xl font-semibold">FFprobe Integration</h1>
+            <p className="text-muted-foreground text-sm md:text-base">
               Analyze media files to extract detailed quality information
             </p>
           </div>
@@ -99,22 +100,22 @@ export default function FfprobeIntegrationPage() {
             <Skeleton className="h-20 w-full" />
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer maxWidth="wide">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 mb-6 md:mb-8">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/integrations">
             <ArrowLeft className="size-4" />
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">FFprobe Integration</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl md:text-2xl font-semibold">FFprobe Integration</h1>
+          <p className="text-muted-foreground text-sm md:text-base">
             Analyze media files to extract detailed quality information
           </p>
         </div>
@@ -130,7 +131,7 @@ export default function FfprobeIntegrationPage() {
       </div>
 
       {error && (
-        <Card className="border-destructive">
+        <Card className="border-destructive mb-6 md:mb-8">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-destructive-foreground">
               <AlertCircle className="size-4" />
@@ -141,7 +142,7 @@ export default function FfprobeIntegrationPage() {
       )}
 
       {/* Configuration Status */}
-      <Card>
+      <Card className="mb-6 md:mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Configuration
@@ -347,6 +348,6 @@ RUN apk add --no-cache ffmpeg`}
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

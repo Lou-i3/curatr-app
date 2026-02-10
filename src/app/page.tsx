@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tv, Film, FileVideo, ScanSearch, ArrowRight } from "lucide-react";
 import { PageHeader } from '@/components/page-header';
+import { PageContainer } from '@/components/layout';
 
 async function getStats() {
   const [showCount, episodeCount, fileCount, recentScans] = await Promise.all([
@@ -25,14 +26,14 @@ export default async function Home() {
   const { showCount, episodeCount, fileCount, recentScans } = await getStats();
 
   return (
-    <div className="p-8">
+    <PageContainer maxWidth="wide">
       <PageHeader
         title="Dashboard"
         description="Overview of your media library"
       />
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
+      <div className="grid gap-4 md:gap-6 md:grid-cols-3 mb-6 md:mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">TV Shows</CardTitle>
@@ -68,7 +69,7 @@ export default async function Home() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 mb-8">
+      <div className="grid gap-4 md:gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -121,6 +122,6 @@ export default async function Home() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }

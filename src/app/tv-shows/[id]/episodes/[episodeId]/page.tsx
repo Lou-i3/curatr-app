@@ -13,6 +13,7 @@ import { FileStatusBadges } from "./file-status-badges";
 import { MediaInfoSection } from "@/components/files/media-info-section";
 import { IssueReportDialog } from "@/components/issues/issue-report-dialog";
 import { EpisodeIssuesList } from "./episode-issues-list";
+import { PageContainer } from "@/components/layout";
 
 export const dynamic = 'force-dynamic';
 
@@ -81,9 +82,9 @@ export default async function EpisodeDetailPage({ params }: Props) {
   const qualityStatus = computeEpisodeQuality(episode.monitorStatus, episode.files);
 
   return (
-    <div className="p-8">
+    <PageContainer maxWidth="wide">
       {/* Breadcrumb */}
-      <div className="mb-6 flex items-center gap-2 text-sm overflow-auto">
+      <div className="mb-4 md:mb-6 flex items-center gap-2 text-sm overflow-auto">
         <Link href="/tv-shows" className="text-primary hover:underline whitespace-nowrap">
           TV Shows
         </Link>
@@ -98,13 +99,13 @@ export default async function EpisodeDetailPage({ params }: Props) {
       </div>
 
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold">
+      <div className="mb-6 md:mb-8">
+        <div className="flex items-start justify-between mb-4 gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl md:text-3xl font-bold">
               S{String(episode.season.seasonNumber).padStart(2, "0")}E{String(episode.episodeNumber).padStart(2, "0")}: {episode.title || "Untitled"}
             </h1>
-            <p className="text-lg text-muted-foreground mt-2">
+            <p className="text-base md:text-lg text-muted-foreground mt-2">
               {episode.season.tvShow.title}
             </p>
           </div>
@@ -121,10 +122,10 @@ export default async function EpisodeDetailPage({ params }: Props) {
       </div>
 
       {/* Files + Issues two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 md:gap-8">
         {/* Files Section (left) */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Files ({episode.files.length})</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Files ({episode.files.length})</h2>
 
           {episode.files.length === 0 ? (
             <Card>
@@ -133,7 +134,7 @@ export default async function EpisodeDetailPage({ params }: Props) {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {episode.files.map((file) => (
                 <Card key={file.id}>
                   <CardHeader className="pb-3">
@@ -283,8 +284,8 @@ export default async function EpisodeDetailPage({ params }: Props) {
 
         {/* Issues Section (right sidebar) */}
         <div className="lg:sticky lg:top-8 lg:self-start space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold">Issues ({episode.issues.length})</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base md:text-lg font-bold">Issues ({episode.issues.length})</h2>
             <IssueReportDialog
               episodeId={episode.id}
               episodeLabel={`${episode.season.tvShow.title} — S${String(episode.season.seasonNumber).padStart(2, "0")}E${String(episode.episodeNumber).padStart(2, "0")}`}
@@ -311,7 +312,7 @@ export default async function EpisodeDetailPage({ params }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
 

@@ -116,12 +116,127 @@ When uncertain about implementation:
   - **For borders**: Use base colors: `border-success`, `border-warning`, `border-destructive`
 - Check `src/components/ui/` for installed components; see [shadcn/ui docs](https://ui.shadcn.com/docs/components) for full list
 
-**Custom Components:**
-- **PageHeader** (`src/components/page-header.tsx`): Reusable page header component
-  - Consistent title/description/action layout across all pages
-  - Supports optional description text and action button
-  - Custom title sizing via `titleClassName` prop
-  - Example: `<PageHeader title="Settings" description="Configure preferences" action={<Button>Save</Button>} />`
+**Layout System (Responsive, Desktop-First):**
+
+This is a **web-first application** with desktop as the primary experience. All layouts adapt responsively to mobile/tablet using Tailwind's mobile-first breakpoints (`md:` = 768px).
+
+**Core Components:**
+
+- **PageContainer** (`src/components/layout/page-container.tsx`): Standardized wrapper for all page content
+  - Provides consistent responsive padding: `px-4 py-4 md:px-8 md:py-6`
+  - **All pages use `maxWidth="wide"` (max-w-7xl)** for consistency
+  - Other variants available but unused: `narrow` (max-w-3xl), `default` (max-w-5xl), `full` (no constraint)
+  - Import: `import { PageContainer } from '@/components/layout';`
+
+- **PageHeader** (`src/components/page-header.tsx`): Responsive page header
+  - Displays title with responsive typography: `text-2xl md:text-3xl lg:text-4xl`
+  - Optional description: `text-sm md:text-base`
+  - Optional action button (stacks on mobile, inline on desktop)
+  - No hardcoded margins — spacing controlled by parent
+  - Import: `import { PageHeader } from '@/components/page-header';`
+
+**Responsive Spacing Patterns:**
+
+Use these consistent spacing patterns throughout the app:
+
+```typescript
+// Container padding (set by PageContainer)
+px-4 py-4 md:px-8 md:py-6
+
+// Section spacing (bottom margin)
+mb-4 md:mb-6      // Small spacing
+mb-6 md:mb-8      // Medium spacing (most common)
+mb-8 md:mb-12     // Large spacing
+
+// Grid/card gaps
+gap-4 md:gap-6    // Standard grid gap
+
+// Vertical stacks
+space-y-4 md:space-y-6   // Normal stacking
+space-y-6 md:space-y-8   // Loose stacking
+```
+
+**Responsive Typography Patterns:**
+
+```typescript
+// Page titles (h1) — set by PageHeader
+text-2xl md:text-3xl lg:text-4xl
+
+// Section titles (h2)
+text-xl md:text-2xl
+
+// Subsection titles (h3)
+text-lg md:text-xl
+
+// Body text
+text-sm md:text-base
+
+// Metadata/timestamps
+text-xs md:text-sm
+```
+
+**Standard Page Structure:**
+
+```tsx
+import { PageContainer } from '@/components/layout';
+import { PageHeader } from '@/components/page-header';
+
+export default function SomePage() {
+  return (
+    <PageContainer maxWidth="wide">
+      <PageHeader
+        title="Page Title"
+        description="Optional description"
+        action={<Button>Action</Button>}
+      />
+
+      {/* Page content with consistent spacing */}
+      <div className="space-y-6 md:space-y-8">
+        <Card>{/* Section 1 */}</Card>
+        <Card>{/* Section 2 */}</Card>
+      </div>
+    </PageContainer>
+  );
+}
+```
+
+**Sticky Header Pattern (TV Shows, Scans, Issues):**
+
+For pages with toolbars/filters that should remain visible on scroll:
+
+```tsx
+<PageContainer maxWidth="wide">
+  {/* Sticky header with full-width background */}
+  <div className="sticky top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
+    <PageHeader title="TV Shows" />
+    <Toolbar /> {/* Filters, search, view toggles, etc. */}
+  </div>
+
+  {/* Scrollable content */}
+  <div className="space-y-6 md:space-y-8">
+    <DataTable columns={columns} data={data} />
+  </div>
+</PageContainer>
+```
+
+**Key sticky header techniques:**
+- `-mx-4 px-4 md:-mx-8 md:px-8` — Negative margins extend to full width while keeping content aligned
+- `pt-4 md:pt-6 pb-4 md:pb-6` — Consistent vertical padding inside sticky wrapper
+- `border-b` — Visual separator from scrollable content
+
+**Wide Tables (Horizontal Scroll on Mobile):**
+
+For pages with data tables that may overflow on small screens:
+
+```tsx
+<div className="overflow-x-auto">
+  <DataTable columns={columns} data={data} />
+</div>
+```
+
+Page scrolls vertically normally; table scrolls horizontally on mobile when needed.
+
+**Data Components:**
 - **DataTable** (`src/components/ui/data-table.tsx`): Generic reusable table component powered by TanStack Table v8
   - Supports client-side sorting, column visibility, and custom cell renderers
   - Use when you need sortable/filterable tables (e.g., TV shows, scan history)

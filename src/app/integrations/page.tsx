@@ -13,6 +13,7 @@ import { isTmdbConfigured } from '@/lib/tmdb';
 import { isFFprobeAvailable } from '@/lib/ffprobe';
 import { prisma } from '@/lib/prisma';
 import { PageHeader } from '@/components/page-header';
+import { PageContainer } from '@/components/layout';
 import { getAuthMode } from '@/lib/auth';
 import { isPlexConfigured } from '@/lib/plex/auth';
 
@@ -152,18 +153,18 @@ export default async function IntegrationsPage() {
   const integrations = await getIntegrations();
 
   return (
-    <div className="space-y-6">
+    <PageContainer maxWidth="wide">
       <PageHeader
         title="Integrations"
         description="Connect external services to enrich your library with metadata and automate workflows."
       />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {integrations.map((integration) => (
           <IntegrationCard key={integration.id} integration={integration} />
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }
 

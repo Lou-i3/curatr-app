@@ -10,7 +10,10 @@ interface PageHeaderProps {
 }
 
 /**
- * PageHeader - Simple reusable page header component
+ * PageHeader - Responsive page header component
+ *
+ * Displays page title with optional description and action button.
+ * Typography scales responsively across devices.
  *
  * @example
  * // Simple
@@ -41,17 +44,17 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        'm-8',
-        hasAction && 'flex items-center justify-between',
+        'mb-6 md:mb-8',
+        hasAction && 'flex flex-col gap-4 md:flex-row md:items-center md:justify-between',
         className
       )}
     >
       <div>
-        <h1 className={cn('text-4xl font-bold text-foreground', titleClassName)}>
+        <h1 className={cn('text-2xl md:text-3xl lg:text-4xl font-bold text-foreground', titleClassName)}>
           {title}
         </h1>
         {description && (
-          <p className="text-muted-foreground mt-2">{description}</p>
+          <p className="text-muted-foreground mt-2 text-sm md:text-base">{description}</p>
         )}
       </div>
       {action && <div>{action}</div>}

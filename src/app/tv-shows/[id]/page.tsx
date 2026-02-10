@@ -17,6 +17,7 @@ import { ShowEditButton } from "./show-edit-button";
 import { ShowScanButton } from "./show-scan-button";
 import { ShowDetailStatusBadges } from "./show-detail-status-badges";
 import { SeasonsList } from "./seasons-list";
+import { PageContainer } from "@/components/layout";
 
 export const dynamic = 'force-dynamic';
 
@@ -89,9 +90,9 @@ export default async function ShowDetailPage({ params }: Props) {
   };
 
   return (
-    <div className="p-8">
+    <PageContainer maxWidth="wide">
       {/* Breadcrumb */}
-      <div className="mb-6 flex items-center gap-2 text-sm">
+      <div className="mb-4 md:mb-6 flex items-center gap-2 text-sm overflow-auto">
         <Link
           href="/tv-shows"
           className="text-primary hover:underline"
@@ -103,11 +104,11 @@ export default async function ShowDetailPage({ params }: Props) {
       </div>
 
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex gap-6">
+      <div className="mb-6 md:mb-8">
+        <div className="flex gap-4 md:gap-6">
           {/* Poster */}
           {show.posterPath ? (
-            <div className="w-32 h-48 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+            <div className="w-24 h-36 md:w-32 md:h-48 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
               <img
                 src={getPosterUrl(show.posterPath, 'w185') || ''}
                 alt={show.title}
@@ -117,13 +118,13 @@ export default async function ShowDetailPage({ params }: Props) {
           ) : null}
 
           {/* Info */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
-              <div>
-                <h1 className="text-3xl font-bold">{show.title}</h1>
-                <div className="flex items-center gap-3 mt-1">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl md:text-3xl font-bold">{show.title}</h1>
+                <div className="flex items-center gap-3 mt-1 flex-wrap">
                   {show.year && (
-                    <span className="text-lg text-muted-foreground">{show.year}</span>
+                    <span className="text-base md:text-lg text-muted-foreground">{show.year}</span>
                   )}
                   {show.voteAverage && (
                     <span className="flex items-center gap-1 text-warning-foreground">
@@ -136,7 +137,7 @@ export default async function ShowDetailPage({ params }: Props) {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <ShowScanButton show={{
                   id: show.id,
                   title: show.title,
@@ -204,7 +205,7 @@ export default async function ShowDetailPage({ params }: Props) {
       </div>
 
       {/* TMDB Integration */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <TmdbSection
           showId={show.id}
           showTitle={show.title}
@@ -218,9 +219,9 @@ export default async function ShowDetailPage({ params }: Props) {
 
       {/* Seasons */}
       <div>
-        <h2 className="text-2xl font-bold mb-6">Seasons</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Seasons</h2>
         <SeasonsList showId={show.id} showTitle={show.title} showTmdbId={show.tmdbId} seasons={seasonsWithQuality} />
       </div>
-    </div>
+    </PageContainer>
   );
 }

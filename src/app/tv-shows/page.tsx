@@ -33,6 +33,7 @@ import type { TVShow } from './tv-show-columns';
 import { Star, Film, HardDrive } from 'lucide-react';
 import { formatFileSize } from '@/lib/settings-shared';
 import { PageHeader } from '@/components/page-header';
+import { PageContainer } from '@/components/layout';
 
 function ShowCardSkeleton() {
   return (
@@ -119,25 +120,24 @@ export default function TVShowsPage() {
   const isTableView = view === 'table';
 
   return (
-    <div className="p-8">
-      {/* Sticky Header + Toolbar */}
-      <div className="sticky top-0 z-10 bg-background p-4 -mx-8 px-8 -mt-8">
+    <PageContainer maxWidth="wide">
+      {/* Sticky header + toolbar wrapper */}
+      <div className="sticky top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
         <PageHeader
           title={`TV Shows ${!loading ? `(${shows.length})` : ''}`}
           description="Browse and manage your TV show library"
         />
-
-        {/* Toolbar */}
         <TVShowsToolbar table={table} />
       </div>
 
-      <div className="mt-6">
+      <div>
         {loading ? (
           /* Loading Skeleton */
           isTableView ? (
-            <Card >
-              <CardContent className="p-0">
-                <Table>
+            <div className="overflow-x-auto">
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Title</TableHead>
@@ -160,6 +160,7 @@ export default function TVShowsPage() {
                 </Table>
               </CardContent>
             </Card>
+            </div>
           ) : (
             <div className="grid gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -180,7 +181,9 @@ export default function TVShowsPage() {
           </Card>
         ) : isTableView ? (
           /* Table View - DataTable with sorting */
-          <TVShowsTable shows={shows} onTableReady={setTable} />
+          <div className="overflow-x-auto">
+            <TVShowsTable shows={shows} onTableReady={setTable} />
+          </div>
         ) : (
           /* Grid View */
           <div className="grid gap-4">
@@ -276,6 +279,6 @@ export default function TVShowsPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

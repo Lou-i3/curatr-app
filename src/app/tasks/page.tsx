@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 import { useTasks, type TaskData } from '@/lib/contexts/task-context';
 import { PageHeader } from '@/components/page-header';
+import { PageContainer } from '@/components/layout';
 
 // Re-use TaskData from context
 type TaskProgress = TaskData;
@@ -111,7 +112,7 @@ export default function TasksPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <PageContainer maxWidth="wide">
         <PageHeader
           title="Tasks"
           description="View and manage background tasks"
@@ -123,12 +124,12 @@ export default function TasksPage() {
             <Skeleton className="h-16 w-full" />
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer maxWidth="wide">
       {/* Header */}
       <PageHeader
         title="Tasks"
@@ -146,7 +147,7 @@ export default function TasksPage() {
       />
 
       {/* Active Tasks */}
-      <Card>
+      <Card className="mb-6 md:mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Active Tasks
@@ -196,7 +197,7 @@ export default function TasksPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

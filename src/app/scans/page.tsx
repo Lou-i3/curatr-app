@@ -7,6 +7,8 @@ import { getSettings } from '@/lib/settings';
 import { getConfig } from '@/lib/scanner/config';
 import { ScanControls } from './scan-controls';
 import { ScanHistoryTable } from './scan-history-table';
+import { PageHeader } from '@/components/page-header';
+import { PageContainer } from '@/components/layout';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,26 +33,22 @@ export default async function ScansPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto p-8">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground">Library Scans</h1>
-          <p className="text-muted-foreground mt-2">
-            Scan your media library to discover and track TV shows
-          </p>
-        </header>
+    <PageContainer maxWidth="wide">
+      <PageHeader
+        title="Library Scans"
+        description="Scan your media library to discover and track TV shows"
+      />
 
-        {/* Scan Controls */}
-        <section className="mb-8">
-          <ScanControls tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
-        </section>
-
-        {/* Scan History */}
-        <section>
-          <h2 className="text-2xl font-bold mb-4">Scan History</h2>
-          <ScanHistoryTable initialScans={scans} dateFormat={settings.dateFormat} />
-        </section>
+      {/* Scan Controls */}
+      <div className="mb-6 md:mb-8">
+        <ScanControls tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
       </div>
-    </div>
+
+      {/* Scan History */}
+      <div>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Scan History</h2>
+        <ScanHistoryTable initialScans={scans} dateFormat={settings.dateFormat} />
+      </div>
+    </PageContainer>
   );
 }

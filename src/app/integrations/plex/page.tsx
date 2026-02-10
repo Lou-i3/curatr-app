@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageContainer } from '@/components/layout';
 
 interface AuthStatus {
   authMode: 'none' | 'plex';
@@ -61,19 +62,19 @@ export default function PlexAuthIntegrationPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
+      <PageContainer maxWidth="wide">
+        <div className="flex items-center gap-4 mb-6 md:mb-8">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/integrations"><ArrowLeft className="size-4" /></Link>
           </Button>
           <Skeleton className="h-8 w-48" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:gap-6 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -82,26 +83,26 @@ export default function PlexAuthIntegrationPage() {
   const isReachable = status?.serverReachable ?? false;
 
   return (
-    <div className="space-y-6">
+    <PageContainer maxWidth="wide">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 mb-6 md:mb-8">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/integrations"><ArrowLeft className="size-4" /></Link>
         </Button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
             <svg className="size-6" viewBox="0 0 24 24" fill="currentColor">
               <path d="M11.643 0L2.805 24H12.357L21.195 0H11.643Z" />
             </svg>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold">Plex Authentication</h1>
-            <p className="text-sm text-muted-foreground">
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-semibold">Plex Authentication</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               Multi-user access with Plex account login
             </p>
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
@@ -115,7 +116,7 @@ export default function PlexAuthIntegrationPage() {
       </div>
 
       {error && (
-        <Card className="border-destructive">
+        <Card className="border-destructive mb-6 md:mb-8">
           <CardContent className="p-4 flex items-center gap-2 text-sm text-destructive-foreground">
             <AlertCircle className="size-4" />
             {error}
@@ -124,7 +125,7 @@ export default function PlexAuthIntegrationPage() {
       )}
 
       {/* Status Overview */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 md:grid-cols-2 mb-6 md:mb-8">
         {/* Auth Mode Card */}
         <Card>
           <CardHeader className="pb-3">
@@ -336,7 +337,7 @@ export default function PlexAuthIntegrationPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

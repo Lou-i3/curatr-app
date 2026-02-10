@@ -31,6 +31,7 @@ import type { IssueStatus } from '@/generated/prisma/client';
 import type { DateFormat } from '@/lib/settings-shared';
 import { getIssueColumns, type IssueRow } from './issue-columns';
 import { IssueReportSearchDialog } from '@/components/issues/issue-report-search-dialog';
+import { PageContainer } from '@/components/layout';
 
 type StatusFilter = IssueStatus | 'all' | 'active';
 
@@ -186,23 +187,23 @@ export default function IssuesPage() {
   const colCount = authMode === 'plex' ? 7 : 6;
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background pb-4 -mx-8 px-8 pt-0 -mt-8 border-b">
-        <div className="pt-8 mb-4">
-          <div className="flex items-center justify-between">
+    <PageContainer maxWidth="wide">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
+        <div className="mb-4">
+          <div className="flex items-center justify-between gap-4 mb-2">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="size-6" />
-              <h1 className="text-3xl font-bold">Issues</h1>
+              <AlertTriangle className="size-5 md:size-6" />
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Issues</h1>
               {!loading && (
-                <span className="text-muted-foreground text-lg ml-1">
+                <span className="text-muted-foreground text-base md:text-lg ml-1">
                   ({filteredIssues.length})
                 </span>
               )}
             </div>
             <IssueReportSearchDialog onSubmitted={fetchIssues} />
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm md:text-base">
             Track and manage reported issues across your library
           </p>
         </div>
@@ -242,7 +243,7 @@ export default function IssuesPage() {
       </div>
 
       {/* Content */}
-      <div className="mt-6">
+      <div>
         {loading ? (
           <Card>
             <CardContent className="p-0">
@@ -291,6 +292,6 @@ export default function IssuesPage() {
           </Card>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

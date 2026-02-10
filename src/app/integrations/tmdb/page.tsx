@@ -30,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateWithFormat, type DateFormat } from '@/lib/settings-shared';
 import { getPosterUrl } from '@/lib/tmdb/images';
 import { useTasks } from '@/lib/contexts/task-context';
+import { PageContainer } from '@/components/layout';
 
 interface EnhancedIntegrationStatus {
   configured: boolean;
@@ -299,16 +300,16 @@ export default function TmdbIntegrationPage() {
   // Loading skeleton
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
+      <PageContainer maxWidth="wide">
+        <div className="flex items-center gap-4 mb-6 md:mb-8">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/integrations">
               <ArrowLeft className="size-4" />
             </Link>
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold">TMDB Integration</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl md:text-2xl font-semibold">TMDB Integration</h1>
+            <p className="text-muted-foreground text-sm md:text-base">
               Enrich your library with metadata from The Movie Database
             </p>
           </div>
@@ -331,22 +332,22 @@ export default function TmdbIntegrationPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer maxWidth="wide">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 mb-6 md:mb-8">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/integrations">
             <ArrowLeft className="size-4" />
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">TMDB Integration</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl md:text-2xl font-semibold">TMDB Integration</h1>
+          <p className="text-muted-foreground text-sm md:text-base">
             Enrich your library with metadata from The Movie Database
           </p>
         </div>
@@ -362,7 +363,7 @@ export default function TmdbIntegrationPage() {
       </div>
 
       {error && (
-        <Card className="border-destructive">
+        <Card className="border-destructive mb-6 md:mb-8">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-destructive">
               <AlertCircle className="size-4" />
@@ -373,7 +374,7 @@ export default function TmdbIntegrationPage() {
       )}
 
       {/* Configuration Status */}
-      <Card>
+      <Card className="mb-6 md:mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Configuration
@@ -444,7 +445,7 @@ export default function TmdbIntegrationPage() {
       {/* Library Completeness */}
       {status?.configured && (
         <>
-          <Card>
+          <Card className="mb-6 md:mb-8">
             <CardHeader>
               <CardTitle>Library Completeness</CardTitle>
               <CardDescription>TMDB matching and metadata sync status</CardDescription>
@@ -516,7 +517,7 @@ export default function TmdbIntegrationPage() {
           </Card>
 
           {/* Actions */}
-          <Card>
+          <Card className="mb-6 md:mb-8">
             <CardHeader>
               <CardTitle>Bulk Actions</CardTitle>
               <CardDescription>Operations for syncing metadata across your library</CardDescription>
@@ -703,6 +704,6 @@ export default function TmdbIntegrationPage() {
           </Card>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }
