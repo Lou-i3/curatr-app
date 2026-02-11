@@ -24,6 +24,7 @@ interface ScanControlsProps {
 
 export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
   const { tasks, refresh: refreshTasks } = useTasks();
+  const [mounted, setMounted] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanId, setScanId] = useState<number | null>(null);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -32,6 +33,11 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
 
   // Track if we started the scan (vs observing existing one)
   const startedByUsRef = useRef(false);
+
+  // Track when component has mounted to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync with task context for running scans
   useEffect(() => {
@@ -208,14 +214,16 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle>Scan Library</CardTitle>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+          <div className="flex-1">
+            <div className="flex items-center justify-between gap-3 sm:gap-4">
+              <CardTitle>Scan Library</CardTitle>
+              <ScanHelpDialog tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
+            </div>
             <CardDescription>
               Scan your TV shows directory to discover new files and update the database
             </CardDescription>
           </div>
-          <ScanHelpDialog tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
         </div>
       </CardHeader>
       <CardContent>
@@ -225,7 +233,7 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
           </Alert>
         )}
 
-        {isScanning && progress ? (
+        {mounted && isScanning && progress ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between text-sm">
               <span>{getPhaseLabel(progress.phase)}...</span>
@@ -256,8 +264,8 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
             </Button>
           </div>
         ) : (
-          <Button onClick={startScan} disabled={isScanning}>
-            {isScanning ? 'Starting...' : 'Start Scan'}
+          <Button onClick={startScan} disabled={!mounted && isScanning}>
+            {!mounted || isScanning ? 'Starting...' : 'Start Scan'}
           </Button>
         )}
       </CardContent>

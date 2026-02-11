@@ -1,77 +1,42 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
-
-interface ScanHistory {
-  id: number;
-  scanType: string;
-  startedAt: Date | string;
-  completedAt: Date | string | null;
-  filesScanned: number;
-  filesAdded: number;
-  filesUpdated: number;
-  filesDeleted: number;
-  errors: string | null;
-  status: 'RUNNING' | 'COMPLETED' | 'FAILED';
-}
+import { DataTable } from '@/components/ui/data-table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { type DateFormat } from '@/lib/settings-shared';
+import { getScanHistoryColumns, type ScanHistoryRow } from './scan-history-columns';
 
 interface Props {
-  initialScans: ScanHistory[];
+  initialScans: ScanHistoryRow[];
   dateFormat: DateFormat;
 }
 
+const parseErrors = (errors: string | null): Array<{ filepath: string; error: string }> => {
+  if (!errors) return [];
+  try {
+    return JSON.parse(errors);
+  } catch {
+    return [];
+  }
+};
+
 export function ScanHistoryTable({ initialScans, dateFormat }: Props) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [errorDialogScanId, setErrorDialogScanId] = useState<number | null>(null);
 
-  const formatDate = (date: Date | string | null) => {
-    if (!date) return '-';
-    const d = new Date(date);
-    return formatDateTimeWithFormat(d, dateFormat);
-  };
-
-  const formatDuration = (start: Date | string, end: Date | string | null) => {
-    if (!end) return 'In progress';
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const seconds = Math.round((endDate.getTime() - startDate.getTime()) / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return <Badge variant="success">Completed</Badge>;
-      case 'RUNNING':
-        return <Badge variant="secondary">Running</Badge>;
-      case 'FAILED':
-        return <Badge variant="destructive">Failed</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const parseErrors = (errors: string | null): Array<{ filepath: string; error: string }> => {
-    if (!errors) return [];
-    try {
-      return JSON.parse(errors);
-    } catch {
-      return [];
-    }
-  };
+  const columns = useMemo(
+    () =>
+      getScanHistoryColumns({
+        dateFormat,
+        onErrorsClick: (scanId) => setErrorDialogScanId(scanId),
+      }),
+    [dateFormat]
+  );
 
   if (initialScans.length === 0) {
     return (
@@ -83,88 +48,41 @@ export function ScanHistoryTable({ initialScans, dateFormat }: Props) {
     );
   }
 
-  return (
-    <Card>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Started</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Duration</TableHead>
-            <TableHead className="text-right">Scanned</TableHead>
-            <TableHead className="text-right">Added</TableHead>
-            <TableHead className="text-right">Updated</TableHead>
-            <TableHead className="text-right">Deleted</TableHead>
-            <TableHead className="text-right">Errors</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {initialScans.map((scan) => {
-            const errors = parseErrors(scan.errors);
-            const isExpanded = expandedId === scan.id;
+  const errorScan = errorDialogScanId
+    ? initialScans.find((s) => s.id === errorDialogScanId)
+    : null;
+  const errors = errorScan ? parseErrors(errorScan.errors) : [];
 
-            return [
-              <TableRow
-                key={scan.id}
-                className={errors.length > 0 ? 'cursor-pointer' : ''}
-                onClick={() => {
-                  if (errors.length > 0) {
-                    setExpandedId(isExpanded ? null : scan.id);
-                  }
-                }}
-              >
-                <TableCell className="font-mono text-sm">
-                  {formatDate(scan.startedAt)}
-                </TableCell>
-                <TableCell className="capitalize">{scan.scanType}</TableCell>
-                <TableCell>{getStatusBadge(scan.status)}</TableCell>
-                <TableCell>
-                  {formatDuration(scan.startedAt, scan.completedAt)}
-                </TableCell>
-                <TableCell className="text-right">{scan.filesScanned}</TableCell>
-                <TableCell className="text-right text-success-foreground">
-                  {scan.filesAdded > 0 ? `+${scan.filesAdded}` : '-'}
-                </TableCell>
-                <TableCell className="text-right text-secondary">
-                  {scan.filesUpdated > 0 ? scan.filesUpdated : '-'}
-                </TableCell>
-                <TableCell className="text-right text-warning-foreground">
-                  {scan.filesDeleted > 0 ? scan.filesDeleted : '-'}
-                </TableCell>
-                <TableCell className="text-right">
-                  {errors.length > 0 ? (
-                    <Badge variant="destructive" className="cursor-pointer">
-                      {errors.length}
-                    </Badge>
-                  ) : (
-                    '-'
-                  )}
-                </TableCell>
-              </TableRow>,
-              isExpanded && errors.length > 0 && (
-                <TableRow key={`${scan.id}-errors`}>
-                  <TableCell colSpan={9} className="bg-muted/50">
-                    <div className="py-2 space-y-1">
-                      <p className="text-sm font-medium mb-2">Errors ({errors.length}):</p>
-                      <div className="max-h-64 overflow-y-auto space-y-1">
-                        {errors.map((err, idx) => (
-                          <p key={idx} className="text-xs text-muted-foreground">
-                            <span className="text-destructive">{err.error}</span>
-                            {err.filepath && (
-                              <span className="ml-2 truncate block">{err.filepath}</span>
-                            )}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ),
-            ];
-          })}
-        </TableBody>
-      </Table>
-    </Card>
+  return (
+    <>
+      <Card className="p-0">
+        <CardContent className="p-2">
+          <div className="overflow-x-auto">
+            <DataTable columns={columns} data={initialScans} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Error Details Dialog */}
+      <Dialog open={!!errorDialogScanId} onOpenChange={(open) => !open && setErrorDialogScanId(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Scan Errors ({errors.length})</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {errors.map((err, idx) => (
+              <div key={idx} className="border-l-2 border-destructive pl-3 py-1">
+                <p className="text-sm font-medium text-destructive">{err.error}</p>
+                {err.filepath && (
+                  <p className="text-xs text-muted-foreground font-mono mt-1 break-all">
+                    {err.filepath}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
