@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Nunito, Lora, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppBar } from "@/components/app-bar";
 import { Toaster } from "@/components/ui/sonner";
 import { TaskProvider } from "@/lib/contexts/task-context";
 import { IssueProvider } from "@/lib/contexts/issue-context";
@@ -55,17 +56,14 @@ export default async function RootLayout({
           <TaskProvider>
             <IssueProvider>
               {showSidebar ? (
-                <SidebarProvider>
-                  <AppSidebar />
-                  <SidebarInset>
-                    <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b px-4 bg-background md:hidden">
-                      <SidebarTrigger />
-                      <span className="font-semibold">Curatr App</span>
-                    </header>
-                    <main className="flex-1 p-4 md:p-6">
+                <SidebarProvider className="flex-col">
+                  <AppBar />
+                  <div className="flex flex-1 pt-12">
+                    <AppSidebar />
+                    <SidebarInset className="p-4 md:p-6">
                       {children}
-                    </main>
-                  </SidebarInset>
+                    </SidebarInset>
+                  </div>
                 </SidebarProvider>
               ) : (
                 children
