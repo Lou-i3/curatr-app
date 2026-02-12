@@ -1,29 +1,124 @@
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+/**
+ * Dashboard page — role-aware overview of the media library
+ * Server component that fetches all stats, passes to client sections
+ */
 
-export const dynamic = 'force-dynamic';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tv, Film, FileVideo, ScanSearch, ArrowRight } from "lucide-react";
+import { prisma } from '@/lib/prisma';
 import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
+import { LibraryHealth } from './dashboard/sections/library-health';
+import { DashboardClient } from './dashboard/dashboard-client';
 
-async function getStats() {
-  const [showCount, episodeCount, fileCount, recentScans] = await Promise.all([
+export const dynamic = 'force-dynamic';
+
+async function getDashboardStats() {
+  const [
+    showCount,
+    episodeCount,
+    fileCount,
+    qualityGroups,
+    actionGroups,
+    codecGroups,
+    resolutionGroups,
+    hdrGroups,
+    totalSizeResult,
+    recentScans,
+    tmdbMatchedCount,
+    analyzedFilesCount,
+  ] = await Promise.all([
     prisma.tVShow.count(),
     prisma.episode.count(),
-    prisma.episodeFile.count(),
+    prisma.episodeFile.count({ where: { fileExists: true } }),
+
+    prisma.episodeFile.groupBy({
+      by: ['quality'],
+      _count: { quality: true },
+      where: { fileExists: true },
+    }),
+
+    prisma.episodeFile.groupBy({
+      by: ['action'],
+      _count: { action: true },
+      where: { fileExists: true, action: { not: 'NOTHING' } },
+    }),
+
+    prisma.episodeFile.groupBy({
+      by: ['codec'],
+      _count: { codec: true },
+      where: { fileExists: true, codec: { not: null } },
+      orderBy: { _count: { codec: 'desc' } },
+      take: 10,
+    }),
+
+    prisma.episodeFile.groupBy({
+      by: ['resolution'],
+      _count: { resolution: true },
+      where: { fileExists: true, resolution: { not: null } },
+      orderBy: { _count: { resolution: 'desc' } },
+      take: 10,
+    }),
+
+    prisma.episodeFile.groupBy({
+      by: ['hdrType'],
+      _count: { hdrType: true },
+      where: { fileExists: true, hdrType: { not: null } },
+    }),
+
+    prisma.episodeFile.aggregate({
+      _sum: { fileSize: true },
+      where: { fileExists: true },
+    }),
+
     prisma.scanHistory.findMany({
       orderBy: { startedAt: 'desc' },
-      take: 3,
+      take: 5,
+    }),
+
+    prisma.tVShow.count({ where: { tmdbId: { not: null } } }),
+
+    prisma.episodeFile.count({
+      where: { fileExists: true, mediaInfoExtractedAt: { not: null }, mediaInfoError: null },
     }),
   ]);
 
-  return { showCount, episodeCount, fileCount, recentScans };
+  // Compute health score: (VERIFIED + OK) / total * 100
+  const okCount = qualityGroups
+    .filter((g) => g.quality === 'OK' || g.quality === 'VERIFIED')
+    .reduce((sum, g) => sum + g._count.quality, 0);
+  const healthPercent = fileCount > 0 ? Math.round((okCount / fileCount) * 100) : 0;
+
+  return {
+    library: {
+      showCount,
+      episodeCount,
+      fileCount,
+      totalSize: totalSizeResult._sum.fileSize,
+      healthPercent,
+      healthLabel: `${okCount} of ${fileCount} verified`,
+    },
+    qualityData: qualityGroups.map((g) => ({ quality: g.quality, count: g._count.quality })),
+    actionData: actionGroups.map((g) => ({ action: g.action, count: g._count.action })),
+    codecs: codecGroups.map((g) => ({ name: g.codec || 'Unknown', count: g._count.codec })),
+    resolutions: resolutionGroups.map((g) => ({ name: g.resolution || 'Unknown', count: g._count.resolution })),
+    hdr: hdrGroups.map((g) => ({ name: g.hdrType || 'Unknown', count: g._count.hdrType })),
+    recentScans: recentScans.map((s) => ({
+      id: s.id,
+      scanType: s.scanType,
+      status: s.status,
+      startedAt: s.startedAt.toISOString(),
+      completedAt: s.completedAt?.toISOString() || null,
+      filesScanned: s.filesScanned,
+      filesAdded: s.filesAdded,
+      filesUpdated: s.filesUpdated,
+      filesDeleted: s.filesDeleted,
+    })),
+    tmdb: { matchedCount: tmdbMatchedCount, totalShows: showCount },
+    analyzedFiles: analyzedFilesCount,
+  };
 }
 
 export default async function Home() {
-  const { showCount, episodeCount, fileCount, recentScans } = await getStats();
+  const stats = await getDashboardStats();
 
   return (
     <PageContainer maxWidth="wide">
@@ -32,96 +127,29 @@ export default async function Home() {
         description="Overview of your media library"
       />
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:gap-6 md:grid-cols-3 mb-6 md:mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">TV Shows</CardTitle>
-            <Tv className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{showCount}</div>
-            <p className="text-xs text-muted-foreground">shows in library</p>
-          </CardContent>
-        </Card>
+      {/* Library Health Stats — server-rendered */}
+      <LibraryHealth
+        showCount={stats.library.showCount}
+        episodeCount={stats.library.episodeCount}
+        fileCount={stats.library.fileCount}
+        totalSize={stats.library.totalSize}
+        healthPercent={stats.library.healthPercent}
+        healthLabel={stats.library.healthLabel}
+      />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Episodes</CardTitle>
-            <Film className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{episodeCount}</div>
-            <p className="text-xs text-muted-foreground">total episodes</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Media Files</CardTitle>
-            <FileVideo className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{fileCount}</div>
-            <p className="text-xs text-muted-foreground">files tracked</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid gap-4 md:gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <Button asChild variant="outline" className="justify-between">
-              <Link href="/tv-shows">
-                Browse TV Shows
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-between">
-              <Link href="/scans">
-                <span className="flex items-center gap-2">
-                  <ScanSearch className="h-4 w-4" />
-                  Scan Library
-                </span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Scans</CardTitle>
-            <CardDescription>Latest scan activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentScans.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No scans yet</p>
-            ) : (
-              <ul className="space-y-2">
-                {recentScans.map((scan) => (
-                  <li key={scan.id} className="flex items-center justify-between text-sm">
-                    <span className="capitalize">{scan.scanType} scan</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${
-                      scan.status === 'COMPLETED' ? 'bg-success text-success-foreground' :
-                      scan.status === 'FAILED' ? 'bg-destructive text-destructive-foreground' :
-                      scan.status === 'RUNNING' ? 'bg-secondary text-secondary-foreground' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {scan.status.toLowerCase()}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Client sections — role-aware, interactive */}
+      <DashboardClient
+        recentScans={stats.recentScans}
+        qualityData={stats.qualityData}
+        actionData={stats.actionData}
+        codecs={stats.codecs}
+        resolutions={stats.resolutions}
+        hdr={stats.hdr}
+        totalFiles={stats.library.fileCount}
+        tmdbMatchedCount={stats.tmdb.matchedCount}
+        totalShows={stats.tmdb.totalShows}
+        analyzedFiles={stats.analyzedFiles}
+      />
     </PageContainer>
   );
 }
