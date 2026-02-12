@@ -13,6 +13,7 @@ export default async function SettingsPage() {
       <PageHeader
         title="Settings"
         description="Configure application preferences"
+        breadcrumbs={[{ label: 'Settings' }]}
       />
 
       <SettingsForm initialSettings={settings} />

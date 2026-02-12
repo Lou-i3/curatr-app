@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatFileSize, formatDuration, formatDateWithFormat, formatDateTimeWithFormat } from "@/lib/format";
@@ -7,13 +6,14 @@ import { getSettings } from "@/lib/settings";
 import { isFFprobeAvailable } from "@/lib/ffprobe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, ChevronRight, FileCheck, FileX, Clock, HardDrive, Calendar } from "lucide-react";
+import { AlertTriangle, FileCheck, FileX, Clock, HardDrive, Calendar } from "lucide-react";
 import { EpisodeDetailStatusBadges } from "./episode-detail-status-badges";
 import { FileStatusBadges } from "./file-status-badges";
 import { MediaInfoSection } from "@/components/files/media-info-section";
 import { IssueReportDialog } from "@/components/issues/issue-report-dialog";
 import { EpisodeIssuesList } from "./episode-issues-list";
 import { PageContainer } from "@/components/layout";
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 
 export const dynamic = 'force-dynamic';
 
@@ -83,21 +83,11 @@ export default async function EpisodeDetailPage({ params }: Props) {
 
   return (
     <PageContainer maxWidth="wide">
-      {/* Breadcrumb */}
-      <div className="mb-4 md:mb-6 flex items-center gap-2 text-sm overflow-auto">
-        <Link href="/tv-shows" className="text-primary hover:underline whitespace-nowrap">
-          TV Shows
-        </Link>
-        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        <Link href={`/tv-shows/${id}`} className="text-primary hover:underline whitespace-nowrap">
-          {episode.season.tvShow.title}
-        </Link>
-        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        <span className="text-muted-foreground whitespace-nowrap">
-          S{String(episode.season.seasonNumber).padStart(2, "0")}E{String(episode.episodeNumber).padStart(2, "0")}
-        </span>
-      </div>
-
+      <PageBreadcrumbs items={[
+        { label: 'TV Shows', href: '/tv-shows' },
+        { label: episode.season.tvShow.title, href: `/tv-shows/${episode.season.tvShow.id}` },
+        { label: `S${String(episode.season.seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}` },
+      ]} />
       {/* Header */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">

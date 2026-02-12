@@ -6,9 +6,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 import {
-  ArrowLeft,
   RefreshCw,
   CheckCircle2,
   XCircle,
@@ -25,6 +23,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageContainer } from '@/components/layout';
+import { PageHeader } from '@/components/page-header';
 
 interface FFprobeStatus {
   configured: boolean;
@@ -77,19 +76,11 @@ export default function FfprobeIntegrationPage() {
   if (loading) {
     return (
       <PageContainer maxWidth="wide">
-        <div className="flex items-center gap-4 mb-6 md:mb-8">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/integrations">
-              <ArrowLeft className="size-4" />
-            </Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-xl md:text-2xl font-semibold">FFprobe Integration</h1>
-            <p className="text-muted-foreground text-sm md:text-base">
-              Analyze media files to extract detailed quality information
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="FFprobe Integration"
+          description="Analyze media files to extract detailed quality information"
+          breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: 'FFprobe' }]}
+        />
 
         <Card>
           <CardHeader>
@@ -107,28 +98,24 @@ export default function FfprobeIntegrationPage() {
   return (
     <PageContainer maxWidth="wide">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 md:mb-8">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/integrations">
-            <ArrowLeft className="size-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-xl md:text-2xl font-semibold">FFprobe Integration</h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Analyze media files to extract detailed quality information
-          </p>
-        </div>
-        <FfprobeHelpDialog />
-        <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
-          {refreshing ? (
-            <Loader2 className="size-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="size-4 mr-2" />
-          )}
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
-      </div>
+      <PageHeader
+        title="FFprobe Integration"
+        description="Analyze media files to extract detailed quality information"
+        breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: 'FFprobe' }]}
+        action={
+          <div className="flex items-center gap-2">
+            <FfprobeHelpDialog />
+            <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
+              {refreshing ? (
+                <Loader2 className="size-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="size-4 mr-2" />
+              )}
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+        }
+      />
 
       {error && (
         <Card className="border-destructive mb-6 md:mb-8">

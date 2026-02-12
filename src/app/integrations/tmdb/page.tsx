@@ -9,7 +9,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft,
   RefreshCw,
   Zap,
   ExternalLink,
@@ -31,6 +30,7 @@ import { formatDateWithFormat, type DateFormat } from '@/lib/settings-shared';
 import { getPosterUrl } from '@/lib/tmdb/images';
 import { useTasks } from '@/lib/contexts/task-context';
 import { PageContainer } from '@/components/layout';
+import { PageHeader } from '@/components/page-header';
 
 interface EnhancedIntegrationStatus {
   configured: boolean;
@@ -301,19 +301,11 @@ export default function TmdbIntegrationPage() {
   if (loading) {
     return (
       <PageContainer maxWidth="wide">
-        <div className="flex items-center gap-4 mb-6 md:mb-8">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/integrations">
-              <ArrowLeft className="size-4" />
-            </Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-xl md:text-2xl font-semibold">TMDB Integration</h1>
-            <p className="text-muted-foreground text-sm md:text-base">
-              Enrich your library with metadata from The Movie Database
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="TMDB Integration"
+          description="Enrich your library with metadata from The Movie Database"
+          breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: 'TMDB' }]}
+        />
 
         <Card>
           <CardHeader>
@@ -339,28 +331,24 @@ export default function TmdbIntegrationPage() {
   return (
     <PageContainer maxWidth="wide">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 md:mb-8">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/integrations">
-            <ArrowLeft className="size-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-xl md:text-2xl font-semibold">TMDB Integration</h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Enrich your library with metadata from The Movie Database
-          </p>
-        </div>
-        <TmdbIntegrationHelpDialog />
-        <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
-          {refreshing ? (
-            <Loader2 className="size-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="size-4 mr-2" />
-          )}
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
-      </div>
+      <PageHeader
+        title="TMDB Integration"
+        description="Enrich your library with metadata from The Movie Database"
+        breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: 'TMDB' }]}
+        action={
+          <div className="flex items-center gap-2">
+            <TmdbIntegrationHelpDialog />
+            <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
+              {refreshing ? (
+                <Loader2 className="size-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="size-4 mr-2" />
+              )}
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+        }
+      />
 
       {error && (
         <Card className="border-destructive mb-6 md:mb-8">
@@ -601,55 +589,57 @@ export default function TmdbIntegrationPage() {
                   filteredShows.map((show) => (
                     <div
                       key={show.id}
-                      className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
                     >
-                      {/* Poster */}
-                      <div className="w-10 h-14 rounded bg-muted flex-shrink-0 overflow-hidden">
-                        {show.posterPath ? (
-                          <img
-                            src={getPosterUrl(show.posterPath, 'w92') ?? undefined}
-                            alt={show.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                            ?
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Poster */}
+                        <div className="w-10 h-14 rounded bg-muted flex-shrink-0 overflow-hidden">
+                          {show.posterPath ? (
+                            <img
+                              src={getPosterUrl(show.posterPath, 'w92') ?? undefined}
+                              alt={show.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                              ?
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{show.title}</div>
+                          <div className="flex items-center gap-2 text-sm flex-wrap">
+                            {show.year && (
+                              <span className="text-muted-foreground">{show.year}</span>
+                            )}
+
+                            {show.syncStatus === 'unmatched' && (
+                              <Badge variant="destructive" className="text-xs">
+                                <XCircle className="size-3 mr-1" />
+                                Not Matched
+                              </Badge>
+                            )}
+                            {show.syncStatus === 'needs-sync' && (
+                              <Badge variant="warning" className="text-xs">
+                                <AlertTriangle className="size-3 mr-1" />
+                                {show.seasonsWithMetadata}/{show.seasonCount} seasons ·{' '}
+                                {show.episodesWithMetadata}/{show.episodeCount} episodes
+                              </Badge>
+                            )}
+                            {show.syncStatus === 'fully-synced' && (
+                              <Badge variant="success" className="text-xs">
+                                <CheckCircle2 className="size-3 mr-1" />
+                                Synced
+                              </Badge>
+                            )}
                           </div>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{show.title}</div>
-                        <div className="flex items-center gap-2 text-sm">
-                          {show.year && (
-                            <span className="text-muted-foreground">{show.year}</span>
-                          )}
-
-                          {show.syncStatus === 'unmatched' && (
-                            <Badge variant="destructive" className="text-xs">
-                              <XCircle className="size-3 mr-1" />
-                              Not Matched
-                            </Badge>
-                          )}
-                          {show.syncStatus === 'needs-sync' && (
-                            <Badge variant="warning" className="text-xs">
-                              <AlertTriangle className="size-3 mr-1" />
-                              {show.seasonsWithMetadata}/{show.seasonCount} seasons ·{' '}
-                              {show.episodesWithMetadata}/{show.episodeCount} episodes
-                            </Badge>
-                          )}
-                          {show.syncStatus === 'fully-synced' && (
-                            <Badge variant="success" className="text-xs">
-                              <CheckCircle2 className="size-3 mr-1" />
-                              Synced
-                            </Badge>
-                          )}
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pl-13 sm:pl-0">
                         {show.syncStatus === 'unmatched' ? (
                           <TmdbMatchDialog
                             showId={show.id}

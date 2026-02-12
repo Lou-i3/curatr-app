@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -13,13 +12,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Separator } from "@/components/ui/separator";
-import { ChevronRight, Star, Calendar, Tv, Film } from "lucide-react";
+import { Star, Calendar, Tv, Film } from "lucide-react";
 import { TmdbSection } from "./tmdb-section";
 import { ShowEditButton } from "./show-edit-button";
 import { ShowScanButton } from "./show-scan-button";
 import { ShowDetailStatusBadges } from "./show-detail-status-badges";
 import { SeasonsList } from "./seasons-list";
 import { PageContainer } from "@/components/layout";
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 
 export const dynamic = 'force-dynamic';
 
@@ -93,18 +93,7 @@ export default async function ShowDetailPage({ params }: Props) {
 
   return (
     <PageContainer maxWidth="wide">
-      {/* Breadcrumb */}
-      <div className="mb-4 md:mb-6 flex items-center gap-2 text-sm overflow-auto">
-        <Link
-          href="/tv-shows"
-          className="text-primary hover:underline"
-        >
-          TV Shows
-        </Link>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        <span className="text-muted-foreground">{show.title}</span>
-      </div>
-
+      <PageBreadcrumbs items={[{ label: 'TV Shows', href: '/tv-shows' }, { label: show.title }]} />
       {/* Header */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row gap-4 md:gap-6">

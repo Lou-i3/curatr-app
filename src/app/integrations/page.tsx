@@ -157,6 +157,7 @@ export default async function IntegrationsPage() {
       <PageHeader
         title="Integrations"
         description="Connect external services to enrich your library with metadata and automate workflows."
+        breadcrumbs={[{ label: 'Integrations' }]}
       />
 
       <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">

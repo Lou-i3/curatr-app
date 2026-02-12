@@ -9,12 +9,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   RefreshCw,
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Loader2,
   Users,
   Shield,
   Server,
@@ -25,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageContainer } from '@/components/layout';
+import { PageHeader } from '@/components/page-header';
 
 interface AuthStatus {
   authMode: 'none' | 'plex';
@@ -63,12 +62,11 @@ export default function PlexAuthIntegrationPage() {
   if (loading) {
     return (
       <PageContainer maxWidth="wide">
-        <div className="flex items-center gap-4 mb-6 md:mb-8">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/integrations"><ArrowLeft className="size-4" /></Link>
-          </Button>
-          <Skeleton className="h-8 w-48" />
-        </div>
+        <PageHeader
+          title="Plex Authentication"
+          description="Multi-user access with Plex account login"
+          breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: 'Plex Auth' }]}
+        />
         <div className="grid gap-4 md:gap-6 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-32" />
@@ -85,24 +83,11 @@ export default function PlexAuthIntegrationPage() {
   return (
     <PageContainer maxWidth="wide">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 md:mb-8">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/integrations"><ArrowLeft className="size-4" /></Link>
-        </Button>
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-            <svg className="size-6" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M11.643 0L2.805 24H12.357L21.195 0H11.643Z" />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-semibold">Plex Authentication</h1>
-            <p className="text-sm md:text-base text-muted-foreground">
-              Multi-user access with Plex account login
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+      <PageHeader
+        title="Plex Authentication"
+        description="Multi-user access with Plex account login"
+        breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: 'Plex Auth' }]}
+        action={
           <Button
             variant="outline"
             size="sm"
@@ -112,8 +97,8 @@ export default function PlexAuthIntegrationPage() {
             <RefreshCw className={`size-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {error && (
         <Card className="border-destructive mb-6 md:mb-8">

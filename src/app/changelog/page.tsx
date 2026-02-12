@@ -91,6 +91,7 @@ export default function ChangelogPage() {
       <PageHeader
         title="Changelog"
         description="Release history and version notes"
+        breadcrumbs={[{ label: 'Changelog' }]}
         action={
           <Button
             variant="outline"

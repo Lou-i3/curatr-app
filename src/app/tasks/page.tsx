@@ -116,6 +116,7 @@ export default function TasksPage() {
         <PageHeader
           title="Tasks"
           description="View and manage background tasks"
+          breadcrumbs={[{ label: 'Tasks' }]}
         />
         <Card>
           <CardContent className="pt-6 space-y-4">
@@ -134,6 +135,7 @@ export default function TasksPage() {
       <PageHeader
         title="Tasks"
         description="View and manage background tasks"
+        breadcrumbs={[{ label: 'Tasks' }]}
         action={
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             {refreshing ? (
@@ -215,20 +217,22 @@ function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
   return (
     <div className="rounded-lg border p-4 space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <span className="font-medium">{task.title || getTaskLabel(task.type)}</span>
           {getStatusBadge(task.status)}
         </div>
         {isActive && onCancel && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={cancelling}
-          >
-            {cancelling ? <Loader2 className="size-3 animate-spin" /> : 'Cancel'}
-          </Button>
+          <div className="sm:flex-shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? <Loader2 className="size-3 animate-spin" /> : 'Cancel'}
+            </Button>
+          </div>
         )}
       </div>
 

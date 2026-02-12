@@ -37,6 +37,7 @@ export default async function ScansPage() {
       <PageHeader
         title="Library Scans"
         description="Scan your media library to discover and track TV shows"
+        breadcrumbs={[{ label: 'Scans' }]}
       />
 
       {/* Scan Controls */}
