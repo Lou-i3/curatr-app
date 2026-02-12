@@ -3,10 +3,10 @@
 /**
  * Issue Report with Episode Search — for reporting issues from the issues page
  * Step 1: Search for a show, expand to load seasons/episodes, pick an episode
- * Step 2: Standard issue type/context selection
+ * Step 2: Standard issue type/context selection with platform chips
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AlertTriangle, Search, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,9 +56,22 @@ export function IssueReportSearchDialog({ onSubmitted }: { onSubmitted?: () => v
   // Step 2 state
   const [selectedEpisode, setSelectedEpisode] = useState<SelectedEpisode | null>(null);
   const [selectedType, setSelectedType] = useState<IssueType | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Platform list from API
+  const [platforms, setPlatforms] = useState<string[]>([]);
+
+  // Fetch platforms when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    fetch('/api/platforms')
+      .then((r) => r.json())
+      .then((data) => setPlatforms(data.map((p: { name: string }) => p.name)))
+      .catch(() => {});
+  }, [open]);
 
   const reset = useCallback(() => {
     setQuery('');
@@ -68,6 +81,7 @@ export function IssueReportSearchDialog({ onSubmitted }: { onSubmitted?: () => v
     setLoadingEpisodes(null);
     setSelectedEpisode(null);
     setSelectedType(null);
+    setSelectedPlatform(null);
     setDescription('');
     setShowDetails(false);
   }, []);
@@ -126,6 +140,7 @@ export function IssueReportSearchDialog({ onSubmitted }: { onSubmitted?: () => v
           episodeId: selectedEpisode.id,
           type: selectedType,
           description: description.trim() || null,
+          platform: selectedPlatform,
         }),
       });
       if (!response.ok) {
@@ -141,7 +156,7 @@ export function IssueReportSearchDialog({ onSubmitted }: { onSubmitted?: () => v
     } finally {
       setSubmitting(false);
     }
-  }, [selectedEpisode, selectedType, description, reset, onSubmitted]);
+  }, [selectedEpisode, selectedType, description, selectedPlatform, reset, onSubmitted]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
@@ -273,6 +288,28 @@ export function IssueReportSearchDialog({ onSubmitted }: { onSubmitted?: () => v
               </div>
             </div>
 
+            {/* Platform selection (shown after type selected) */}
+            {selectedType && platforms.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Platform</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {platforms.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setSelectedPlatform(selectedPlatform === p ? null : p)}
+                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                        selectedPlatform === p
+                          ? 'bg-secondary text-secondary-foreground border-secondary'
+                          : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Optional details */}
             {selectedType && (
               <div>
@@ -300,6 +337,7 @@ export function IssueReportSearchDialog({ onSubmitted }: { onSubmitted?: () => v
             {selectedType && (
               <div className="flex flex-wrap gap-1.5 text-xs">
                 <Badge variant="outline">{ISSUE_TYPE_LABELS[selectedType]}</Badge>
+                {selectedPlatform && <Badge variant="secondary">{selectedPlatform}</Badge>}
               </div>
             )}
 

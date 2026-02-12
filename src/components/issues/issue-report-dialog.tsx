@@ -142,7 +142,7 @@ export function IssueReportDialog({
             <div className="space-y-3">
               {platforms.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1.5">Device / Platform</p>
+                  <p className="text-xs text-muted-foreground mb-1.5">Platform</p>
                   <div className="flex flex-wrap gap-1.5">
                     {platforms.map((p) => (
                       <button

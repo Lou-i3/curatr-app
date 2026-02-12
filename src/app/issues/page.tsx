@@ -1,15 +1,18 @@
 'use client';
 
 /**
- * Issues Page — lists all reported issues with status filters and admin actions
- * Uses DataTable for sorting, BadgeSelector for inline status changes
+ * Issues Page — lists all reported issues with status filters, card/table views, and admin actions
+ * Card view for mobile-friendly browsing, table view with DataTable for sorting
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { toast } from 'sonner';
-import { AlertTriangle } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, Pencil, Trash2, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -23,14 +26,19 @@ import { DataTable } from '@/components/ui/data-table';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useIssueContext } from '@/lib/contexts/issue-context';
 import {
+  ISSUE_TYPE_LABELS,
   ISSUE_STATUS_LABELS,
   ISSUE_STATUSES,
+  getIssueTypeVariant,
   getIssueStatusVariant,
 } from '@/lib/issue-utils';
+import { formatDateTimeWithFormat } from '@/lib/settings-shared';
 import type { IssueStatus } from '@/generated/prisma/client';
 import type { DateFormat } from '@/lib/settings-shared';
 import { getIssueColumns, type IssueRow } from './issue-columns';
 import { IssueReportSearchDialog } from '@/components/issues/issue-report-search-dialog';
+import { IssueEditDialog } from '@/components/issues/issue-edit-dialog';
+import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
 
 type StatusFilter = IssueStatus | 'all' | 'active';
@@ -51,14 +59,53 @@ function TableRowSkeleton({ colCount }: { colCount: number }) {
   );
 }
 
+function CardSkeleton() {
+  return (
+    <Card>
+      <CardContent className="p-4 md:p-6">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex gap-2">
+            <Skeleton className="h-6 w-20" />
+            <Skeleton className="h-6 w-16" />
+          </div>
+          <div className="flex gap-1">
+            <Skeleton className="size-7" />
+          </div>
+        </div>
+        <Skeleton className="h-5 w-48 mb-1" />
+        <Skeleton className="h-4 w-32 mb-3" />
+        <Skeleton className="h-4 w-full mb-2" />
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function IssuesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAdmin, authMode, user } = useAuth();
   const { refresh: refreshCounts } = useIssueContext();
+
+  const currentView = searchParams.get('view') ?? 'cards';
 
   const [issues, setIssues] = useState<IssueRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+
+  const updateView = useCallback((view: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (view === 'cards') {
+      params.delete('view');
+    } else {
+      params.set('view', view);
+    }
+    router.replace(`?${params.toString()}`);
+  }, [router, searchParams]);
 
   // Fetch settings for date format
   useEffect(() => {
@@ -185,92 +232,111 @@ export default function IssuesPage() {
   }, [issues]);
 
   const colCount = authMode === 'plex' ? 7 : 6;
+  const isTableView = currentView === 'table';
 
   return (
     <PageContainer maxWidth="wide">
       {/* Sticky Header */}
       <div className="sticky top-12 md:top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
-        <div className="mb-4">
-          <div className="flex items-center justify-between gap-4 mb-2">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="size-5 md:size-6" />
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Issues</h1>
-              {!loading && (
-                <span className="text-muted-foreground text-base md:text-lg ml-1">
-                  ({filteredIssues.length})
-                </span>
-              )}
-            </div>
-            <IssueReportSearchDialog onSubmitted={fetchIssues} />
+        <PageHeader
+          title={`Issues ${!loading ? `(${filteredIssues.length})` : ''}`}
+          description="Track and manage reported issues across your library"
+          action={<IssueReportSearchDialog onSubmitted={fetchIssues} />}
+          className="mb-0"
+        />
+
+        {/* Status Filter Chips + View Toggle */}
+        <div className="flex items-center gap-3 mt-4">
+          <div className="flex gap-2 flex-1 overflow-x-auto scrollbar-none md:flex-wrap">
+            {STATUS_FILTERS.map((filter) => {
+              const isActive = statusFilter === filter.value;
+              const count = statusCounts[filter.value] ?? 0;
+              const variant = filter.value !== 'all' && filter.value !== 'active'
+                ? getIssueStatusVariant(filter.value as IssueStatus)
+                : undefined;
+
+              return (
+                <button
+                  key={filter.value}
+                  onClick={() => setStatusFilter(filter.value)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap flex-shrink-0 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  {!isActive && variant && (
+                    <Badge variant={variant} className="size-2 p-0 rounded-full" />
+                  )}
+                  {filter.label}
+                  {!loading && (
+                    <span className={`text-xs ${isActive ? 'opacity-75' : 'opacity-50'}`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Track and manage reported issues across your library
-          </p>
-        </div>
 
-        {/* Status Filter Chips */}
-        <div className="flex flex-wrap gap-2">
-          {STATUS_FILTERS.map((filter) => {
-            const isActive = statusFilter === filter.value;
-            const count = statusCounts[filter.value] ?? 0;
-            const variant = filter.value !== 'all' && filter.value !== 'active'
-              ? getIssueStatusVariant(filter.value as IssueStatus)
-              : undefined;
-
-            return (
-              <button
-                key={filter.value}
-                onClick={() => setStatusFilter(filter.value)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                {!isActive && variant && (
-                  <Badge variant={variant} className="size-2 p-0 rounded-full" />
-                )}
-                {filter.label}
-                {!loading && (
-                  <span className={`text-xs ${isActive ? 'opacity-75' : 'opacity-50'}`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {/* View Toggle */}
+          <div className="flex border rounded-md flex-shrink-0">
+            <Button
+              variant={!isTableView ? 'secondary' : 'ghost'}
+              size="icon"
+              className="rounded-r-none"
+              onClick={() => updateView('cards')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={isTableView ? 'secondary' : 'ghost'}
+              size="icon"
+              className="rounded-l-none"
+              onClick={() => updateView('table')}
+            >
+              <TableIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <div>
         {loading ? (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Episode</TableHead>
-                    {authMode === 'plex' && <TableHead>Reporter</TableHead>}
-                    <TableHead>Status</TableHead>
-                    <TableHead>Platform</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <TableRowSkeleton key={i} colCount={colCount} />
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          isTableView ? (
+            <Card className="p-0">
+              <CardContent className="p-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Episode</TableHead>
+                      {authMode === 'plex' && <TableHead>Reporter</TableHead>}
+                      <TableHead>Status</TableHead>
+                      <TableHead>Platform</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <TableRowSkeleton key={i} colCount={colCount} />
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4 md:space-y-6">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <CardSkeleton key={i} />
+              ))}
+            </div>
+          )
         ) : filteredIssues.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <AlertTriangle className="size-8 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground mb-1">
                 {statusFilter !== 'all' ? 'No issues match this filter.' : 'No issues reported yet.'}
               </p>
@@ -281,15 +347,132 @@ export default function IssuesPage() {
               </p>
             </CardContent>
           </Card>
-        ) : (
+        ) : isTableView ? (
+          /* Table View */
           <Card className="p-0">
             <CardContent className="p-2">
-              <DataTable
-                columns={columns}
-                data={filteredIssues}
-              />
+              <div className="overflow-x-auto">
+                <DataTable
+                  columns={columns}
+                  data={filteredIssues}
+                />
+              </div>
             </CardContent>
           </Card>
+        ) : (
+          /* Card View */
+          <div className="space-y-4 md:space-y-6">
+            {filteredIssues.map((issue) => {
+              const ep = issue.episode;
+              const epLabel = `S${String(ep.season.seasonNumber).padStart(2, '0')}E${String(ep.episodeNumber).padStart(2, '0')}`;
+              const fullLabel = `${ep.season.tvShow.title} — ${epLabel}`;
+              const isOwner = user?.id !== undefined && issue.user?.id === user.id;
+              const canEdit = isAdmin || isOwner;
+              const canDelete = isAdmin || (isOwner && issue.status === 'OPEN');
+
+              return (
+                <Card key={issue.id} className='p-0'>
+                  <CardContent className="p-4 md:p-6">
+                    {/* Top row: badges + actions */}
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={getIssueStatusVariant(issue.status)}>
+                          {ISSUE_STATUS_LABELS[issue.status]}
+                        </Badge>
+                        <Badge variant={getIssueTypeVariant(issue.type)}>
+                          {ISSUE_TYPE_LABELS[issue.type]}
+                        </Badge>
+                      </div>
+                      {(canEdit || canDelete) && (
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          {canEdit && (
+                            <IssueEditDialog
+                              issue={issue}
+                              episodeLabel={fullLabel}
+                              isAdmin={isAdmin}
+                              isOwner={isOwner}
+                              onUpdated={(updated) => handleIssueUpdated(issue.id, updated)}
+                              trigger={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 text-muted-foreground hover:text-foreground"
+                                >
+                                  <Pencil className="size-3.5" />
+                                </Button>
+                              }
+                            />
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 text-muted-foreground hover:text-destructive-foreground"
+                              onClick={() => handleDelete(issue.id)}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Episode info */}
+                    <Link
+                      href={`/tv-shows/${ep.season.tvShow.id}/episodes/${ep.id}`}
+                      className="hover:underline"
+                    >
+                      <p className="font-medium text-sm">{ep.season.tvShow.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {epLabel}{ep.title ? ` — ${ep.title}` : ''}
+                      </p>
+                    </Link>
+
+                    {/* Description */}
+                    {issue.description && (
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        {issue.description}
+                      </p>
+                    )}
+
+                    {/* Context: platform, audio, subtitle */}
+                    {(issue.platform || issue.audioLang || issue.subtitleLang) && (
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {issue.platform && (
+                          <Badge variant="outline" className="text-xs">{issue.platform}</Badge>
+                        )}
+                        {issue.audioLang && (
+                          <Badge variant="outline" className="text-xs">Audio: {issue.audioLang}</Badge>
+                        )}
+                        {issue.subtitleLang && (
+                          <Badge variant="outline" className="text-xs">Sub: {issue.subtitleLang}</Badge>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Footer: reporter + date */}
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                      {authMode === 'plex' && issue.user ? (
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {issue.user.thumbUrl ? (
+                            <img src={issue.user.thumbUrl} alt="" className="size-4 rounded-full" />
+                          ) : (
+                            <User className="size-3.5" />
+                          )}
+                          {issue.user.username}
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {formatDateTimeWithFormat(new Date(issue.createdAt), dateFormat)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </div>
     </PageContainer>

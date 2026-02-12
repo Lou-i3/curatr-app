@@ -34,6 +34,8 @@ interface IssueEditDialogProps {
     status: IssueStatus;
     description: string | null;
     platform: string | null;
+    audioLang: string | null;
+    subtitleLang: string | null;
     resolution: string | null;
   };
   episodeLabel: string;
@@ -144,6 +146,24 @@ export function IssueEditDialog({
             </div>
           )}
 
+          {/* Audio / Subtitle language (read-only) */}
+          {(issue.audioLang || issue.subtitleLang) && (
+            <div className="flex flex-wrap gap-3">
+              {issue.audioLang && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Audio</p>
+                  <Badge variant="outline">{issue.audioLang}</Badge>
+                </div>
+              )}
+              {issue.subtitleLang && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Subtitle</p>
+                  <Badge variant="outline">{issue.subtitleLang}</Badge>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Status — admin can change */}
           <div>
             <p className="text-xs text-muted-foreground mb-1.5">Status</p>
@@ -173,7 +193,7 @@ export function IssueEditDialog({
           {/* Resolution notes — admin can edit */}
           {isAdmin && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5">Resolution notes</p>
+              <p className="text-xs text-muted-foreground mb-1.5">Resolution</p>
               <textarea
                 value={resolution}
                 onChange={(e) => setResolution(e.target.value)}
