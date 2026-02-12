@@ -124,9 +124,20 @@ This is a **web-first application** with desktop as the primary experience. All 
 
 - **PageContainer** (`src/components/layout/page-container.tsx`): Standardized wrapper for all page content
   - Provides consistent responsive padding: `px-4 py-4 md:px-8 md:py-6`
-  - **All pages use `maxWidth="wide"` (max-w-7xl)** for consistency
-  - Other variants available but unused: `narrow` (max-w-3xl), `default` (max-w-5xl), `full` (no constraint)
+  - **All pages use `maxWidth="wide"`** — no max-width constraint, content fills available space
+  - Other variants: `narrow` (max-w-3xl, centered), `default` (max-w-5xl, centered), `full` (alias for wide)
+  - Only `narrow` and `default` apply `mx-auto` centering
   - Import: `import { PageContainer } from '@/components/layout';`
+
+- **AppBar** (`src/components/app-bar.tsx`): Full-width fixed header bar
+  - Spans the entire page above both sidebar and content
+  - Fixed `top-0 left-0 right-0 z-50 h-12` (3rem)
+  - Padding: `pl-4 pr-4 md:pr-6` — left fixed for sidebar icon alignment, right responsive
+  - App name: `text-sm md:text-lg` — visible on all screen sizes with responsive sizing
+  - Mobile: sidebar trigger + logo + app name + UserMenu
+  - Desktop: sidebar trigger + logo + app name + GitHub link + version badge + UserMenu
+  - Import: `import { AppBar } from '@/components/app-bar';`
+
 
 - **PageHeader** (`src/components/page-header.tsx`): Responsive page header
   - Displays title with responsive typography: `text-2xl md:text-3xl lg:text-4xl`
@@ -175,6 +186,23 @@ text-sm md:text-base
 text-xs md:text-sm
 ```
 
+**Root Layout Structure:**
+
+```tsx
+// src/app/layout.tsx
+<SidebarProvider className="flex-col">
+  <AppBar />                              {/* Fixed full-width header (z-50, h-12) */}
+  <div className="flex flex-1 pt-12">    {/* pt-12 offsets the fixed AppBar height */}
+    <AppSidebar />                        {/* Sidebar below AppBar (no header, auto-close on mobile) */}
+    <SidebarInset className="p-4 md:p-6"> {/* Responsive base padding (SidebarInset renders as <main>) */}
+      {children}
+    </SidebarInset>
+  </div>
+</SidebarProvider>
+```
+
+**Padding chain:** SidebarInset provides `p-4 md:p-6` base padding, then PageContainer adds `px-4 py-4 md:px-8 md:py-6` for content spacing. This creates the total padding seen on each page.
+
 **Standard Page Structure:**
 
 ```tsx
@@ -200,7 +228,33 @@ export default function SomePage() {
 }
 ```
 
-**Sticky Header Pattern (TV Shows, Scans, Issues):**
+**Subpage with nested breadcrumbs:**
+
+```tsx
+<PageHeader
+  title="TMDB Integration"
+  breadcrumbs={[
+    { label: 'Integrations', href: '/integrations' },
+    { label: 'TMDB' },
+  ]}
+/>
+```
+
+**Detail page with standalone breadcrumbs (no PageHeader):**
+
+```tsx
+import { PageBreadcrumbs } from '@/components/page-breadcrumbs';
+
+<PageContainer maxWidth="wide">
+  <PageBreadcrumbs items={[
+    { label: 'TV Shows', href: '/tv-shows' },
+    { label: show.title },
+  ]} />
+  {/* Custom header layout */}
+</PageContainer>
+```
+
+**Sticky Header Pattern (TV Shows, Issues):**
 
 For pages with toolbars/filters that should remain visible on scroll:
 
@@ -220,6 +274,8 @@ For pages with toolbars/filters that should remain visible on scroll:
 ```
 
 **Key sticky header techniques:**
+- `sticky top-12` — Always use `top-12` (not `top-0`) because the AppBar is fixed at the top with h-12
+- `-mt-4 md:-mt-6` — Absorbs PageContainer's top padding so sticky header sits flush against AppBar
 - `-mx-4 px-4 md:-mx-8 md:px-8` — Negative margins extend to full width while keeping content aligned
 - `pt-4 md:pt-6 pb-4 md:pb-6` — Consistent vertical padding inside sticky wrapper
 - `border-b` — Visual separator from scrollable content
@@ -235,6 +291,13 @@ For pages with data tables that may overflow on small screens:
 ```
 
 Page scrolls vertically normally; table scrolls horizontally on mobile when needed.
+
+**Sidebar Structure (AppSidebar):**
+
+All sections live in `SidebarContent` (no `SidebarFooter`), grouped with separators:
+1. **Navigation** — Dashboard, TV Shows, Scans (admin), Issues, Integrations (admin), Tasks (admin)
+2. **Settings** — admin only, separated by `SidebarSeparator`
+3. **GitHub + Version** — mobile only (`isMobile`), shows GitHub link and changelog/version (hidden in AppBar on mobile via `hidden md:block`)
 
 **Data Components:**
 - **DataTable** (`src/components/ui/data-table.tsx`): Generic reusable table component powered by TanStack Table v8
