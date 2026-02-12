@@ -1,10 +1,12 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { PageBreadcrumbs, type BreadcrumbItemDef } from '@/components/page-breadcrumbs';
 
 interface PageHeaderProps {
   title: string;
   description?: string;
   action?: React.ReactNode;
+  breadcrumbs?: BreadcrumbItemDef[];
   className?: string;
   titleClassName?: string;
 }
@@ -36,6 +38,7 @@ export function PageHeader({
   title,
   description,
   action,
+  breadcrumbs,
   className,
   titleClassName,
 }: PageHeaderProps) {
@@ -50,6 +53,7 @@ export function PageHeader({
       )}
     >
       <div>
+        {breadcrumbs && <PageBreadcrumbs items={breadcrumbs} />}
         <h1 className={cn('text-2xl md:text-3xl lg:text-4xl font-bold text-foreground', titleClassName)}>
           {title}
         </h1>

@@ -143,9 +143,15 @@ This is a **web-first application** with desktop as the primary experience. All 
   - Displays title with responsive typography: `text-2xl md:text-3xl lg:text-4xl`
   - Optional description: `text-sm md:text-base`
   - Optional action button (stacks on mobile, inline on desktop)
+  - Optional `breadcrumbs` prop — renders `PageBreadcrumbs` above the title
   - No hardcoded margins — spacing controlled by parent
   - Import: `import { PageHeader } from '@/components/page-header';`
 
+- **PageBreadcrumbs** (`src/components/page-breadcrumbs.tsx`): Breadcrumb trail for page content
+  - Always starts with a Home icon linking to `/`
+  - Last item renders as current page (plain text), others as links
+  - Used inside PageHeader via `breadcrumbs` prop, or standalone for custom layouts
+  - Import: `import { PageBreadcrumbs } from '@/components/page-breadcrumbs';`
 **Responsive Spacing Patterns:**
 
 Use these consistent spacing patterns throughout the app:
@@ -215,6 +221,7 @@ export default function SomePage() {
       <PageHeader
         title="Page Title"
         description="Optional description"
+        breadcrumbs={[{ label: 'Page Title' }]}
         action={<Button>Action</Button>}
       />
 
@@ -260,9 +267,10 @@ For pages with toolbars/filters that should remain visible on scroll:
 
 ```tsx
 <PageContainer maxWidth="wide">
-  {/* Sticky header with full-width background */}
-  <div className="sticky top-0 z-10 bg-background pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
-    <PageHeader title="TV Shows" />
+  {/* Sticky header — top-12 accounts for the fixed AppBar (h-12 = 3rem) */}
+  {/* -mt-4 md:-mt-6 absorbs PageContainer's top padding so header sits flush */}
+  <div className="sticky top-12 z-10 bg-background -mt-4 md:-mt-6 pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
+    <PageHeader title="TV Shows" breadcrumbs={[{ label: 'TV Shows' }]} />
     <Toolbar /> {/* Filters, search, view toggles, etc. */}
   </div>
 
@@ -313,8 +321,16 @@ All sections live in `SidebarContent` (no `SidebarFooter`), grouped with separat
   - Optional cascade confirmation dialog via `cascadeOptions` prop for hierarchical updates
   - Works with any enum/status type (MonitorStatus, FileQuality, FileAction, etc.)
 
+**Breadcrumb Notes:**
+- Dashboard (`/`) has NO breadcrumbs — it IS home. The Home icon in PageBreadcrumbs already links there.
+- All other top-level pages: `breadcrumbs={[{ label: 'Page Name' }]}` (renders as Home icon > Page Name)
+- Subpages: include parent as link, e.g. `[{ label: 'Integrations', href: '/integrations' }, { label: 'TMDB' }]`
+- Detail pages with custom layouts: use `<PageBreadcrumbs>` standalone instead of PageHeader's `breadcrumbs` prop
+
 **Component Gotchas:**
 - **CollapsibleTrigger + SidebarMenuButton with tooltip**: Causes hydration errors due to complex nesting. Remove the `tooltip` prop from buttons inside `CollapsibleTrigger asChild`.
+- **BreadcrumbSeparator nesting**: `BreadcrumbSeparator` renders as `<li>`. It must be a sibling of `BreadcrumbItem` (also `<li>`), never nested inside it. Use `React.Fragment` to group them in loops.
+- **Radix Dialog + fixed elements above Sheet**: Modal Radix Dialogs (Sheet) set `pointer-events: none` on `<body>`, blocking clicks on fixed elements even at higher z-index. Fix: add `pointer-events-auto` to the fixed element and `onPointerDown stopPropagation` on interactive children to prevent the Radix dismiss from racing with click handlers.
 
 ### UX Patterns
 - **Toast notifications**: Use for success/error feedback on user actions
