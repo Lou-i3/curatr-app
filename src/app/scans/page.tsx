@@ -7,7 +7,6 @@ import { getSettings } from '@/lib/settings';
 import { getConfig } from '@/lib/scanner/config';
 import { ScanControls } from './scan-controls';
 import { ScanHistoryTable } from './scan-history-table';
-import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
 
 export const dynamic = 'force-dynamic';
@@ -34,16 +33,7 @@ export default async function ScansPage() {
 
   return (
     <PageContainer maxWidth="wide">
-      <PageHeader
-        title="Library Scans"
-        description="Scan your media library to discover and track TV shows"
-        breadcrumbs={[{ label: 'Scans' }]}
-      />
-
-      {/* Scan Controls */}
-      <div className="mb-6 md:mb-8">
-        <ScanControls tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
-      </div>
+      <ScanControls tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
 
       {/* Scan History */}
       <div>

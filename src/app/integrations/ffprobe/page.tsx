@@ -102,18 +102,16 @@ export default function FfprobeIntegrationPage() {
         title="FFprobe Integration"
         description="Analyze media files to extract detailed quality information"
         breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: 'FFprobe' }]}
+        info={<FfprobeHelpDialog />}
         action={
-          <div className="flex items-center gap-2">
-            <FfprobeHelpDialog />
-            <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
-              {refreshing ? (
-                <Loader2 className="size-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4 mr-2" />
-              )}
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
+            {refreshing ? (
+              <Loader2 className="size-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4 mr-2" />
+            )}
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
         }
       />
 

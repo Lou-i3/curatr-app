@@ -6,6 +6,7 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   action?: React.ReactNode;
+  info?: React.ReactNode;
   breadcrumbs?: BreadcrumbItemDef[];
   className?: string;
   titleClassName?: string;
@@ -28,6 +29,13 @@ interface PageHeaderProps {
  *   action={<Button>Refresh</Button>}
  * />
  *
+ * // With help dialog next to title
+ * <PageHeader
+ *   title="TMDB Integration"
+ *   info={<TmdbHelpDialog />}
+ *   action={<Button>Refresh</Button>}
+ * />
+ *
  * // Custom title size
  * <PageHeader
  *   title="Integrations"
@@ -38,6 +46,7 @@ export function PageHeader({
   title,
   description,
   action,
+  info,
   breadcrumbs,
   className,
   titleClassName,
@@ -54,9 +63,12 @@ export function PageHeader({
     >
       <div>
         {breadcrumbs && <PageBreadcrumbs items={breadcrumbs} />}
-        <h1 className={cn('text-2xl md:text-3xl lg:text-4xl font-bold text-foreground', titleClassName)}>
-          {title}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className={cn('text-2xl md:text-3xl lg:text-4xl font-bold text-foreground', titleClassName)}>
+            {title}
+          </h1>
+          {info}
+        </div>
         {description && (
           <p className="text-muted-foreground mt-2 text-sm md:text-base">{description}</p>
         )}

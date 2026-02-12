@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PageHeader } from '@/components/page-header';
 import { ScanHelpDialog } from './scan-help-dialog';
 import { useTasks } from '@/lib/contexts/task-context';
 
@@ -212,63 +213,60 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-          <div className="flex-1">
-            <div className="flex items-center justify-between gap-3 sm:gap-4">
-              <CardTitle>Scan Library</CardTitle>
-              <ScanHelpDialog tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
-            </div>
-            <CardDescription>
-              Scan your TV shows directory to discover new files and update the database
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {mounted && isScanning && progress ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span>{getPhaseLabel(progress.phase)}...</span>
-              <span className="font-medium">
-                {getProgressText()}
-              </span>
-            </div>
-
-            <Progress
-              value={isIndeterminate ? undefined : progressPercent}
-              className={`h-2 ${isIndeterminate ? 'animate-pulse' : ''}`}
-            />
-
-            {progress.currentFile && !isIndeterminate && (
-              <p className="text-xs text-muted-foreground truncate">
-                {progress.currentFile}
-              </p>
-            )}
-
-            {progress.errors.length > 0 && (
-              <p className="text-xs text-destructive">
-                {progress.errors.length} error(s) encountered
-              </p>
-            )}
-
-            <Button variant="outline" onClick={cancelScan}>
-              Cancel Scan
-            </Button>
-          </div>
-        ) : (
-          <Button onClick={startScan} disabled={!mounted && isScanning}>
-            {!mounted || isScanning ? 'Starting...' : 'Start Scan'}
+    <div>
+      <PageHeader
+        title="Library Scans"
+        description="Scan your media library to discover and track TV shows"
+        breadcrumbs={[{ label: 'Scans' }]}
+        info={<ScanHelpDialog tvShowsPath={tvShowsPath} moviesPath={moviesPath} />}
+        action={
+          <Button onClick={startScan} disabled={!mounted || isScanning}>
+            {!mounted || isScanning ? 'Scanning...' : 'Start Scan'}
           </Button>
-        )}
-      </CardContent>
-    </Card>
+        }
+      />
+
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {mounted && isScanning && progress && (
+        <Card>
+          <CardContent className="pt-6 mb-4">
+            <div className="space-y-4">
+              <div className="flex flex-col items-start gap-2">
+                <h2 className='text-md text-bold'>{getPhaseLabel(progress.phase)}...</h2>
+                <span className="text-italic text-sm">
+                  {getProgressText()}
+                </span>
+              </div>
+
+              <Progress
+                value={isIndeterminate ? undefined : progressPercent}
+                className={`h-2 ${isIndeterminate ? 'animate-pulse' : ''}`}
+              />
+
+              {progress.currentFile && !isIndeterminate && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {progress.currentFile}
+                </p>
+              )}
+
+              {progress.errors.length > 0 && (
+                <p className="text-xs text-destructive">
+                  {progress.errors.length} error(s) encountered
+                </p>
+              )}
+
+              <Button variant="outline" onClick={cancelScan}>
+                Cancel Scan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

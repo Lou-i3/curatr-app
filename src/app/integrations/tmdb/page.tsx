@@ -335,18 +335,16 @@ export default function TmdbIntegrationPage() {
         title="TMDB Integration"
         description="Enrich your library with metadata from The Movie Database"
         breadcrumbs={[{ label: 'Integrations', href: '/integrations' }, { label: 'TMDB' }]}
+        info={<TmdbIntegrationHelpDialog />}
         action={
-          <div className="flex items-center gap-2">
-            <TmdbIntegrationHelpDialog />
-            <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
-              {refreshing ? (
-                <Loader2 className="size-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4 mr-2" />
-              )}
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={refreshing}>
+            {refreshing ? (
+              <Loader2 className="size-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4 mr-2" />
+            )}
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
         }
       />
 
