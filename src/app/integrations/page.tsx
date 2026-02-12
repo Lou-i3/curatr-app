@@ -93,7 +93,7 @@ async function getIntegrations(): Promise<Integration[]> {
       id: 'tmdb',
       name: 'TMDB',
       description: 'Enrich your library with metadata, posters, and descriptions from The Movie Database.',
-      icon: <TmdbLogo className="size-8" />,
+      icon: <TmdbLogo className="size-6" />,
       href: '/integrations/tmdb',
       configured: tmdbConfigured,
       stats: tmdbStats,
@@ -102,17 +102,17 @@ async function getIntegrations(): Promise<Integration[]> {
       id: 'ffprobe',
       name: 'FFprobe',
       description: 'Analyze media files to extract video quality, audio tracks, and subtitle information.',
-      icon: <FileSearch className="size-8" />,
+      icon: <FileSearch className="size-6" />,
       href: '/integrations/ffprobe',
       configured: ffprobeAvailable,
       stats: ffprobeStats,
     },
     {
       id: 'plex',
-      name: 'Plex Authentication',
+      name: 'Plex Auth',
       description: 'Enable multi-user access with Plex account login. Users can browse the library and report issues.',
       icon: (
-        <svg className="size-8" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="size-6" viewBox="0 0 24 24" fill="currentColor">
           <path d="M11.643 0L2.805 24H12.357L21.195 0H11.643Z" />
         </svg>
       ),
@@ -125,7 +125,7 @@ async function getIntegrations(): Promise<Integration[]> {
       name: 'Plex DB Sync',
       description: 'Read-only sync with your Plex database for file matching and metadata enrichment.',
       icon: (
-        <svg className="size-8" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="size-6" viewBox="0 0 24 24" fill="currentColor">
           <path d="M11.643 0L2.805 24H12.357L21.195 0H11.643Z" />
         </svg>
       ),
@@ -138,7 +138,7 @@ async function getIntegrations(): Promise<Integration[]> {
       name: 'Sonarr',
       description: 'Sync TV show monitoring status and trigger downloads for missing episodes.',
       icon: (
-        <svg className="size-8" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="size-6" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 3a7 7 0 100 14 7 7 0 000-14z" />
         </svg>
       ),
@@ -171,9 +171,9 @@ export default async function IntegrationsPage() {
 
 function IntegrationCard({ integration }: { integration: Integration }) {
   const content = (
-    <Card className={integration.comingSoon ? 'opacity-60' : 'hover:border-primary/50 transition-colors'}>
+    <Card className={`h-full ${integration.comingSoon ? 'opacity-60' : 'hover:border-primary/50 transition-colors'}`}>
       <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-        <div className="flex size-12 items-center justify-center rounded-lg bg-muted">
+        <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
           {integration.icon}
         </div>
         <div className="flex-1">
