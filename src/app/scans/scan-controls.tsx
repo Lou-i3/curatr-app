@@ -233,12 +233,12 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
       )}
 
       {mounted && isScanning && progress && (
-        <Card>
-          <CardContent className="pt-6 mb-4">
+        <Card className='mb-4'>
+          <CardContent>
             <div className="space-y-4">
               <div className="flex flex-col items-start gap-2">
-                <h2 className='text-md text-bold'>{getPhaseLabel(progress.phase)}...</h2>
-                <span className="text-italic text-sm">
+                <h2 className='text-md font-bold'>{getPhaseLabel(progress.phase)}...</h2>
+                <span className="italic text-sm">
                   {getProgressText()}
                 </span>
               </div>
