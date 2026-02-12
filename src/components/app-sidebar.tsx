@@ -6,7 +6,7 @@
  * Role-aware: hides admin-only items for regular users
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Tv, ScanSearch, Plug, Settings, ChevronRight, Film, ListTodo, Loader2, FileSearch, AlertTriangle, Shield, History } from 'lucide-react';
@@ -54,6 +54,15 @@ export function AppSidebar() {
   const issueCounts = useIssueCounts();
   const { isAdmin } = useAuth();
   const version = useVersionCheck();
+
+  const [integrationsOpen, setIntegrationsOpen] = useState(pathname.startsWith('/integrations'));
+
+  // Auto-open integrations collapsible when navigating to an integrations page
+  useEffect(() => {
+    if (pathname.startsWith('/integrations')) {
+      setIntegrationsOpen(true);
+    }
+  }, [pathname]);
 
   // Auto-close sidebar sheet on mobile when navigating
   useEffect(() => {
@@ -134,30 +143,34 @@ export function AppSidebar() {
                           </Link>
                         </DropdownMenuItem>
                       ))}
-                      <DropdownMenuItem asChild>
-                        <Link href="/integrations" className="flex items-center gap-2">
-                          <span className="text-muted-foreground">Other Integrations</span>
-                        </Link>
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </SidebarMenuItem>
               ) : (
                 <Collapsible
                   asChild
-                  defaultOpen={pathname.startsWith('/integrations')}
+                  open={integrationsOpen}
+                  onOpenChange={setIntegrationsOpen}
                   className="group/collapsible"
                 >
                   <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
+                    <div className="flex items-center">
                       <SidebarMenuButton
+                        asChild
                         isActive={pathname.startsWith('/integrations')}
+                        className="flex-1"
                       >
-                        <Plug />
-                        <span>Integrations</span>
-                        <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        <Link href="/integrations">
+                          <Plug />
+                          <span>Integrations</span>
+                        </Link>
                       </SidebarMenuButton>
-                    </CollapsibleTrigger>
+                      <CollapsibleTrigger asChild>
+                        <button className="inline-flex size-8 items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shrink-0">
+                          <ChevronRight className="size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </button>
+                      </CollapsibleTrigger>
+                    </div>
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         {integrationItems.map((item) => (
@@ -170,13 +183,6 @@ export function AppSidebar() {
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild isActive={pathname === '/integrations'}>
-                            <Link href="/integrations">
-                              <span className="text-muted-foreground">Other Integrations</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   </SidebarMenuItem>
