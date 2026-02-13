@@ -116,225 +116,247 @@ When uncertain about implementation:
   - **For borders**: Use base colors: `border-success`, `border-warning`, `border-destructive`
 - Check `src/components/ui/` for installed components; see [shadcn/ui docs](https://ui.shadcn.com/docs/components) for full list
 
-**Layout System (Responsive, Desktop-First):**
+---
 
-This is a **web-first application** with desktop as the primary experience. All layouts adapt responsively to mobile/tablet using Tailwind's mobile-first breakpoints (`md:` = 768px).
+### Design System
 
-**Core Components:**
+This section defines **strict rules** for layout, responsiveness, data display, and UX patterns. All new pages and components must follow these rules.
 
-- **PageContainer** (`src/components/layout/page-container.tsx`): Standardized wrapper for all page content
-  - Provides consistent responsive padding: `px-4 py-4 md:px-8 md:py-6`
-  - **All pages use `maxWidth="wide"`** — no max-width constraint, content fills available space
-  - Other variants: `narrow` (max-w-3xl, centered), `default` (max-w-5xl, centered), `full` (alias for wide)
-  - Only `narrow` and `default` apply `mx-auto` centering
-  - Import: `import { PageContainer } from '@/components/layout';`
+#### 1. Breakpoints & Approach
 
-- **AppBar** (`src/components/app-bar.tsx`): Full-width fixed header bar
-  - Spans the entire page above both sidebar and content
-  - Fixed `top-0 left-0 right-0 z-50 h-12` (3rem)
-  - Padding: `pl-4 pr-4 md:pr-6` — left fixed for sidebar icon alignment, right responsive
-  - App name: `text-sm md:text-lg` — visible on all screen sizes with responsive sizing
-  - Mobile: sidebar trigger + logo + app name + UserMenu
-  - Desktop: sidebar trigger + logo + app name + GitHub link + version badge + UserMenu
-  - Import: `import { AppBar } from '@/components/app-bar';`
+- **Mobile-first CSS**: Base Tailwind classes target mobile, `md:` adds desktop overrides
+- **Primary breakpoint**: `md:` (768px) — used for nearly all responsive changes
+- **Secondary breakpoints**: `sm:` (640px, rare — only for flex direction on detail pages), `lg:` (1024px, rare — only for h1 typography)
+- Never introduce new breakpoint patterns without strong justification
 
+#### 2. Page Width & Layout
 
-- **PageHeader** (`src/components/page-header.tsx`): Responsive page header
-  - Displays title with responsive typography: `text-2xl md:text-3xl lg:text-4xl`
-  - Optional description: `text-sm md:text-base`
-  - Optional action button (stacks on mobile, inline on desktop)
-  - Optional `breadcrumbs` prop — renders `PageBreadcrumbs` above the title
-  - No hardcoded margins — spacing controlled by parent
-  - Import: `import { PageHeader } from '@/components/page-header';`
-
-- **PageBreadcrumbs** (`src/components/page-breadcrumbs.tsx`): Breadcrumb trail for page content
-  - Always starts with a Home icon linking to `/`
-  - Last item renders as current page (plain text), others as links
-  - Used inside PageHeader via `breadcrumbs` prop, or standalone for custom layouts
-  - Import: `import { PageBreadcrumbs } from '@/components/page-breadcrumbs';`
-**Responsive Spacing Patterns:**
-
-Use these consistent spacing patterns throughout the app:
-
-```typescript
-// Container padding (set by PageContainer)
-px-4 py-4 md:px-8 md:py-6
-
-// Section spacing (bottom margin)
-mb-4 md:mb-6      // Small spacing
-mb-6 md:mb-8      // Medium spacing (most common)
-mb-8 md:mb-12     // Large spacing
-
-// Grid/card gaps
-gap-4 md:gap-6    // Standard grid gap
-
-// Vertical stacks
-space-y-4 md:space-y-6   // Normal stacking
-space-y-6 md:space-y-8   // Loose stacking
-```
-
-**Responsive Typography Patterns:**
-
-```typescript
-// Page titles (h1) — set by PageHeader
-text-2xl md:text-3xl lg:text-4xl
-
-// Section titles (h2)
-text-xl md:text-2xl
-
-// Subsection titles (h3)
-text-lg md:text-xl
-
-// Body text
-text-sm md:text-base
-
-// Metadata/timestamps
-text-xs md:text-sm
-```
-
-**Root Layout Structure:**
+**All pages use `maxWidth="wide"`** — content fills available space, no max-width constraint.
 
 ```tsx
-// src/app/layout.tsx
+// Every page follows this structure
+<PageContainer maxWidth="wide">
+  <PageHeader title="..." breadcrumbs={[...]} />
+  <div className="space-y-6 md:space-y-8">
+    {/* Page content */}
+  </div>
+</PageContainer>
+```
+
+**Core Layout Components:**
+- **PageContainer** (`src/components/layout/page-container.tsx`): Wraps all page content, provides `px-4 py-4 md:px-8 md:py-6`
+- **AppBar** (`src/components/app-bar.tsx`): Fixed `top-0 left-0 right-0 z-50 h-12`
+  - Mobile: sidebar trigger + logo + app name (`text-sm`) + UserMenu
+  - Desktop: + GitHub link + version badge (`hidden md:block`)
+- **PageHeader** (`src/components/page-header.tsx`): Title + optional description + optional action + optional breadcrumbs
+- **PageBreadcrumbs** (`src/components/page-breadcrumbs.tsx`): Home icon → parent links → current page
+
+**Root Layout Structure:**
+```tsx
 <SidebarProvider className="flex-col">
-  <AppBar />                              {/* Fixed full-width header (z-50, h-12) */}
-  <div className="flex flex-1 pt-12">    {/* pt-12 offsets the fixed AppBar height */}
-    <AppSidebar />                        {/* Sidebar below AppBar (no header, auto-close on mobile) */}
-    <SidebarInset className="p-4 md:p-6"> {/* Responsive base padding (SidebarInset renders as <main>) */}
+  <AppBar />
+  <div className="flex flex-1 pt-12">       {/* pt-12 offsets AppBar height */}
+    <AppSidebar />
+    <SidebarInset className="p-4 md:p-6">   {/* Base padding */}
       {children}
     </SidebarInset>
   </div>
 </SidebarProvider>
 ```
 
-**Padding chain:** SidebarInset provides `p-4 md:p-6` base padding, then PageContainer adds `px-4 py-4 md:px-8 md:py-6` for content spacing. This creates the total padding seen on each page.
+**Padding chain:** SidebarInset `p-4 md:p-6` + PageContainer `px-4 py-4 md:px-8 md:py-6` = total page padding.
 
-**Standard Page Structure:**
+#### 3. Mobile Grid Rules
 
-```tsx
-import { PageContainer } from '@/components/layout';
-import { PageHeader } from '@/components/page-header';
+**On mobile, all content stacks to 1 column.** No exceptions for content cards.
 
-export default function SomePage() {
-  return (
-    <PageContainer maxWidth="wide">
-      <PageHeader
-        title="Page Title"
-        description="Optional description"
-        breadcrumbs={[{ label: 'Page Title' }]}
-        action={<Button>Action</Button>}
-      />
+```typescript
+// CORRECT — stacks on mobile
+grid-cols-1 md:grid-cols-2     // 2-col desktop
+grid-cols-1 md:grid-cols-3     // 3-col desktop
+grid-cols-2 md:grid-cols-4     // Exception: compact stat cards only (small, fixed-height)
 
-      {/* Page content with consistent spacing */}
-      <div className="space-y-6 md:space-y-8">
-        <Card>{/* Section 1 */}</Card>
-        <Card>{/* Section 2 */}</Card>
-      </div>
-    </PageContainer>
-  );
-}
+// WRONG — never do multi-column content on mobile
+grid-cols-2                    // Never for content cards
+grid-cols-1 sm:grid-cols-2     // Don't use sm: for grids
 ```
 
-**Subpage with nested breadcrumbs:**
-
-```tsx
-<PageHeader
-  title="TMDB Integration"
-  breadcrumbs={[
-    { label: 'Integrations', href: '/integrations' },
-    { label: 'TMDB' },
-  ]}
-/>
+**Flex stacking on mobile:**
+```typescript
+flex-col md:flex-row           // Section headers with actions
+flex-col sm:flex-row           // Detail pages (poster + content) — sm: OK here only
+flex flex-wrap gap-2           // Buttons/badges wrap naturally on all sizes
 ```
 
-**Detail page with standalone breadcrumbs (no PageHeader):**
+#### 4. Spacing Scale (Strict)
 
-```tsx
-import { PageBreadcrumbs } from '@/components/page-breadcrumbs';
+```typescript
+// Container padding (PageContainer — do not override)
+px-4 py-4 md:px-8 md:py-6
 
-<PageContainer maxWidth="wide">
-  <PageBreadcrumbs items={[
-    { label: 'TV Shows', href: '/tv-shows' },
-    { label: show.title },
-  ]} />
-  {/* Custom header layout */}
-</PageContainer>
+// Section spacing (between major sections)
+mb-4 md:mb-6                  // Small
+mb-6 md:mb-8                  // Medium (most common)
+mb-8 md:mb-12                 // Large
+
+// Grid/card gaps
+gap-4 md:gap-6                // Standard (only pattern to use)
+
+// Vertical stacks
+space-y-4 md:space-y-6        // Normal stacking
+space-y-6 md:space-y-8        // Loose stacking
+
+// Card content padding
+p-4 md:p-6                    // Standard card padding
 ```
 
-**Sticky Header Pattern (TV Shows, Issues):**
+#### 5. Typography Scale (Strict)
 
-For pages with toolbars/filters that should remain visible on scroll:
-
-```tsx
-<PageContainer maxWidth="wide">
-  {/* Sticky header — top-12 accounts for the fixed AppBar (h-12 = 3rem) */}
-  {/* -mt-4 md:-mt-6 absorbs PageContainer's top padding so header sits flush */}
-  <div className="sticky top-12 z-10 bg-background -mt-4 md:-mt-6 pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
-    <PageHeader title="TV Shows" breadcrumbs={[{ label: 'TV Shows' }]} />
-    <Toolbar /> {/* Filters, search, view toggles, etc. */}
-  </div>
-
-  {/* Scrollable content */}
-  <div className="space-y-6 md:space-y-8">
-    <DataTable columns={columns} data={data} />
-  </div>
-</PageContainer>
+```typescript
+text-2xl md:text-3xl lg:text-4xl   // h1 — page titles (PageHeader)
+text-xl md:text-2xl                // h2 — section titles
+text-lg md:text-xl                 // h3 — subsection titles
+text-sm md:text-base               // Body text, descriptions
+text-xs md:text-sm                 // Metadata, timestamps, captions
 ```
 
-**Key sticky header techniques:**
-- `sticky top-12` — Always use `top-12` (not `top-0`) because the AppBar is fixed at the top with h-12
-- `-mt-4 md:-mt-6` — Absorbs PageContainer's top padding so sticky header sits flush against AppBar
-- `-mx-4 px-4 md:-mx-8 md:px-8` — Negative margins extend to full width while keeping content aligned
-- `pt-4 md:pt-6 pb-4 md:pb-6` — Consistent vertical padding inside sticky wrapper
-- `border-b` — Visual separator from scrollable content
+#### 6. Data Display Rules
 
-**Wide Tables (Horizontal Scroll on Mobile):**
+**When to use which component:**
 
-For pages with data tables that may overflow on small screens:
+| Context | Component | Features |
+|---------|-----------|----------|
+| User-facing list pages (TV Shows, Issues) | **Card view + Table toggle** | Default to cards (mobile-friendly), offer table toggle |
+| Dashboard sections | **Cards only** | Stat cards, chart cards, list cards — no table view |
+| Admin/data-heavy pages (Scans, Tasks) | **DataTable only** | Sorting, filtering, column visibility toggle |
 
-```tsx
-<div className="overflow-x-auto">
-  <DataTable columns={columns} data={data} />
-</div>
-```
+**DataTable rules:**
+- Always wrap in `<div className="overflow-x-auto">` for mobile horizontal scroll
+- Include column visibility toggle (`ColumnVisibilityToggle`) on data-heavy tables
+- Use `DataTableColumnHeader` for sortable columns
+- Column definitions live in a separate file (e.g., `tv-show-columns.tsx`)
 
-Page scrolls vertically normally; table scrolls horizontally on mobile when needed.
-
-**Sidebar Structure (AppSidebar):**
-
-All sections live in `SidebarContent` (no `SidebarFooter`), grouped with separators:
-1. **Navigation** — Dashboard, TV Shows, Scans (admin), Issues, Integrations (admin), Tasks (admin)
-2. **Settings** — admin only, separated by `SidebarSeparator`
-3. **GitHub + Version** — mobile only (`isMobile`), shows GitHub link and changelog/version (hidden in AppBar on mobile via `hidden md:block`)
+**Card view rules:**
+- Cards use `p-4 md:p-6` internal padding
+- Grid: `grid-cols-1 md:grid-cols-2` (or `md:grid-cols-3` for compact cards)
+- Detail cards: `flex-col sm:flex-row` for poster + content layout
 
 **Data Components:**
-- **DataTable** (`src/components/ui/data-table.tsx`): Generic reusable table component powered by TanStack Table v8
-  - Supports client-side sorting, column visibility, and custom cell renderers
-  - Use when you need sortable/filterable tables (e.g., TV shows, scan history)
-  - Requires column definitions specific to your data model (e.g., `tv-show-columns.tsx`)
-  - Exposes table instance via `onTableReady` callback for advanced features (column visibility toggle)
-- **DataTableColumnHeader** (`src/components/ui/data-table-column-header.tsx`): Sortable column header with visual indicators
-  - Use in column definitions: `header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />`
-  - Shows sort state: unsorted (↕), ascending (↑), descending (↓)
-- **BadgeSelector** (`src/components/badge-selector.tsx`): Unified component for status badge selection
-  - Supports optimistic updates for immediate visual feedback
-  - Optional cascade confirmation dialog via `cascadeOptions` prop for hierarchical updates
-  - Works with any enum/status type (MonitorStatus, FileQuality, FileAction, etc.)
+- **DataTable** (`src/components/ui/data-table.tsx`): TanStack Table v8, client-side sorting, column visibility, custom cell renderers
+  - Column definitions in separate files (e.g., `tv-show-columns.tsx`)
+  - `onTableReady` callback exposes table instance for advanced features
+- **DataTableColumnHeader** (`src/components/ui/data-table-column-header.tsx`): Sortable headers — unsorted (↕), ascending (↑), descending (↓)
+- **BadgeSelector** (`src/components/badge-selector.tsx`): Status badge selection with optimistic updates, optional cascade confirmation
 
-**Breadcrumb Notes:**
-- Dashboard (`/`) has NO breadcrumbs — it IS home. The Home icon in PageBreadcrumbs already links there.
-- All other top-level pages: `breadcrumbs={[{ label: 'Page Name' }]}` (renders as Home icon > Page Name)
-- Subpages: include parent as link, e.g. `[{ label: 'Integrations', href: '/integrations' }, { label: 'TMDB' }]`
-- Detail pages with custom layouts: use `<PageBreadcrumbs>` standalone instead of PageHeader's `breadcrumbs` prop
+#### 7. Mobile Navigation & Visibility
 
-**Component Gotchas:**
-- **CollapsibleTrigger + SidebarMenuButton with tooltip**: Causes hydration errors due to complex nesting. Remove the `tooltip` prop from buttons inside `CollapsibleTrigger asChild`.
-- **BreadcrumbSeparator nesting**: `BreadcrumbSeparator` renders as `<li>`. It must be a sibling of `BreadcrumbItem` (also `<li>`), never nested inside it. Use `React.Fragment` to group them in loops.
-- **Radix Dialog + fixed elements above Sheet**: Modal Radix Dialogs (Sheet) set `pointer-events: none` on `<body>`, blocking clicks on fixed elements even at higher z-index. Fix: add `pointer-events-auto` to the fixed element and `onPointerDown stopPropagation` on interactive children to prevent the Radix dismiss from racing with click handlers.
+**Sidebar:**
+- Desktop: Collapsible menu (16rem width)
+- Mobile: Sheet/drawer overlay (18rem), auto-closes on route change via `useEffect` watching `pathname` + `isMobile`
+- All sections in `SidebarContent` (no `SidebarFooter`):
+  1. Navigation — Dashboard, TV Shows, Scans (admin), Issues, Integrations (admin), Tasks (admin)
+  2. Settings — admin only, separated by `SidebarSeparator`
+  3. GitHub + Version — mobile only (`{isMobile && (...)}`)
 
-### UX Patterns
-- **Toast notifications**: Use for success/error feedback on user actions
-- **Loading indicators**: Show for any operation that takes > 200ms
+**Visibility patterns:**
+```typescript
+hidden md:block           // Desktop only (AppBar GitHub link, version badge)
+hidden md:flex            // Desktop only flex container
+{isMobile && (...)}       // Mobile only (sidebar footer items)
+```
+
+**Text overflow (always handle):**
+```typescript
+truncate                  // Single-line ellipsis (titles, links)
+line-clamp-2              // Max 2 lines (descriptions)
+min-w-0                   // Required on flex parent for truncation to work
+shrink-0                  // Prevent shrinking (images, icons, badges)
+```
+
+**Image sizing:**
+```typescript
+mx-auto sm:mx-0           // Center on mobile, left-align on desktop
+```
+
+#### 8. Page Patterns (Reference)
+
+**Standard page:**
+```tsx
+<PageContainer maxWidth="wide">
+  <PageHeader title="Page Title" breadcrumbs={[{ label: 'Page Title' }]}
+    action={<Button>Action</Button>} />
+  <div className="space-y-6 md:space-y-8">
+    <Card>{/* Section */}</Card>
+  </div>
+</PageContainer>
+```
+
+**Sticky header page (TV Shows, Issues):**
+```tsx
+<PageContainer maxWidth="wide">
+  <div className="sticky top-12 z-10 bg-background -mt-4 md:-mt-6 pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
+    <PageHeader title="..." breadcrumbs={[...]} />
+    <Toolbar />
+  </div>
+  <div className="space-y-6 md:space-y-8">{/* Content */}</div>
+</PageContainer>
+```
+
+Key: `sticky top-12` (not `top-0`) because AppBar is `h-12`. Negative margins extend to full width.
+
+**Subpage breadcrumbs:**
+```tsx
+<PageHeader title="TMDB" breadcrumbs={[
+  { label: 'Integrations', href: '/integrations' },
+  { label: 'TMDB' },
+]} />
+```
+
+**Detail page (standalone breadcrumbs):**
+```tsx
+<PageBreadcrumbs items={[
+  { label: 'TV Shows', href: '/tv-shows' },
+  { label: show.title },
+]} />
+```
+
+**Breadcrumb rules:**
+- Dashboard (`/`) has NO breadcrumbs — it IS home
+- All other pages: `breadcrumbs={[{ label: 'Page Name' }]}`
+- Subpages: parent as link + current as text
+- Detail pages with custom layouts: use `<PageBreadcrumbs>` standalone
+
+#### 9. Dialogs
+
+```typescript
+max-w-2xl max-h-[80vh]    // Constrained to viewport, scrolls internally
+```
+
+**Gotchas:**
+- **CollapsibleTrigger + SidebarMenuButton**: Remove `tooltip` prop from buttons inside `CollapsibleTrigger asChild` to avoid hydration errors
+- **BreadcrumbSeparator**: Must be sibling of `BreadcrumbItem` (both `<li>`), never nested inside it
+- **Radix Dialog + fixed elements**: Sheet sets `pointer-events: none` on `<body>`. Fix with `pointer-events-auto` on the fixed element and `onPointerDown stopPropagation`
+
+#### 10. UX Rules
+
+**Empty states:**
+- Always show a meaningful message when no data exists (never a blank area)
+- Include a call-to-action when possible (e.g., "No issues reported yet", "FFprobe not configured — Set up integration")
+- Use `text-sm text-muted-foreground` centered in the card
+
+**Loading states:**
+- Use `<Skeleton>` components matching the shape of expected content
+- Show loading indicators for any operation that takes > 200ms
+- Skeleton count should match typical data (e.g., 3 skeleton rows for a list)
+
+**Toast notifications:**
+- Use for success/error feedback on user actions (scan started, issue reported, etc.)
+- Never use for passive state changes (data loading, polling updates)
+
+**Refresh pattern:**
+- Dashboard: single Refresh button on PageHeader using `router.refresh()`
+- Individual cards/charts: only add refresh if they fetch their own data independently
+- Contexts that poll (tasks, issues) handle their own refresh — don't add manual refresh for these
 
 ---
 
@@ -540,6 +562,35 @@ const { counts, refresh } = useIssueContext(); // For pages that modify issues
 **Issue Utilities** (`src/lib/issue-utils.ts`):
 - `ISSUE_TYPE_LABELS`, `ISSUE_STATUS_LABELS` — display mappings
 - `getIssueTypeVariant()`, `getIssueStatusVariant()` — Badge variant helpers
+
+### Dashboard
+- Located in `src/app/dashboard/` (client components) + `src/app/page.tsx` (server data fetching)
+- **Hybrid architecture**: Server component fetches all stats via ~12 parallel Prisma queries, passes serialized props to client orchestrator
+- **Role-aware**: All users see library health, issues, quality breakdown; admins additionally see actions needed, file intelligence, system operations, integration health
+- **Personalized greeting**: Uses session username (`Hi, {name}`) or falls back to "Dashboard"
+
+**Key Files:**
+- `src/app/page.tsx` — Server component with `getDashboardStats()`, pre-formats BigInt values
+- `src/app/dashboard/dashboard-client.tsx` — Client orchestrator, role-gating via `useAuth()`, section layout
+- `src/app/dashboard/sections/` — Individual section components:
+  - `stat-card.tsx` — Reusable stat card with icon, value, subtitle, color variant
+  - `library-health.tsx` — 4 stat cards (Shows, Episodes, Size, Health %)
+  - `quick-actions.tsx` — Role-aware action buttons (browse, report issue, scan, tasks, etc.)
+  - `issues-overview.tsx` — Issues with clickable status filter badges, fetches from `/api/issues`
+  - `recent-activity.tsx` — Last 5 scan summaries with status icons
+  - `quality-breakdown.tsx` — Donut chart (Recharts) for file quality distribution
+  - `actions-needed.tsx` — Admin: horizontal bar chart for files needing action
+  - `file-intelligence.tsx` — Admin: codec/resolution bar charts + HDR donut, FFprobe empty state
+  - `system-operations.tsx` — Admin: live task status via `useTasks()` context
+  - `integration-health.tsx` — Admin: TMDB + FFprobe status with progress bars
+
+**Architecture Notes:**
+- `totalSize` (BigInt from Prisma) must be pre-formatted on the server using `formatFileSize()` before passing to client — importing `@/lib/format` in a client component causes `Module not found: 'fs'` because of the settings → prisma chain
+- Issues API (`GET /api/issues`) returns a flat array, not `{ issues: [...] }`
+- Charts use shadcn chart component (`src/components/ui/chart.tsx`) built on Recharts
+- Uses existing polling contexts (tasks, issues) — no additional polling added
+- 2-column grid layout on desktop (`grid-cols-1 md:grid-cols-2`) for all sections
+- `[MOVIES FUTURE]` markers in code show where movies support will plug in
 
 ### FFprobe Service
 - Located in `src/lib/ffprobe/`
