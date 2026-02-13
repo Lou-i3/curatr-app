@@ -136,7 +136,7 @@ function HdrDonutCard({ data, totalFiles }: { data: GroupData[]; totalFiles: num
         <CardDescription>HDR type distribution</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[180px]">
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square w-full max-h-[180px]">
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
             <Pie

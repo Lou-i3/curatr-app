@@ -87,7 +87,7 @@ export function QualityBreakdown({ qualityData, totalFiles }: QualityBreakdownPr
       <CardContent>
         <div className="grid gap-6 md:grid-cols-[1fr_1fr] items-center">
           {/* Donut chart */}
-          <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[220px]">
+          <ChartContainer config={chartConfig} className="mx-auto aspect-square w-full max-h-[220px]">
             <PieChart>
               <ChartTooltip content={<ChartTooltipContent nameKey="label" hideLabel />} />
               <Pie

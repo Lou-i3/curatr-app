@@ -177,7 +177,7 @@
 
   body {
     @apply bg-background text-foreground;
-    overflow-x: hidden; /* Prevent horizontal page scroll */
+    overflow-x: clip; /* Prevent horizontal page scroll without affecting vertical scroll */
     -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
   }
 }

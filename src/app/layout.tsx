@@ -58,7 +58,7 @@ export default async function RootLayout({
               {showSidebar ? (
                 <SidebarProvider className="flex-col">
                   <AppBar />
-                  <div className="flex flex-1 pt-12">
+                  <div className="flex min-h-svh pt-12">
                     <AppSidebar />
                     <SidebarInset className="min-w-0">
                       {children}
