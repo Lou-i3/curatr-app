@@ -312,11 +312,10 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 
 ### UI / UX
 
-- 🔴 Mobile responsive design improvements
-- 🟡 Create logical dashboard for user/admin profiles
-- 🟡 Rethink displayed info in UI
+- 🔴 Rethink displayed info in UI
 - 🟡 Global search (search across shows, episodes, files, and issues)
-- 🔵 Better logo/app icon for PWA
+- 🟡 Better logo/app icon for PWA
+- 🟡 Add comprehensive filters to DataTables
 - 🔵 Refactor sidebar
 - 🔵 Add light theme support
 - 🔵 Use data table for all tables
