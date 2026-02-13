@@ -4,14 +4,13 @@
  */
 
 import { Tv, Film, HardDrive, HeartPulse } from 'lucide-react';
-import { formatFileSize } from '@/lib/format';
 import { StatCard } from './stat-card';
 
 interface LibraryHealthProps {
   showCount: number;
   episodeCount: number;
   fileCount: number;
-  totalSize: bigint | null;
+  totalSizeFormatted: string;
   healthPercent: number;
   healthLabel: string;
 }
@@ -27,7 +26,7 @@ export function LibraryHealth({
   showCount,
   episodeCount,
   fileCount,
-  totalSize,
+  totalSizeFormatted,
   healthPercent,
   healthLabel,
 }: LibraryHealthProps) {
@@ -47,7 +46,7 @@ export function LibraryHealth({
       />
       <StatCard
         title="Library Size"
-        value={totalSize ? formatFileSize(totalSize) : '0 B'}
+        value={totalSizeFormatted}
         subtitle={`${fileCount} files`}
         icon={HardDrive}
       />

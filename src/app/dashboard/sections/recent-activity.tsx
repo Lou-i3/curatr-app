@@ -64,7 +64,7 @@ function scanStatusVariant(status: string) {
 
 export function RecentActivity({ recentScans, isAdmin }: RecentActivityProps) {
   return (
-    <Card className="mb-6 md:mb-8">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">

@@ -9,7 +9,9 @@ import { Bar, BarChart, XAxis, YAxis, Pie, PieChart, Cell } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { Progress } from '@/components/ui/progress';
-import { FileVideo } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileVideo, ArrowRight, Settings2 } from 'lucide-react';
+import Link from 'next/link';
 
 interface GroupData {
   name: string;
@@ -22,6 +24,7 @@ interface FileIntelligenceProps {
   hdr: GroupData[];
   analyzedCount: number;
   totalFiles: number;
+  ffprobeAvailable: boolean;
 }
 
 const CHART_COLORS = [
@@ -168,13 +171,14 @@ function HdrDonutCard({ data, totalFiles }: { data: GroupData[]; totalFiles: num
   );
 }
 
-export function FileIntelligence({ codecs, resolutions, hdr, analyzedCount, totalFiles }: FileIntelligenceProps) {
+export function FileIntelligence({ codecs, resolutions, hdr, analyzedCount, totalFiles, ffprobeAvailable }: FileIntelligenceProps) {
   const analysisPct = totalFiles > 0 ? Math.round((analyzedCount / totalFiles) * 100) : 0;
+  const hasData = codecs.length > 0 || resolutions.length > 0 || hdr.length > 0;
 
   return (
     <div className="space-y-4 mb-6 md:mb-8">
-      {/* Section header with analysis progress */}
-      <div className="flex items-center justify-between">
+      {/* Section header with analysis progress — stacks on mobile */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <h2 className="text-xl md:text-2xl font-semibold flex items-center gap-2">
           <FileVideo className="size-5" />
           File Intelligence
@@ -185,20 +189,43 @@ export function FileIntelligence({ codecs, resolutions, hdr, analyzedCount, tota
         </div>
       </div>
 
-      {/* 3-column grid */}
-      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-3">
-        <HorizontalBarCard
-          title="Video Codecs"
-          description="Top codecs by frequency"
-          data={codecs}
-        />
-        <HorizontalBarCard
-          title="Resolutions"
-          description="Top resolutions by frequency"
-          data={resolutions}
-        />
-        <HdrDonutCard data={hdr} totalFiles={totalFiles} />
-      </div>
+      {/* Not configured state */}
+      {!ffprobeAvailable && !hasData && (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-8">
+            <Settings2 className="size-8 text-muted-foreground" />
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium">FFprobe not configured</p>
+              <p className="text-xs text-muted-foreground">
+                Configure FFprobe to analyze codec, resolution, and HDR information for your files.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Link href="/integrations/ffprobe">
+                Configure Integration
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Charts — only show when there's data */}
+      {hasData && (
+        <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-3">
+          <HorizontalBarCard
+            title="Video Codecs"
+            description="Top codecs by frequency"
+            data={codecs}
+          />
+          <HorizontalBarCard
+            title="Resolutions"
+            description="Top resolutions by frequency"
+            data={resolutions}
+          />
+          <HdrDonutCard data={hdr} totalFiles={totalFiles} />
+        </div>
+      )}
     </div>
   );
 }

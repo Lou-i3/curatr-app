@@ -27,13 +27,6 @@ const QUALITY_COLORS: Record<string, string> = {
   BROKEN: 'hsl(var(--destructive))',
 };
 
-const QUALITY_LABELS: Record<string, string> = {
-  OK: 'OK',
-  VERIFIED: 'Verified',
-  UNVERIFIED: 'Unverified',
-  BROKEN: 'Broken',
-};
-
 export function QualityBreakdown({ qualityData, totalFiles }: QualityBreakdownProps) {
   // Combine OK + VERIFIED into one "Verified" slice for clarity
   const verifiedCount = qualityData
@@ -58,7 +51,7 @@ export function QualityBreakdown({ qualityData, totalFiles }: QualityBreakdownPr
 
   if (totalFiles === 0) {
     return (
-      <Card className="mb-6 md:mb-8">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-5" />
@@ -76,7 +69,7 @@ export function QualityBreakdown({ qualityData, totalFiles }: QualityBreakdownPr
   }
 
   return (
-    <Card className="mb-6 md:mb-8">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ShieldCheck className="size-5" />
