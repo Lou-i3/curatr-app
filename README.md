@@ -316,7 +316,6 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - 🟡 Global search (search across shows, episodes, files, and issues)
 - 🟡 Better logo/app icon for PWA
 - 🟡 Add comprehensive filters to DataTables
-- 🔵 Refactor sidebar
 - 🔵 Add light theme support
 - 🔵 Use data table for all tables
 - ⚪️ Keyboard shortcuts (power-user navigation)
