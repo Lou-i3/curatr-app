@@ -48,6 +48,14 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
 
 ## Features
 
+- **Role-Aware Dashboard** - Personalized overview of your media library
+  - Library health stats (shows, episodes, storage, health percentage)
+  - Quick actions (browse, report issues, scan, manage tasks)
+  - Issues overview with clickable status filter badges
+  - Recent scan activity with status indicators
+  - Quality breakdown donut chart (all users)
+  - Admin sections: actions needed, file intelligence (codec/resolution/HDR), live task status, integration health
+  - Personalized greeting with username
 - **Library Scanner** - Scan TV show directories to discover and catalog media files
 - **Single-Show Scan** - Scan files for individual shows without rescanning the entire library
 - **Batch Processing** - Optimized database operations for fast scanning of large libraries
@@ -114,6 +122,13 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
   - Test history with notes and timestamps
   - Add/edit/delete tests from episode list or detail pages
 - **Settings** - Configurable date format (EU/US/ISO), max parallel tasks, playback platforms, and user management (when auth enabled)
+- **Responsive Design** - Desktop-first with full mobile adaptation
+  - Mobile-first CSS with `md:` (768px) as primary breakpoint
+  - Single-column stacking on mobile, multi-column grids on desktop
+  - Card + table view toggle on user-facing pages (TV Shows, Issues)
+  - Horizontal scroll for data tables on small screens
+  - Auto-closing sidebar drawer on mobile navigation
+  - Responsive typography, spacing, and card padding throughout
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **PWA Support** - Installable as a Progressive Web App on phones (iOS/Android) and desktop
 - **API Documentation** - Interactive Swagger UI at `/api-docs` with search and collapsible categories, generated from JSDoc annotations
