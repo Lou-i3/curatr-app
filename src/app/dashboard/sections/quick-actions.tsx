@@ -17,7 +17,9 @@ export function QuickActions() {
   const { refresh: refreshIssues } = useIssueContext();
 
   return (
-    <div className="flex flex-wrap gap-2 mb-6 md:mb-8">
+    <div className="mb-6 md:mb-8">
+      <h2 className="text-sm font-medium text-muted-foreground mb-2">Quick Actions</h2>
+      <div className="flex flex-wrap gap-2">
       <Button asChild variant="outline" size="sm" className="gap-1.5">
         <Link href="/tv-shows">
           <Tv className="size-4" />
@@ -58,6 +60,7 @@ export function QuickActions() {
           </Button>
         </>
       )}
+      </div>
     </div>
   );
 }
