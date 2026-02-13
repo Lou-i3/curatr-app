@@ -4,9 +4,10 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
-import { LibraryHealth } from './dashboard/sections/library-health';
+import { getSession } from '@/lib/auth';
+import { isFFprobeConfigured } from '@/lib/ffprobe/config';
+import { formatFileSize } from '@/lib/format';
 import { DashboardClient } from './dashboard/dashboard-client';
 
 export const dynamic = 'force-dynamic';
@@ -92,7 +93,9 @@ async function getDashboardStats() {
       showCount,
       episodeCount,
       fileCount,
-      totalSize: totalSizeResult._sum.fileSize,
+      totalSizeFormatted: totalSizeResult._sum.fileSize
+        ? formatFileSize(totalSizeResult._sum.fileSize)
+        : '0 B',
       healthPercent,
       healthLabel: `${okCount} of ${fileCount} verified`,
     },
@@ -114,31 +117,20 @@ async function getDashboardStats() {
     })),
     tmdb: { matchedCount: tmdbMatchedCount, totalShows: showCount },
     analyzedFiles: analyzedFilesCount,
+    ffprobeAvailable: isFFprobeConfigured(),
   };
 }
 
 export default async function Home() {
-  const stats = await getDashboardStats();
+  const [stats, session] = await Promise.all([getDashboardStats(), getSession()]);
+  const username = session?.user?.username || null;
 
   return (
     <PageContainer maxWidth="wide">
-      <PageHeader
-        title="Dashboard"
-        description="Overview of your media library"
-      />
-
-      {/* Library Health Stats — server-rendered */}
-      <LibraryHealth
-        showCount={stats.library.showCount}
-        episodeCount={stats.library.episodeCount}
-        fileCount={stats.library.fileCount}
-        totalSize={stats.library.totalSize}
-        healthPercent={stats.library.healthPercent}
-        healthLabel={stats.library.healthLabel}
-      />
-
-      {/* Client sections — role-aware, interactive */}
+      {/* All sections managed by client — greeting, stats, then content */}
       <DashboardClient
+        username={username}
+        libraryHealth={stats.library}
         recentScans={stats.recentScans}
         qualityData={stats.qualityData}
         actionData={stats.actionData}
@@ -149,6 +141,7 @@ export default async function Home() {
         tmdbMatchedCount={stats.tmdb.matchedCount}
         totalShows={stats.tmdb.totalShows}
         analyzedFiles={stats.analyzedFiles}
+        ffprobeAvailable={stats.ffprobeAvailable}
       />
     </PageContainer>
   );
