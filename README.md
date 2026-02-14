@@ -148,14 +148,13 @@ Curatr is designed to run on your own hardware - no cloud services or subscripti
 
 ### Development
 
+**Prerequisites:** Node.js 24+ and npm 11+ ([install via nvm](https://github.com/nvm-sh/nvm))
+
 > Don't forget to set your `.env` file from the `.env.example` template with the required environment variables before starting.
 
 ```bash
-# Install dependencies
+# Install dependencies (also runs prisma generate automatically)
 npm install
-
-# Generate Prisma client
-npx prisma generate
 
 # Run migrations (creates SQLite database)
 npx prisma migrate dev

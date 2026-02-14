@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -24,19 +24,19 @@ RUN npx prisma generate
 RUN npm run build
 
 # Prisma dependencies stage - install only what's needed for migrations and workers
-FROM node:22-alpine AS prisma-deps
+FROM node:24-alpine AS prisma-deps
 
 WORKDIR /prisma-deps
 
 # Create a minimal package.json for prisma CLI and worker dependencies
 # Workers need @prisma/client and @prisma/adapter-better-sqlite3 at runtime
-RUN echo '{"name":"prisma-deps","private":true,"dependencies":{"prisma":"7.3.0","@prisma/client":"7.3.0","@prisma/adapter-better-sqlite3":"7.3.0","better-sqlite3":"11.9.1","dotenv":"16.4.7"}}' > package.json
+RUN echo '{"name":"prisma-deps","private":true,"dependencies":{"prisma":"7.4.0","@prisma/client":"7.4.0","@prisma/adapter-better-sqlite3":"7.4.0","better-sqlite3":"12.6.2","dotenv":"16.6.1"}}' > package.json
 
 # Install prisma CLI and worker dependencies
 RUN npm install --production && npm cache clean --force
 
 # Runtime stage - minimal image
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 

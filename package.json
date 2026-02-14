@@ -23,11 +23,16 @@
     "self-hosted"
   ],
   "private": true,
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
   "scripts": {
     "dev": "npm run build:worker && npm run build:openapi && next dev",
     "build": "npm run build:worker && npm run build:openapi && next build",
     "build:openapi": "node scripts/generate-openapi.mjs",
-    "build:worker": "esbuild src/lib/tasks/task-worker.ts --bundle --platform=node --target=node22 --outfile=src/lib/tasks/task-worker.js --external:@prisma/client --external:@prisma/adapter-better-sqlite3",
+    "build:worker": "esbuild src/lib/tasks/task-worker.ts --bundle --platform=node --target=node24 --outfile=src/lib/tasks/task-worker.js --external:@prisma/client --external:@prisma/adapter-better-sqlite3",
+    "postinstall": "prisma generate",
     "start": "next start"
   },
   "dependencies": {
@@ -36,13 +41,12 @@
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "fs": "^0.0.1-security",
-    "lucide-react": "^0.563.0",
+    "lucide-react": "^0.564.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.4.3",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "recharts": "^2.15.4",
     "sonner": "^2.0.7",
     "swagger-ui-react": "^5.31.0",
@@ -50,12 +54,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/swagger-ui-react": "^5.18.0",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.27.3",
     "prisma": "^7.3.0",
     "swagger-jsdoc": "^6.2.8",
     "tailwindcss": "^4",
