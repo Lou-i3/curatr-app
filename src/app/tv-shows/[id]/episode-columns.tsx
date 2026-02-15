@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight, PlayCircle, AlertTriangle } from 'lucide-react';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { BadgeSelector } from '@/components/badge-selector';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { EpisodeDialog } from './episode-dialog';
 import { PlaybackTestDialog } from '@/components/playback-test-dialog';
 import { IssueReportDialog } from '@/components/issues/issue-report-dialog';
@@ -39,6 +40,60 @@ export interface Episode {
   stillPath: string | null;
   voteAverage: number | null;
   files: { id: number }[];
+}
+
+/** Actions cell — uses useAuth() to gate admin-only buttons */
+function EpisodeActions({
+  episode,
+  showId,
+  showTitle,
+  showTmdbId,
+  seasonNumber,
+}: {
+  episode: Episode;
+  showId: number;
+  showTitle: string;
+  showTmdbId: number | null;
+  seasonNumber: number;
+}) {
+  const { isAdmin } = useAuth();
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <IssueReportDialog
+        episodeId={episode.id}
+        episodeLabel={`${showTitle} — S${String(seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`}
+        trigger={
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Report issue">
+            <AlertTriangle className="h-4 w-4" />
+          </Button>
+        }
+      />
+      {episode.files.length > 0 && (
+        <PlaybackTestDialog
+          episodeId={episode.id}
+          episodeTitle={episode.title}
+          seasonEpisode={`S${String(seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`}
+          trigger={
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <PlayCircle className="h-4 w-4" />
+            </Button>
+          }
+        />
+      )}
+      {isAdmin && (
+        <EpisodeDialog
+          episode={episode}
+          seasonNumber={seasonNumber}
+        />
+      )}
+      <Button variant="ghost" size="sm" asChild>
+        <Link href={`/tv-shows/${showId}/episodes/${episode.id}`}>
+          <ChevronRight className="size-4" />
+        </Link>
+      </Button>
+    </div>
+  );
 }
 
 export function createEpisodeColumns(
@@ -152,43 +207,15 @@ export function createEpisodeColumns(
     {
       id: 'actions',
       header: () => <div className="text-right">Actions</div>,
-      cell: ({ row }) => {
-        const episode = row.original;
-        return (
-          <div className="flex items-center justify-end gap-1">
-            <IssueReportDialog
-              episodeId={episode.id}
-              episodeLabel={`${showTitle} — S${String(seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`}
-              trigger={
-                <Button variant="ghost" size="icon" className="h-8 w-8" title="Report issue">
-                  <AlertTriangle className="h-4 w-4" />
-                </Button>
-              }
-            />
-            {episode.files.length > 0 && (
-              <PlaybackTestDialog
-                episodeId={episode.id}
-                episodeTitle={episode.title}
-                seasonEpisode={`S${String(seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`}
-                trigger={
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <PlayCircle className="h-4 w-4" />
-                  </Button>
-                }
-              />
-            )}
-            <EpisodeDialog
-              episode={episode}
-              seasonNumber={seasonNumber}
-            />
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/tv-shows/${showId}/episodes/${episode.id}`}>
-                <ChevronRight className="size-4" />
-              </Link>
-            </Button>
-          </div>
-        );
-      },
+      cell: ({ row }) => (
+        <EpisodeActions
+          episode={row.original}
+          showId={showId}
+          showTitle={showTitle}
+          showTmdbId={showTmdbId}
+          seasonNumber={seasonNumber}
+        />
+      ),
       enableSorting: false,
     },
   ];

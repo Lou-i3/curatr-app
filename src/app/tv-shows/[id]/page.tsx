@@ -20,6 +20,7 @@ import { ShowDetailStatusBadges } from "./show-detail-status-badges";
 import { SeasonsList } from "./seasons-list";
 import { PageContainer } from "@/components/layout";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
+import { getSession } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +29,9 @@ interface Props {
 }
 
 export default async function ShowDetailPage({ params }: Props) {
-  const [{ id }, settings] = await Promise.all([params, getSettings()]);
+  const [{ id }, settings, session] = await Promise.all([params, getSettings(), getSession()]);
   const dateFormat = settings.dateFormat;
+  const isAdmin = !session || session.user.role === 'ADMIN';
   const showId = parseInt(id, 10);
 
   if (isNaN(showId)) {
@@ -124,6 +126,7 @@ export default async function ShowDetailPage({ params }: Props) {
                     hasChildren={show.seasons.length > 0}
                   />
                 </div>
+                {isAdmin && (
                 <ButtonGroup className="flex-shrink-0">
                   <ShowScanButton show={{
                     id: show.id,
@@ -142,6 +145,7 @@ export default async function ShowDetailPage({ params }: Props) {
                     backdropPath: show.backdropPath,
                   }} />
                 </ButtonGroup>
+                )}
               </div>
 
               {/* Season + Episode Counts */}

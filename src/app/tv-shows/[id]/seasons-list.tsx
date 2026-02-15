@@ -27,6 +27,7 @@ import { ChevronDown } from 'lucide-react';
 import { SeasonDialog } from './season-dialog';
 import { createEpisodeColumns, type Episode } from './episode-columns';
 import { BadgeSelector } from '@/components/badge-selector';
+import { useAuth } from '@/lib/contexts/auth-context';
 import type { MonitorStatus } from '@/generated/prisma/client';
 
 interface Season {
@@ -52,6 +53,7 @@ interface SeasonsListProps {
 
 export function SeasonsList({ showId, showTitle, showTmdbId, seasons }: SeasonsListProps) {
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [openSeasons, setOpenSeasons] = useState<Set<number>>(new Set());
 
   const toggleSeason = (seasonId: number) => {
@@ -167,7 +169,7 @@ export function SeasonsList({ showId, showTitle, showTmdbId, seasons }: SeasonsL
 
                   {/* Right: Action buttons */}
                   <div className="flex items-center gap-2 md:flex-shrink-0">
-                    <SeasonDialog season={season} />
+                    {isAdmin && <SeasonDialog season={season} />}
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <ChevronDown
