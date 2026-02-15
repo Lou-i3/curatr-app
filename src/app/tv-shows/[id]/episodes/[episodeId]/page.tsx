@@ -7,14 +7,13 @@ import { isFFprobeAvailable } from "@/lib/ffprobe";
 import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FileCheck, FileX, Clock, HardDrive } from "lucide-react";
+import { FileCheck, FileX, Clock, HardDrive } from "lucide-react";
 import { EpisodeDetailStatusBadges } from "./episode-detail-status-badges";
 import { FileStatusBadges } from "./file-status-badges";
 import { FileRescanButton } from "./file-rescan-button";
 import { MediaInfoSection } from "@/components/files/media-info-section";
-import { IssueReportDialog } from "@/components/issues/issue-report-dialog";
 import { EpisodePlaybackTests } from "./episode-playback-tests";
-import { EpisodeIssuesList } from "./episode-issues-list";
+import { EpisodeIssuesSection } from "./episode-issues-section";
 import { PageContainer } from "@/components/layout";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 
@@ -265,34 +264,15 @@ export default async function EpisodeDetailPage({ params }: Props) {
         </div>
 
         {/* Issues Section (right sidebar) */}
-        <div className="lg:sticky lg:top-8 lg:self-start space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base md:text-lg font-bold">Issues ({episode.issues.length})</h2>
-            <IssueReportDialog
-              episodeId={episode.id}
-              episodeLabel={`${episode.season.tvShow.title} — S${String(episode.season.seasonNumber).padStart(2, "0")}E${String(episode.episodeNumber).padStart(2, "0")}`}
-              platforms={platforms.map((p) => p.name)}
-              audioLanguages={collectLanguages(episode.files, 'audioLanguages')}
-              subtitleLanguages={collectLanguages(episode.files, 'subtitleLanguages')}
-            />
-          </div>
-          {episode.issues.length > 0 ? (
-            <EpisodeIssuesList
-              issues={episode.issues}
-              dateFormat={dateFormat}
-              episodeLabel={`${episode.season.tvShow.title} — S${String(episode.season.seasonNumber).padStart(2, "0")}E${String(episode.episodeNumber).padStart(2, "0")}`}
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <AlertTriangle className="size-6 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  No issues reported for this episode.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <EpisodeIssuesSection
+          episodeId={episode.id}
+          episodeLabel={`${episode.season.tvShow.title} — S${String(episode.season.seasonNumber).padStart(2, "0")}E${String(episode.episodeNumber).padStart(2, "0")}`}
+          issues={episode.issues}
+          dateFormat={dateFormat}
+          platforms={platforms.map((p) => p.name)}
+          audioLanguages={collectLanguages(episode.files, 'audioLanguages')}
+          subtitleLanguages={collectLanguages(episode.files, 'subtitleLanguages')}
+        />
       </div>
     </PageContainer>
   );

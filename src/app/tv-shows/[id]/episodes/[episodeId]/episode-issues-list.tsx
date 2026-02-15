@@ -6,7 +6,7 @@
  * Admin can change status inline and edit via dialog
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { BadgeSelector } from '@/components/badge-selector';
@@ -48,6 +48,11 @@ export function EpisodeIssuesList({ issues: initialIssues, dateFormat, episodeLa
   const { isAdmin, user } = useAuth();
   const { refresh: refreshCounts } = useIssueContext();
   const [issues, setIssues] = useState(initialIssues);
+
+  // Sync with server data after router.refresh()
+  useEffect(() => {
+    setIssues(initialIssues);
+  }, [initialIssues]);
 
   const handleStatusChange = useCallback(async (issueId: number, newStatus: string) => {
     const response = await fetch(`/api/issues/${issueId}`, {
