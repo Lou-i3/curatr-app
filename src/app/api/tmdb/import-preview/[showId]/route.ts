@@ -75,6 +75,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkAuth } from '@/lib/auth';
 import {
   getSeasonDetails,
   getTVShowDetails,
@@ -96,6 +97,8 @@ export async function GET(
   { params }: { params: Promise<{ showId: string }> }
 ) {
   try {
+    const authError = await checkAuth(); if (authError) return authError;
+
     if (!isTmdbConfigured()) {
       return NextResponse.json(
         { error: 'TMDB API key not configured' },

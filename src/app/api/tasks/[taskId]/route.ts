@@ -44,12 +44,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getTaskTracker } from '@/lib/tasks';
+import { checkAuth } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ taskId: string }>;
 }
 
 export async function GET(request: NextRequest, { params }: Params) {
+  const authError = await checkAuth();
+  if (authError) return authError;
+
   const { taskId } = await params;
 
   const tracker = getTaskTracker(taskId);

@@ -85,7 +85,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { startScan, getRecentScans } from '@/lib/scanner';
-import { checkAdmin } from '@/lib/auth';
+import { checkAdmin, checkAuth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -114,6 +114,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const scans = await getRecentScans(20);
     return NextResponse.json(scans);
   } catch (error) {

@@ -204,7 +204,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PlaybackStatus } from '@/generated/prisma/client';
 import { recomputeFileQuality } from '@/lib/playback-status';
-import { checkAdmin } from '@/lib/auth';
+import { checkAuth, checkAdmin } from '@/lib/auth';
 
 const VALID_STATUSES: PlaybackStatus[] = ['PASS', 'PARTIAL', 'FAIL'];
 
@@ -213,6 +213,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const testId = parseInt(id, 10);
 

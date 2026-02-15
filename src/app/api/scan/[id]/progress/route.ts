@@ -37,12 +37,15 @@
 
 import { NextRequest } from 'next/server';
 import { getScanProgress, isScanActive } from '@/lib/scanner';
+import { checkAuth } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ id: string }>;
 }
 
 export async function GET(request: NextRequest, { params }: Params) {
+  const authError = await checkAuth(); if (authError) return authError;
+
   const { id } = await params;
   const scanId = parseInt(id, 10);
 

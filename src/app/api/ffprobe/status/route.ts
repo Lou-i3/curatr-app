@@ -35,9 +35,12 @@
 
 import { NextResponse } from 'next/server';
 import { getFFprobeStatus } from '@/lib/ffprobe';
+import { checkAuth } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const authError = await checkAuth(); if (authError) return authError;
+
     const status = await getFFprobeStatus();
     return NextResponse.json(status);
   } catch (error) {

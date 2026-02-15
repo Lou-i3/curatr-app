@@ -61,12 +61,16 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkAuth } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const episodeId = parseInt(id, 10);
 

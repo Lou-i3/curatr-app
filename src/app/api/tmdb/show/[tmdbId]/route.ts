@@ -77,12 +77,15 @@
 
 import { NextResponse } from 'next/server';
 import { getShowDetails, TMDBError, isTmdbConfigured, getPosterUrl, getBackdropUrl } from '@/lib/tmdb';
+import { checkAuth } from '@/lib/auth';
 
 interface RouteParams {
   params: Promise<{ tmdbId: string }>;
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
+  const authError = await checkAuth(); if (authError) return authError;
+
   if (!isTmdbConfigured()) {
     return NextResponse.json(
       { error: 'TMDB API key not configured' },

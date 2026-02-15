@@ -119,6 +119,9 @@ const VALID_STATUSES: IssueStatus[] = ['OPEN', 'ACKNOWLEDGED', 'IN_PROGRESS', 'R
 
 export async function GET(request: Request) {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const type = searchParams.get('type');

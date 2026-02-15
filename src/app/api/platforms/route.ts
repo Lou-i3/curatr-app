@@ -101,10 +101,13 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { checkAdmin } from '@/lib/auth';
+import { checkAuth, checkAdmin } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const platforms = await prisma.platform.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {

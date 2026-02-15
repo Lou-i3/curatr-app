@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { setMaxParallelTasks } from '@/lib/tasks';
-import { checkAdmin } from '@/lib/auth';
+import { checkAdmin, checkAuth } from '@/lib/auth';
 
 const VALID_DATE_FORMATS = ['EU', 'US', 'ISO'];
 
@@ -74,6 +74,9 @@ const VALID_DATE_FORMATS = ['EU', 'US', 'ISO'];
  */
 export async function GET() {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     // Get or create settings with default values
     const settings = await prisma.settings.upsert({
       where: { id: 1 },

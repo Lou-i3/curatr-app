@@ -170,13 +170,16 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { checkAdmin } from '@/lib/auth';
+import { checkAuth, checkAdmin } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const platformId = parseInt(id, 10);
 

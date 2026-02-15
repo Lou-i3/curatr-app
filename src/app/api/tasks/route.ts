@@ -38,8 +38,12 @@
 
 import { NextResponse } from 'next/server';
 import { getActiveTasks } from '@/lib/tasks';
+import { checkAuth } from '@/lib/auth';
 
 export async function GET() {
+  const authError = await checkAuth();
+  if (authError) return authError;
+
   const tasks = getActiveTasks();
 
   return NextResponse.json({

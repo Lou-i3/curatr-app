@@ -9,7 +9,7 @@ import {
   type QualityStatus,
   type DisplayMonitorStatus,
 } from '@/lib/status';
-import { checkAdmin } from '@/lib/auth';
+import { checkAdmin, checkAuth } from '@/lib/auth';
 
 type TmdbStatus = 'all' | 'unmatched' | 'needs-sync' | 'fully-synced';
 
@@ -149,6 +149,9 @@ export interface TVShowListItem {
  */
 export async function GET(request: NextRequest) {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q');
     const monitor = searchParams.get('monitor');

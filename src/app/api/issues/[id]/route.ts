@@ -162,6 +162,9 @@ interface RouteContext {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const { id } = await context.params;
     const issueId = parseInt(id, 10);
     if (isNaN(issueId)) {

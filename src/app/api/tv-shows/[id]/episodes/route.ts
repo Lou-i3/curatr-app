@@ -59,6 +59,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkAuth } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -66,6 +67,9 @@ interface RouteContext {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const { id } = await context.params;
     const showId = parseInt(id, 10);
     if (isNaN(showId)) {

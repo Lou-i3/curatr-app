@@ -30,8 +30,11 @@
 
 import { NextResponse } from 'next/server';
 import { getEnhancedIntegrationStatus, isTmdbConfigured } from '@/lib/tmdb';
+import { checkAuth } from '@/lib/auth';
 
 export async function GET() {
+  const authError = await checkAuth(); if (authError) return authError;
+
   const configured = isTmdbConfigured();
 
   if (!configured) {

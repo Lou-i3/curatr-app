@@ -141,12 +141,15 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PlaybackStatus } from '@/generated/prisma/client';
 import { recomputeFileQuality } from '@/lib/playback-status';
-import { checkAdmin } from '@/lib/auth';
+import { checkAuth, checkAdmin } from '@/lib/auth';
 
 const VALID_STATUSES: PlaybackStatus[] = ['PASS', 'PARTIAL', 'FAIL'];
 
 export async function GET(request: Request) {
   try {
+    const authError = await checkAuth();
+    if (authError) return authError;
+
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get('fileId');
     const platformId = searchParams.get('platformId');
