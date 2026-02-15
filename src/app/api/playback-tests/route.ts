@@ -1,13 +1,13 @@
 /**
  * Playback Tests API
- * GET: List tests (filter by fileId, platformId)
+ * GET: List tests (filter by fileId, platformId, status, search query)
  * POST: Create new test
  *
  * @swagger
  * /api/playback-tests:
  *   get:
  *     summary: List playback tests
- *     description: Returns playback tests, optionally filtered by file ID and/or platform ID. Includes platform info.
+ *     description: Returns playback tests with offset-based pagination, optionally filtered by file ID, platform ID, status, or search query. Includes platform and file context, plus status counts for toolbar chips.
  *     tags: [Playback Tests]
  *     parameters:
  *       - in: query
@@ -20,37 +20,58 @@
  *         schema:
  *           type: integer
  *         description: Filter by platform ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/PlaybackStatus'
+ *         description: Filter by test status (PASS, PARTIAL, FAIL)
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search by show title or filename
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 200
+ *           minimum: 1
+ *           maximum: 500
+ *         description: Number of tests to return per page
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *           minimum: 0
+ *         description: Number of tests to skip for pagination
  *     responses:
  *       200:
- *         description: Array of playback tests with platform info
+ *         description: Paginated playback tests with total count and status counts
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   episodeFileId:
- *                     type: integer
- *                   platformId:
- *                     type: integer
- *                   status:
- *                     $ref: '#/components/schemas/PlaybackStatus'
- *                   notes:
- *                     type: string
- *                     nullable: true
- *                   testedAt:
- *                     type: string
- *                     format: date-time
- *                   platform:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
  *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                       name:
- *                         type: string
+ *                 total:
+ *                   type: integer
+ *                   description: Total number of tests matching all filters
+ *                 counts:
+ *                   type: object
+ *                   description: Status counts across all non-status filters
+ *                   properties:
+ *                     all:
+ *                       type: integer
+ *                     PASS:
+ *                       type: integer
+ *                     PARTIAL:
+ *                       type: integer
+ *                     FAIL:
+ *                       type: integer
  *       500:
  *         description: Server error
  *         content:
@@ -153,8 +174,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get('fileId');
     const platformId = searchParams.get('platformId');
+    const status = searchParams.get('status');
+    const q = searchParams.get('q');
 
-    const where: { episodeFileId?: number; platformId?: number } = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {};
 
     if (fileId) {
       const parsedFileId = parseInt(fileId, 10);
@@ -170,15 +194,76 @@ export async function GET(request: Request) {
       }
     }
 
-    const tests = await prisma.playbackTest.findMany({
-      where,
-      orderBy: { testedAt: 'desc' },
-      include: {
-        platform: true,
-      },
-    });
+    if (status && VALID_STATUSES.includes(status as PlaybackStatus)) {
+      where.status = status;
+    }
 
-    return NextResponse.json(tests);
+    if (q) {
+      where.episodeFile = {
+        OR: [
+          { filename: { contains: q } },
+          { episode: { season: { tvShow: { title: { contains: q } } } } },
+        ],
+      };
+    }
+
+    // Pagination
+    const limitParam = searchParams.get('limit');
+    const offsetParam = searchParams.get('offset');
+    const limit = Math.min(Math.max(parseInt(limitParam ?? '200', 10) || 200, 1), 500);
+    const offset = Math.max(parseInt(offsetParam ?? '0', 10) || 0, 0);
+
+    // Build counts where (without status filter so chips show all statuses)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const countsWhere: Record<string, any> = { ...where };
+    delete countsWhere.status;
+
+    const [tests, totalCount, statusGroups] = await Promise.all([
+      prisma.playbackTest.findMany({
+        where,
+        orderBy: { testedAt: 'desc' },
+        skip: offset,
+        take: limit,
+        include: {
+          platform: true,
+          episodeFile: {
+            select: {
+              id: true,
+              filename: true,
+              quality: true,
+              episode: {
+                select: {
+                  id: true,
+                  episodeNumber: true,
+                  title: true,
+                  season: {
+                    select: {
+                      seasonNumber: true,
+                      tvShow: { select: { id: true, title: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.playbackTest.count({ where }),
+      prisma.playbackTest.groupBy({
+        by: ['status'],
+        where: countsWhere,
+        _count: true,
+      }),
+    ]);
+
+    // Build status counts
+    const counts: Record<string, number> = { all: 0, PASS: 0, PARTIAL: 0, FAIL: 0 };
+    for (const group of statusGroups) {
+      counts[group.status] = group._count;
+      counts.all += group._count;
+    }
+
+    return NextResponse.json({ data: tests, total: totalCount, counts });
   } catch (error) {
     console.error('Failed to fetch playback tests:', error);
     return NextResponse.json(

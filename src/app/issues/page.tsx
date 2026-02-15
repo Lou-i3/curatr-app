@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { LayoutGrid, Table as TableIcon, Pencil, Trash2, User } from 'lucide-react';
+import { Pencil, Trash2, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ import { formatDateTimeWithFormat } from '@/lib/settings-shared';
 import type { IssueStatus } from '@/generated/prisma/client';
 import type { DateFormat } from '@/lib/settings-shared';
 import { getIssueColumns, type IssueRow } from './issue-columns';
+import { ViewToggle } from '@/components/view-toggle';
 import { IssueReportSearchDialog } from '@/components/issues/issue-report-search-dialog';
 import { IssueEditDialog } from '@/components/issues/issue-edit-dialog';
 import { PageHeader } from '@/components/page-header';
@@ -281,24 +282,10 @@ export default function IssuesPage() {
           </div>
 
           {/* View Toggle */}
-          <div className="flex border rounded-md flex-shrink-0">
-            <Button
-              variant={!isTableView ? 'secondary' : 'ghost'}
-              size="icon"
-              className="rounded-r-none"
-              onClick={() => updateView('cards')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={isTableView ? 'secondary' : 'ghost'}
-              size="icon"
-              className="rounded-l-none"
-              onClick={() => updateView('table')}
-            >
-              <TableIcon className="h-4 w-4" />
-            </Button>
-          </div>
+          <ViewToggle
+            isTableView={isTableView}
+            onViewChange={(view) => updateView(view)}
+          />
         </div>
       </div>
 

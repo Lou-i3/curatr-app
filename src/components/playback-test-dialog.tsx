@@ -5,6 +5,7 @@
  *
  * Dialog for managing playback tests for files in an episode.
  * Shows existing tests grouped by file, allows adding new tests.
+ * Uses shared EditTestDialog for editing individual tests.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -55,6 +56,7 @@ import {
 } from '@/lib/status';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 import type { PlaybackStatus } from '@/generated/prisma/client';
+import { EditTestDialog, type EditableTest } from '@/components/playback-tests/edit-test-dialog';
 
 interface Platform {
   id: number;
@@ -108,21 +110,12 @@ export function PlaybackTestDialog({
   const [newTestDate, setNewTestDate] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Edit test state
-  const [editingTestId, setEditingTestId] = useState<number | null>(null);
-  const [editStatus, setEditStatus] = useState<PlaybackStatus>('PASS');
-  const [editNotes, setEditNotes] = useState('');
-  const [editDate, setEditDate] = useState('');
+  // Edit test state — uses shared EditTestDialog
+  const [editingTest, setEditingTest] = useState<EditableTest | null>(null);
 
   // Delete confirmation state
   const [deleteTestId, setDeleteTestId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
-  const toDateTimeLocal = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toISOString().slice(0, 16);
-  };
 
   // Format date for display using app settings
   const formatTestDate = (dateStr: string) => {
@@ -240,48 +233,22 @@ export function PlaybackTestDialog({
     }
   };
 
-  // Start editing test
+  // Open shared edit dialog for a test
   const handleStartEdit = (test: PlaybackTest) => {
-    setEditingTestId(test.id);
-    setEditStatus(test.status);
-    setEditNotes(test.notes || '');
-    setEditDate(toDateTimeLocal(test.testedAt));
+    setEditingTest({
+      id: test.id,
+      status: test.status,
+      notes: test.notes,
+      testedAt: test.testedAt,
+      platformName: test.platform.name,
+    });
   };
 
-  // Cancel editing
-  const handleCancelEdit = () => {
-    setEditingTestId(null);
-  };
-
-  // Save edit
-  const handleSaveEdit = async () => {
-    if (!editingTestId) return;
-
-    setSaving(true);
-    try {
-      const response = await fetch(`/api/playback-tests/${editingTestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: editStatus,
-          notes: editNotes || null,
-          testedAt: editDate ? new Date(editDate).toISOString() : undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update test');
-      }
-
-      toast.success('Test updated');
-      handleCancelEdit();
-      await refetchFiles();
-      router.refresh();
-    } catch {
-      toast.error('Failed to update test');
-    } finally {
-      setSaving(false);
-    }
+  // Handle edit saved
+  const handleEditSaved = async () => {
+    setEditingTest(null);
+    await refetchFiles();
+    router.refresh();
   };
 
   // Confirm and delete test
@@ -363,118 +330,57 @@ export function PlaybackTestDialog({
                       <div className="space-y-3">
                         {file.playbackTests.map((test) => (
                           <Card key={test.id} className="relative">
-                            {editingTestId === test.id ? (
-                              // Edit mode
-                              <CardContent className="p-4 space-y-3">
-                                <div className="font-medium flex items-center gap-2">
+                            <CardContent className="p-3 space-y-2">
+                              {/* Line 1: Platform + Actions */}
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-sm">
                                   {test.platform.name}
                                   {test.platform.isRequired && (
-                                    <span className="text-destructive-foreground">*</span>
+                                    <span className="text-destructive-foreground ml-1">*</span>
                                   )}
-                                </div>
-                                <Select
-                                  value={editStatus}
-                                  onValueChange={(v) => setEditStatus(v as PlaybackStatus)}
-                                >
-                                  <SelectTrigger className="h-8">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {PLAYBACK_STATUS_OPTIONS.map((opt) => (
-                                      <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Input
-                                  type="datetime-local"
-                                  value={editDate}
-                                  onChange={(e) => setEditDate(e.target.value)}
-                                  className="h-8"
-                                />
-                                <Textarea
-                                  placeholder="Notes (optional)"
-                                  value={editNotes}
-                                  onChange={(e) => setEditNotes(e.target.value)}
-                                  className="min-h-[60px]"
-                                />
-                                <div className="flex items-center gap-2">
+                                </span>
+                                <div className="flex items-center gap-1">
                                   <Button
-                                    size="sm"
-                                    onClick={handleSaveEdit}
-                                    disabled={saving}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleStartEdit(test)}
                                   >
-                                    {saving ? (
-                                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                    ) : (
-                                      <Check className="h-4 w-4 mr-1" />
-                                    )}
-                                    Save
+                                    <Pencil className="h-3 w-3" />
                                   </Button>
                                   <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={handleCancelEdit}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-destructive-foreground hover:text-destructive-foreground"
+                                    onClick={() => setDeleteTestId(test.id)}
                                   >
-                                    Cancel
+                                    <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </div>
-                              </CardContent>
-                            ) : (
-                              // View mode - two line layout
-                              <CardContent className="p-3 space-y-2">
-                                {/* Line 1: Platform + Actions */}
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium text-sm">
-                                    {test.platform.name}
-                                    {test.platform.isRequired && (
-                                      <span className="text-destructive-foreground ml-1">*</span>
-                                    )}
-                                  </span>
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6"
-                                      onClick={() => handleStartEdit(test)}
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 text-destructive-foreground hover:text-destructive-foreground"
-                                      onClick={() => setDeleteTestId(test.id)}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
+                              </div>
+                              {/* Line 2: Status, Date, Notes */}
+                              <div className="flex items-center gap-4">
+                                <Badge variant={getPlaybackStatusVariant(test.status)}>
+                                  {PLAYBACK_STATUS_LABELS[test.status]}
+                                </Badge>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1 flex-shrink-0">
+                                  <Calendar className="h-3 w-3" />
+                                  {formatTestDate(test.testedAt)}
                                 </div>
-                                {/* Line 2: Status, Date, Notes */}
-                                <div className="flex items-center gap-4">
-                                  <Badge variant={getPlaybackStatusVariant(test.status)}>
-                                    {PLAYBACK_STATUS_LABELS[test.status]}
-                                  </Badge>
-                                  <div className="text-xs text-muted-foreground flex items-center gap-1 flex-shrink-0">
-                                    <Calendar className="h-3 w-3" />
-                                    {formatTestDate(test.testedAt)}
-                                  </div>
-                                  {test.notes && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <p className="text-xs text-muted-foreground truncate flex-1 cursor-help">
-                                          {test.notes}
-                                        </p>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-sm">
-                                        <p className="whitespace-pre-wrap">{test.notes}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )}
-                                </div>
-                              </CardContent>
-                            )}
+                                {test.notes && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <p className="text-xs text-muted-foreground truncate flex-1 cursor-help">
+                                        {test.notes}
+                                      </p>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-sm">
+                                      <p className="whitespace-pre-wrap">{test.notes}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </CardContent>
                           </Card>
                         ))}
                       </div>
@@ -572,6 +478,18 @@ export function PlaybackTestDialog({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Shared edit dialog */}
+      {editingTest && (
+        <EditTestDialog
+          test={editingTest}
+          open={!!editingTest}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setEditingTest(null);
+          }}
+          onSaved={handleEditSaved}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteTestId !== null} onOpenChange={(open) => !open && setDeleteTestId(null)}>

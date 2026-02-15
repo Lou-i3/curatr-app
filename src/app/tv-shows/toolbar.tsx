@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useTransition } from 'react';
 import { Table as TableInstance } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -12,9 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, LayoutGrid, Table } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { TVShowDialog } from './show-dialog';
-import { ColumnVisibilityToggle } from './column-visibility-toggle';
+import { ColumnVisibilityToggle } from '@/components/column-visibility-toggle';
+import { ViewToggle } from '@/components/view-toggle';
 import type { TVShow } from './tv-show-columns';
 
 const MONITOR_STATUS_OPTIONS = [
@@ -95,24 +95,10 @@ export function TVShowsToolbar({ table = null }: TVShowsToolbarProps) {
       <ColumnVisibilityToggle table={table} />
 
       {/* View Toggle */}
-      <div className="flex border rounded-md">
-        <Button
-          variant={currentView === 'grid' ? 'secondary' : 'ghost'}
-          size="icon"
-          className="rounded-r-none"
-          onClick={() => handleViewChange('grid')}
-        >
-          <LayoutGrid className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={currentView === 'table' ? 'secondary' : 'ghost'}
-          size="icon"
-          className="rounded-l-none"
-          onClick={() => handleViewChange('table')}
-        >
-          <Table className="h-4 w-4" />
-        </Button>
-      </div>
+      <ViewToggle
+        isTableView={currentView === 'table'}
+        onViewChange={(view) => handleViewChange(view)}
+      />
 
       {/* Add Button */}
       <TVShowDialog trigger="add" />
