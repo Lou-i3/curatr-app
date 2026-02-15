@@ -31,6 +31,7 @@ import { getPosterUrl } from '@/lib/tmdb/images';
 import { useTasks } from '@/lib/contexts/task-context';
 import { PageContainer } from '@/components/layout';
 import { PageHeader } from '@/components/page-header';
+import { AdminGuard } from '@/components/admin-guard';
 
 interface EnhancedIntegrationStatus {
   configured: boolean;
@@ -300,6 +301,7 @@ export default function TmdbIntegrationPage() {
   // Loading skeleton
   if (loading) {
     return (
+      <AdminGuard>
       <PageContainer maxWidth="wide">
         <PageHeader
           title="TMDB Integration"
@@ -325,10 +327,12 @@ export default function TmdbIntegrationPage() {
           </CardContent>
         </Card>
       </PageContainer>
+      </AdminGuard>
     );
   }
 
   return (
+    <AdminGuard>
     <PageContainer maxWidth="wide">
       {/* Header */}
       <PageHeader
@@ -693,5 +697,6 @@ export default function TmdbIntegrationPage() {
         </>
       )}
     </PageContainer>
+    </AdminGuard>
   );
 }

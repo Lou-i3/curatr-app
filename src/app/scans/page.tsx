@@ -8,6 +8,7 @@ import { getConfig } from '@/lib/scanner/config';
 import { ScanControls } from './scan-controls';
 import { ScanHistoryTable } from './scan-history-table';
 import { PageContainer } from '@/components/layout';
+import { AdminGuard } from '@/components/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,7 @@ export default async function ScansPage() {
   }
 
   return (
+    <AdminGuard>
     <PageContainer maxWidth="wide">
       <ScanControls tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
 
@@ -41,5 +43,6 @@ export default async function ScansPage() {
         <ScanHistoryTable initialScans={scans} dateFormat={settings.dateFormat} />
       </div>
     </PageContainer>
+    </AdminGuard>
   );
 }

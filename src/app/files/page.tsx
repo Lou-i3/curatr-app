@@ -54,6 +54,7 @@ import { getFileColumns, type FileRow } from './file-columns';
 import { FilesToolbar } from './files-toolbar';
 import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
+import { AdminGuard } from '@/components/admin-guard';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import type { Table as TableInstance } from '@tanstack/react-table';
 
@@ -304,6 +305,7 @@ export default function FilesPage() {
   );
 
   return (
+    <AdminGuard>
     <PageContainer maxWidth="wide">
       {/* Sticky Header */}
       <div className="sticky top-12 z-10 bg-background -mt-4 md:-mt-6 pt-4 md:pt-6 pb-4 md:pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b mb-6 md:mb-8">
@@ -563,5 +565,6 @@ export default function FilesPage() {
         )}
       </div>
     </PageContainer>
+    </AdminGuard>
   );
 }

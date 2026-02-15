@@ -14,6 +14,7 @@ import { isFFprobeAvailable } from '@/lib/ffprobe';
 import { prisma } from '@/lib/prisma';
 import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
+import { AdminGuard } from '@/components/admin-guard';
 import { getAuthMode } from '@/lib/auth';
 import { isPlexConfigured } from '@/lib/plex/auth';
 
@@ -153,6 +154,7 @@ export default async function IntegrationsPage() {
   const integrations = await getIntegrations();
 
   return (
+    <AdminGuard>
     <PageContainer maxWidth="wide">
       <PageHeader
         title="Integrations"
@@ -166,6 +168,7 @@ export default async function IntegrationsPage() {
         ))}
       </div>
     </PageContainer>
+    </AdminGuard>
   );
 }
 

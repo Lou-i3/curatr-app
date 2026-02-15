@@ -15,6 +15,7 @@ import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared
 import { useTasks, type TaskData } from '@/lib/contexts/task-context';
 import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
+import { AdminGuard } from '@/components/admin-guard';
 
 // Re-use TaskData from context
 type TaskProgress = TaskData;
@@ -112,6 +113,7 @@ export default function TasksPage() {
 
   if (loading) {
     return (
+      <AdminGuard>
       <PageContainer maxWidth="wide">
         <PageHeader
           title="Tasks"
@@ -126,10 +128,12 @@ export default function TasksPage() {
           </CardContent>
         </Card>
       </PageContainer>
+      </AdminGuard>
     );
   }
 
   return (
+    <AdminGuard>
     <PageContainer maxWidth="wide">
       {/* Header */}
       <PageHeader
@@ -200,6 +204,7 @@ export default function TasksPage() {
         </Card>
       )}
     </PageContainer>
+    </AdminGuard>
   );
 }
 

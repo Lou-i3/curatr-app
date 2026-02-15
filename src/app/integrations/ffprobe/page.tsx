@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageContainer } from '@/components/layout';
 import { PageHeader } from '@/components/page-header';
+import { AdminGuard } from '@/components/admin-guard';
 
 interface FFprobeStatus {
   configured: boolean;
@@ -75,6 +76,7 @@ export default function FfprobeIntegrationPage() {
   // Loading skeleton
   if (loading) {
     return (
+      <AdminGuard>
       <PageContainer maxWidth="wide">
         <PageHeader
           title="FFprobe Integration"
@@ -92,10 +94,12 @@ export default function FfprobeIntegrationPage() {
           </CardContent>
         </Card>
       </PageContainer>
+      </AdminGuard>
     );
   }
 
   return (
+    <AdminGuard>
     <PageContainer maxWidth="wide">
       {/* Header */}
       <PageHeader
@@ -334,5 +338,6 @@ RUN apk add --no-cache ffmpeg`}
         </Card>
       )}
     </PageContainer>
+    </AdminGuard>
   );
 }

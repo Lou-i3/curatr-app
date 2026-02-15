@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageContainer } from '@/components/layout';
 import { PageHeader } from '@/components/page-header';
+import { AdminGuard } from '@/components/admin-guard';
 
 interface AuthStatus {
   authMode: 'none' | 'plex';
@@ -61,6 +62,7 @@ export default function PlexAuthIntegrationPage() {
 
   if (loading) {
     return (
+      <AdminGuard>
       <PageContainer maxWidth="wide">
         <PageHeader
           title="Plex Authentication"
@@ -73,6 +75,7 @@ export default function PlexAuthIntegrationPage() {
           ))}
         </div>
       </PageContainer>
+      </AdminGuard>
     );
   }
 
@@ -81,6 +84,7 @@ export default function PlexAuthIntegrationPage() {
   const isReachable = status?.serverReachable ?? false;
 
   return (
+    <AdminGuard>
     <PageContainer maxWidth="wide">
       {/* Header */}
       <PageHeader
@@ -323,6 +327,7 @@ export default function PlexAuthIntegrationPage() {
         </Card>
       )}
     </PageContainer>
+    </AdminGuard>
   );
 }
 
