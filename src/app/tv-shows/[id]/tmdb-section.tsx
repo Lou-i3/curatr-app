@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 import { useTasks } from '@/lib/contexts/task-context';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 interface SyncStats {
   totalSeasons: number;
@@ -51,6 +52,7 @@ export function TmdbSection({
   syncStats,
 }: TmdbSectionProps) {
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const { tasks, refresh: refreshTasks } = useTasks();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -169,7 +171,8 @@ export function TmdbSection({
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-              {/* Actions */}
+              {/* Actions (admin only) */}
+              {isAdmin && (
               <div className="flex flex-wrap gap-2">
                 {/* Sync Metadata */}
                 <Button
@@ -219,6 +222,7 @@ export function TmdbSection({
                   }
                 />
               </div>
+              )}
 
               {/* Last Sync */}
               <p className="text-xs text-muted-foreground sm:whitespace-nowrap">
@@ -230,22 +234,30 @@ export function TmdbSection({
           </>
         ) : (
           <div className="flex items-center gap-2">
-            {/* Match to TMDB */}
-            <TmdbMatchDialog
-              showId={showId}
-              showTitle={showTitle}
-              showYear={showYear}
-              onMatch={handleMatch}
-              trigger={
-                <Button size="sm">
-                  <Link2 className="size-4 mr-1" />
-                  Match to TMDB
-                </Button>
-              }
-            />
-            <p className="text-sm text-muted-foreground">
-              Match this show to fetch metadata from TMDB
-            </p>
+            {isAdmin ? (
+              <>
+                {/* Match to TMDB (admin only) */}
+                <TmdbMatchDialog
+                  showId={showId}
+                  showTitle={showTitle}
+                  showYear={showYear}
+                  onMatch={handleMatch}
+                  trigger={
+                    <Button size="sm">
+                      <Link2 className="size-4 mr-1" />
+                      Match to TMDB
+                    </Button>
+                  }
+                />
+                <p className="text-sm text-muted-foreground">
+                  Match this show to fetch metadata from TMDB
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Not matched to TMDB
+              </p>
+            )}
           </div>
         )}
       </CardContent>
