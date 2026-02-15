@@ -55,6 +55,7 @@ const options = {
       { name: 'Users', description: 'User management' },
       { name: 'Settings', description: 'Application settings' },
       { name: 'FFprobe', description: 'FFprobe media analysis integration' },
+      { name: 'System', description: 'Application health & system info' },
     ],
     components: {
       // Shared schemas referenced by route annotations via $ref.

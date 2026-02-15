@@ -5,7 +5,10 @@
 [![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Docker-blue)](https://docs.docker.com/)
 [![Vibe Coded](https://img.shields.io/badge/vibe%20coded-Claude-blueviolet)](https://claude.ai)
 
-A **self-hosted** web application for tracking media file quality, playback compatibility, and maintenance status across your Plex media library. Deploy on your own server with Docker and keep full control of your data.
+A **self-hosted** quality management tool for Plex media libraries. Track file quality across your library, let your users report playback issues, test compatibility across devices, and keep on top of what needs upgrading — all from a single, clean interface. Deploy with Docker and keep full control of your data.
+
+**For server admins**: dashboard with library health, quality breakdown, codec/resolution analytics, bulk operations, and integration with TMDB and FFprobe.
+**For your users**: browse the library, report issues (audio, subtitles, playback, quality), and track their submissions.
 
 ## Disclaimer
 
@@ -20,6 +23,7 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
 - [Curatr App](#curatr-app)
   - [Disclaimer](#disclaimer)
   - [Table of Contents](#table-of-contents)
+  - [Screenshots](#screenshots)
   - [Features](#features)
   - [Self-Hosted](#self-hosted)
   - [Quick Start](#quick-start)
@@ -41,8 +45,15 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
     - [Notifications](#notifications)
     - [Infrastructure](#infrastructure)
     - [Localization](#localization)
+  - [Security](#security)
   - [Further Documentation](#further-documentation)
   - [License](#license)
+
+---
+
+## Screenshots
+
+> **Coming soon** — Screenshots and a demo GIF of the dashboard, library view, issue reporting, and quality tracking will be added here.
 
 ---
 
@@ -308,6 +319,7 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - 🔵 Duplicate file detection (find duplicate episodes across the library)
 - 🔵 Playback tests page (centralized view of all tests across the library)
 - 🔵 Storage analytics (disk space usage breakdown by show/quality/codec)
+- 🔵 Media request system (users request new content)
 
 ### UI / UX
 
@@ -348,11 +360,13 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 
 - 🔵 In-app notifications for issues/requests
 - 🔵 Push notifications
-- 🔵 Media request system (users request new content)
 
 ### Infrastructure
 
 - 🟡 Database backup/restore (export and import from the UI)
+- 🟡 Health API endpoint (`/api/health` — app version, DB status, uptime)
+- 🔵 Library model (multiple media libraries per type, library-scoped scanning and stats)
+- 🔵 Multi-architecture Docker images (amd64 + arm64)
 - 🔵 Refactor Prisma client to default location
 - 🔵 Audit module utilization, remove unused (from package.json)
 - 🔵 Refactor DB documentation to DBML

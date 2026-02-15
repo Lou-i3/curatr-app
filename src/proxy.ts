@@ -10,7 +10,7 @@ import type { NextRequest } from 'next/server';
 const SESSION_COOKIE_NAME = 'session_token';
 
 /** Paths that don't require authentication */
-const PUBLIC_PATHS = ['/login', '/api/auth'];
+const PUBLIC_PATHS = ['/login', '/api/auth', '/api/health'];
 
 export function proxy(request: NextRequest) {
   const authMode = process.env.AUTH_MODE?.toLowerCase();
