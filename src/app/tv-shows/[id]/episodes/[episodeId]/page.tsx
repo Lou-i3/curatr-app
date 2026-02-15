@@ -1,16 +1,18 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatFileSize, formatDuration, formatDateWithFormat, formatDateTimeWithFormat } from "@/lib/format";
-import { computeEpisodeQuality, getPlaybackStatusVariant, PLAYBACK_STATUS_LABELS } from "@/lib/status";
+import { formatFileSize, formatDuration, formatDateWithFormat } from "@/lib/format";
+import { computeEpisodeQuality } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
 import { isFFprobeAvailable } from "@/lib/ffprobe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, FileCheck, FileX, Clock, HardDrive, Calendar } from "lucide-react";
+import { AlertTriangle, FileCheck, FileX, Clock, HardDrive } from "lucide-react";
 import { EpisodeDetailStatusBadges } from "./episode-detail-status-badges";
 import { FileStatusBadges } from "./file-status-badges";
+import { FileRescanButton } from "./file-rescan-button";
 import { MediaInfoSection } from "@/components/files/media-info-section";
 import { IssueReportDialog } from "@/components/issues/issue-report-dialog";
+import { EpisodePlaybackTests } from "./episode-playback-tests";
 import { EpisodeIssuesList } from "./episode-issues-list";
 import { PageContainer } from "@/components/layout";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -147,6 +149,7 @@ export default async function EpisodeDetailPage({ params }: Props) {
                             Missing
                           </Badge>
                         )}
+                        <FileRescanButton fileId={file.id} />
                       </div>
                     </div>
                   </CardHeader>
@@ -228,36 +231,19 @@ export default async function EpisodeDetailPage({ params }: Props) {
                     )}
 
                     {/* Playback Tests */}
-                    {file.playbackTests.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-3">Playback Tests</h4>
-                        <div className="space-y-2">
-                          {file.playbackTests.map((test) => (
-                            <div key={test.id} className="border rounded-lg p-3 space-y-2">
-                              {/* Line 1: Platform */}
-                              <div className="font-medium text-sm">
-                                {test.platform.name}
-                              </div>
-                              {/* Line 2: Status, Date, Notes */}
-                              <div className="flex items-center gap-4 flex-wrap">
-                                <Badge variant={getPlaybackStatusVariant(test.status)}>
-                                  {PLAYBACK_STATUS_LABELS[test.status]}
-                                </Badge>
-                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {formatDateTimeWithFormat(test.testedAt, dateFormat)}
-                                </div>
-                                {test.notes && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {test.notes}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <EpisodePlaybackTests
+                      fileId={file.id}
+                      episodeId={episode.id}
+                      tests={file.playbackTests.map((t) => ({
+                        id: t.id,
+                        platformId: t.platform.id,
+                        platform: { id: t.platform.id, name: t.platform.name, isRequired: t.platform.isRequired },
+                        status: t.status,
+                        notes: t.notes,
+                        testedAt: t.testedAt.toISOString(),
+                      }))}
+                      dateFormat={dateFormat}
+                    />
 
                     {/* Timestamps */}
                     <div className="pt-3 border-t text-xs text-muted-foreground flex gap-4">

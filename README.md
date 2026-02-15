@@ -126,17 +126,27 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
   - Admin inline status changes, resolution notes, and issue editing
   - Sidebar badge shows active issue count with polling
   - Works in both auth modes (no-auth: issues attributed to built-in admin user)
+- **Files Browser** - Browse and manage all episode files across the library
+  - Card and table views with column visibility toggle
+  - Filters: search, quality, action, file existence, analyzed status
+  - Inline quality and action editing with badge selectors (admin)
+  - Analyze (FFprobe) and rescan actions per file (admin)
+  - Infinite scroll pagination (200 files per batch)
 - **Playback Testing** - Record and track playback compatibility across platforms
   - Configurable platforms (TV, Web Player, Mobile, custom)
   - Mark platforms as required for quality verification
   - Auto-compute file quality: VERIFIED when all required platforms pass
   - Test history with notes and timestamps
   - Add/edit/delete tests from episode list or detail pages
+  - Centralized playback tests page with card/table views
+  - Status filter chips with server-computed counts
+  - Search by show title or filename, filter by platform
+  - Infinite scroll pagination (200 tests per batch)
 - **Settings** - Configurable date format (EU/US/ISO), max parallel tasks, playback platforms, and user management (when auth enabled)
 - **Responsive Design** - Desktop-first with full mobile adaptation
   - Mobile-first CSS with `md:` (768px) as primary breakpoint
   - Single-column stacking on mobile, multi-column grids on desktop
-  - Card + table view toggle on user-facing pages (TV Shows, Issues)
+  - Card + table view toggle on list pages (TV Shows, Issues, Files, Playback Tests)
   - Horizontal scroll for data tables on small screens
   - Auto-closing sidebar drawer on mobile navigation
   - Responsive typography, spacing, and card padding throughout
@@ -315,9 +325,9 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - 🔴 Bulk FFprobe analyze (season, show, whole library)
 - 🟡 Library statistics page (quality distribution, codec breakdown, resolution spread, storage by show)
 - 🔵 Movies support
-- 🔵 Files tab (TBD)
+- ✅ Files browser (card/table views, filters, inline editing, infinite scroll)
 - 🔵 Duplicate file detection (find duplicate episodes across the library)
-- 🔵 Playback tests page (centralized view of all tests across the library)
+- ✅ Playback tests page (centralized view with status chips, search, platform filter, infinite scroll)
 - 🔵 Storage analytics (disk space usage breakdown by show/quality/codec)
 - 🔵 Media request system (users request new content)
 
@@ -331,6 +341,8 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - 🔵 Use data table for all tables
 - ⚪️ Keyboard shortcuts (power-user navigation)
 - 🔵 Persistent filters (remember filter/sort preferences per page)
+- 🔵 User setting: prefer table or cards view (with option to prefer table except for mobile)
+- 🔵 User setting: view active sessions and revoke all or single
 
 ### Issue System
 

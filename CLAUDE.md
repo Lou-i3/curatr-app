@@ -418,6 +418,34 @@ Every feature interface should help users understand what's happening:
 - Run `npx prisma migrate dev` for new migrations
 - Run `npx prisma generate` after schema changes
 
+### Infinite Scroll Pattern
+- Hook: `src/hooks/use-infinite-scroll.ts`
+- Used by: Files page, Playback Tests page
+- Manages offset-based pagination with IntersectionObserver sentinel
+- Two refresh modes: `refetch()` (shows loading skeleton) and `refresh()` (silent, for post-action updates)
+- Aborted fetches don't clear loading state (prevents empty flash on navigation)
+- Pages build `apiQuery` from URL search params and pass to the hook
+- `parseResponse` callback transforms API response into `{ data, total, meta? }`
+
+```typescript
+const { items, total, loading, loadingMore, hasMore, sentinelRef, refresh, refetch } =
+  useInfiniteScroll<ItemType>({
+    apiUrl: '/api/endpoint',
+    apiQuery,            // serialized URLSearchParams string
+    limit: 200,
+    parseResponse: (json) => ({
+      data: json.data as ItemType[],
+      total: json.total as number,
+    }),
+  });
+```
+
+**Pages that should adopt `useInfiniteScroll`:**
+- **TV Shows page** (`src/app/tv-shows/page.tsx`) — currently loads all shows at once via `fetch('/api/tv-shows?full=true')`, no pagination. High priority for large libraries.
+- **Issues page** (`src/app/issues/page.tsx`) — currently loads all issues at once via `fetch('/api/issues')`. Moderate priority.
+- **Scans page** (`src/app/scans/page.tsx`) — server component with `prisma.scanHistory.findMany({ take: 50 })` hard limit. Needs API endpoint + client migration. High priority.
+- **Tasks page** — NOT suitable (ephemeral data, real-time polling, small dataset).
+
 ### Scanner Service
 - Located in `src/lib/scanner/`
 - Follows async generator pattern for memory efficiency

@@ -17,6 +17,14 @@ src/
 │   ├── login/
 │   │   ├── page.tsx                # Login page
 │   │   └── plex-login-button.tsx   # Plex OAuth button component
+│   ├── files/
+│   │   ├── page.tsx                # Files browser (card/table, infinite scroll)
+│   │   ├── file-columns.tsx        # DataTable column definitions
+│   │   └── files-toolbar.tsx       # Search, filter, column visibility, view toggle
+│   ├── playback-tests/
+│   │   ├── page.tsx                # Playback tests browser (card/table, infinite scroll)
+│   │   ├── playback-test-columns.tsx # DataTable column definitions
+│   │   └── playback-tests-toolbar.tsx # Search, filter, column visibility, view toggle
 │   ├── scans/
 │   │   └── page.tsx                # Scanner UI
 │   ├── tasks/
@@ -44,18 +52,21 @@ src/
 │   ├── tv-shows/
 │   │   ├── page.tsx                # TV Shows list (grid/table)
 │   │   ├── toolbar.tsx             # Search, filter, view toggle
-│   │   ├── column-visibility-toggle.tsx  # Show/hide columns in table view
 │   │   ├── show-dialog.tsx         # Create/Edit TV show dialog
 │   │   └── [id]/
 │   │       ├── page.tsx            # Show detail with expandable seasons
 │   │       ├── seasons-list.tsx    # Accordion seasons with episode tables
+│   │       ├── episode-columns.tsx # Episode DataTable column definitions
+│   │       ├── episode-dialog.tsx  # Create/Edit episode dialog
 │   │       ├── tmdb-section.tsx    # TMDB integration controls
 │   │       ├── tmdb-help-dialog.tsx # TMDB features help
 │   │       └── episodes/
 │   │           └── [episodeId]/
 │   │               ├── page.tsx              # Episode detail (files + issues)
 │   │               ├── episode-detail-status-badges.tsx  # Status controls
+│   │               ├── episode-playback-tests.tsx # Inline playback test management
 │   │               ├── episode-issues-list.tsx # Issue sidebar component
+│   │               ├── file-rescan-button.tsx # Re-check file on disk button
 │   │               └── file-status-badges.tsx # File quality/action badges
 │   └── api/
 │       ├── settings/route.ts       # Settings API
@@ -87,6 +98,14 @@ src/
 │       ├── platforms/              # Platform management
 │       │   ├── route.ts            # GET: list, POST: create
 │       │   └── [id]/route.ts       # PATCH: update, DELETE: delete
+│       ├── files/                   # File management API
+│       │   ├── route.ts            # GET: list with filters & pagination
+│       │   └── [id]/
+│       │       ├── route.ts        # PATCH: update quality/action
+│       │       ├── analyze/route.ts # POST: FFprobe analysis
+│       │       └── rescan/route.ts  # POST: re-check file on disk
+│       ├── episodes/[id]/
+│       │   └── files/route.ts      # GET: files for an episode
 │       ├── playback-tests/         # Playback test management
 │       │   ├── route.ts            # GET: list, POST: create
 │       │   └── [id]/route.ts       # GET, PATCH, DELETE
@@ -143,6 +162,8 @@ src/
 │       ├── extract.ts              # Core extraction logic
 │       ├── service.ts              # Analysis operations
 │       └── index.ts                # Barrel export
+├── hooks/
+│   └── use-infinite-scroll.ts     # Shared infinite scroll hook (offset-based pagination)
 ├── components/
 │   ├── app-sidebar.tsx             # Collapsible navigation sidebar (role-aware)
 │   ├── page-header.tsx             # Reusable page header with title/description/action
@@ -152,6 +173,13 @@ src/
 │   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
 │   ├── tmdb-import-dialog.tsx      # Import seasons/episodes from TMDB
 │   ├── playback-test-dialog.tsx    # Record/edit playback tests per episode
+│   ├── column-visibility-toggle.tsx # Shared column visibility dropdown
+│   ├── view-toggle.tsx             # Card/table view toggle
+│   ├── files/
+│   │   ├── media-info-section.tsx  # Media info display + analyze button
+│   │   └── analyze-media-button.tsx # FFprobe analyze trigger button
+│   ├── playback-tests/
+│   │   └── edit-test-dialog.tsx    # Shared edit playback test dialog
 │   ├── issues/                     # Issue reporting components
 │   │   ├── issue-report-dialog.tsx       # Report from episode page
 │   │   ├── issue-report-search-dialog.tsx # Report via show search
