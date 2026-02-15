@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PlayCircle, Plus, Loader2, Trash2, Pencil, Check, Calendar } from 'lucide-react';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -95,6 +96,7 @@ export function PlaybackTestDialog({
   trigger,
 }: PlaybackTestDialogProps) {
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [files, setFiles] = useState<EpisodeFile[]>(initialFiles || []);
@@ -339,6 +341,7 @@ export function PlaybackTestDialog({
                                     <span className="text-destructive-foreground ml-1">*</span>
                                   )}
                                 </span>
+                                {isAdmin && (
                                 <div className="flex items-center gap-1">
                                   <Button
                                     variant="ghost"
@@ -357,6 +360,7 @@ export function PlaybackTestDialog({
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </div>
+                                )}
                               </div>
                               {/* Line 2: Status, Date, Notes */}
                               <div className="flex items-center gap-4">
@@ -386,8 +390,8 @@ export function PlaybackTestDialog({
                       </div>
                     )}
 
-                    {/* Add test form */}
-                    {addingToFileId === file.id ? (
+                    {/* Add test form (admin only) */}
+                    {isAdmin && addingToFileId === file.id ? (
                       <Card className="bg-muted/50">
                         <CardContent className="p-4 space-y-3">
                           <div className="grid gap-3 sm:grid-cols-3">
@@ -458,7 +462,7 @@ export function PlaybackTestDialog({
                         </CardContent>
                       </Card>
                     ) : (
-                      availablePlatforms.length > 0 && (
+                      isAdmin && availablePlatforms.length > 0 && (
                         <Button
                           variant="outline"
                           size="sm"
