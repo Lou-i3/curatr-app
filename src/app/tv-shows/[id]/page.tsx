@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
-import { formatDateWithFormat } from "@/lib/format";
+import { formatDateWithFormat, formatFileSize, formatDuration } from "@/lib/format";
 import { getPosterUrl } from "@/lib/tmdb";
 import {
   computeEpisodeQuality,
@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Separator } from "@/components/ui/separator";
-import { Star, Calendar, Tv, Film } from "lucide-react";
+import { Star, Calendar, Tv, Film, HardDrive, Clock, FileX } from "lucide-react";
 import { TmdbSection } from "./tmdb-section";
 import { ShowEditButton } from "./show-edit-button";
 import { ShowScanButton } from "./show-scan-button";
@@ -48,7 +48,7 @@ export default async function ShowDetailPage({ params }: Props) {
             orderBy: { episodeNumber: "asc" },
             include: {
               files: {
-                select: { id: true, quality: true },
+                select: { id: true, quality: true, fileSize: true, fileExists: true, duration: true },
               },
             },
           },
@@ -81,6 +81,30 @@ export default async function ShowDetailPage({ params }: Props) {
     (acc, season) => acc + season.episodes.length,
     0
   );
+
+  // File statistics
+  let totalFiles = 0;
+  let totalSize = BigInt(0);
+  let missingFiles = 0;
+  let missingSize = BigInt(0);
+  let totalRuntime = 0;
+
+  for (const season of show.seasons) {
+    for (const episode of season.episodes) {
+      if (episode.runtime) {
+        totalRuntime += episode.runtime;
+      }
+      for (const file of episode.files) {
+        if (file.fileExists) {
+          totalFiles++;
+          totalSize += file.fileSize;
+        } else {
+          missingFiles++;
+          missingSize += file.fileSize;
+        }
+      }
+    }
+  }
 
   // Calculate TMDB sync stats
   const syncStats = {
@@ -148,8 +172,8 @@ export default async function ShowDetailPage({ params }: Props) {
                 )}
               </div>
 
-              {/* Season + Episode Counts */}
-              <div className="flex flex-row items-center gap-3">
+              {/* Season + Episode + File Counts */}
+              <div className="flex flex-row items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
                   <Tv className="size-3" />
                   <span><strong className="text-foreground">{show.seasons.length}</strong> seasons</span>
@@ -158,6 +182,24 @@ export default async function ShowDetailPage({ params }: Props) {
                   <Film className="size-3" />
                   <span><strong className="text-foreground">{totalEpisodes}</strong> episodes</span>
                 </div>
+                {totalFiles > 0 && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                    <HardDrive className="size-3" />
+                    <span><strong className="text-foreground">{totalFiles}</strong> files ({formatFileSize(totalSize)})</span>
+                  </div>
+                )}
+                {totalRuntime > 0 && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                    <Clock className="size-3" />
+                    <span>{formatDuration(totalRuntime * 60)}</span>
+                  </div>
+                )}
+                {missingFiles > 0 && (
+                  <div className="flex items-center gap-1.5 text-destructive-foreground text-sm">
+                    <FileX className="size-3" />
+                    <span>Missing: {missingFiles} files ({formatFileSize(missingSize)})</span>
+                  </div>
+                )}
               </div>
             </div>
 

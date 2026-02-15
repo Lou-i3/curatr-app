@@ -29,6 +29,9 @@ export interface TVShowListItem {
   episodeCount: number;
   fileCount: number;
   totalSize: string; // BigInt serialized as string
+  missingFileCount: number;
+  missingFileSize: string; // BigInt serialized as string
+  totalRuntime: number; // seconds
 }
 
 /**
@@ -189,10 +192,12 @@ export async function GET(request: NextRequest) {
               episodes: {
                 select: {
                   monitorStatus: true,
+                  runtime: true,
                   files: {
                     select: {
                       quality: true,
                       fileSize: true,
+                      fileExists: true,
                     },
                   },
                 },
@@ -205,12 +210,23 @@ export async function GET(request: NextRequest) {
       const items: TVShowListItem[] = shows.map((show) => {
         let fileCount = 0;
         let totalSize = BigInt(0);
+        let missingFileCount = 0;
+        let missingFileSize = BigInt(0);
+        let totalRuntime = 0;
 
         const seasonsWithQuality = show.seasons.map((season) => {
           const episodesWithQuality = season.episodes.map((episode) => {
-            fileCount += episode.files.length;
+            if (episode.runtime) {
+              totalRuntime += episode.runtime;
+            }
             for (const file of episode.files) {
-              totalSize += file.fileSize;
+              if (file.fileExists) {
+                fileCount++;
+                totalSize += file.fileSize;
+              } else {
+                missingFileCount++;
+                missingFileSize += file.fileSize;
+              }
             }
             return {
               qualityStatus: computeEpisodeQuality(
@@ -245,6 +261,9 @@ export async function GET(request: NextRequest) {
           episodeCount,
           fileCount,
           totalSize: totalSize.toString(),
+          missingFileCount,
+          missingFileSize: missingFileSize.toString(),
+          totalRuntime,
         };
       });
 

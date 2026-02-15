@@ -21,7 +21,7 @@ import {
   type DisplayMonitorStatus,
 } from '@/lib/status';
 import type { MonitorStatus } from '@/generated/prisma/client';
-import { formatFileSize } from '@/lib/settings-shared';
+import { formatFileSize, formatDuration } from '@/lib/settings-shared';
 
 export interface TVShow {
   id: number;
@@ -39,6 +39,9 @@ export interface TVShow {
   episodeCount: number;
   fileCount: number;
   totalSize: string;
+  missingFileCount: number;
+  missingFileSize: string;
+  totalRuntime: number;
 }
 
 export const tvShowColumns: ColumnDef<TVShow>[] = [

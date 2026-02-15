@@ -30,8 +30,8 @@ import { TVShowDialog } from './show-dialog';
 import { ShowStatusBadges } from './show-status-badges';
 import { TVShowsTable } from './tv-shows-table';
 import type { TVShow } from './tv-show-columns';
-import { Star, Film, HardDrive } from 'lucide-react';
-import { formatFileSize } from '@/lib/settings-shared';
+import { Star, Film, HardDrive, Clock, FileX } from 'lucide-react';
+import { formatFileSize, formatDuration } from '@/lib/settings-shared';
 import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
 
@@ -259,6 +259,12 @@ export default function TVShowsPage() {
                             <span className="text-muted-foreground">Episodes: </span>
                             <span className="font-semibold">{show.episodeCount}</span>
                           </div>
+                          {show.totalRuntime > 0 && (
+                            <div className="bg-muted px-3 py-2 rounded flex items-center gap-1">
+                              <Clock className="size-3 text-muted-foreground" />
+                              <span className="text-muted-foreground">{formatDuration(show.totalRuntime * 60)}</span>
+                            </div>
+                          )}
                           <div className="bg-muted px-3 py-2 rounded flex items-center gap-1">
                             <HardDrive className="size-3 text-muted-foreground" />
                             <span className="text-muted-foreground">Files: </span>
@@ -269,6 +275,12 @@ export default function TVShowsPage() {
                               </span>
                             )}
                           </div>
+                          {show.missingFileCount > 0 && (
+                            <div className="bg-muted px-3 py-2 rounded flex items-center gap-1 text-destructive-foreground">
+                              <FileX className="size-3" />
+                              <span>Missing: {show.missingFileCount} files ({formatFileSize(BigInt(show.missingFileSize))})</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

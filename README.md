@@ -84,6 +84,7 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
   - Column visibility toggle in table view (show/hide columns)
   - Edit poster/backdrop paths directly in show dialog
   - Personal notes displayed with styled background
+  - File statistics: total files on disk with size, total runtime, and missing files highlighted per show
 - **TMDB Integration** - Enrich shows with posters, descriptions, ratings, and air dates from The Movie Database
   - Dedicated TMDB section on show pages with match status, sync controls, and help dialog
   - Auto-match shows by title and year with confidence scoring
