@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tv, ScanSearch, Plug, Settings, ChevronRight, Film, ListTodo, Loader2, FileSearch, AlertTriangle, Shield, History, FileVideo, MonitorCheck } from 'lucide-react';
+import { Home, Tv, ScanSearch, Plug, Settings, ChevronRight, Film, ListTodo, Loader2, FileSearch, AlertTriangle, Shield, History, FileVideo, PlayCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useTaskCounts } from '@/lib/contexts/task-context';
 import { useIssueCounts } from '@/lib/contexts/issue-context';
@@ -144,7 +144,7 @@ export function AppSidebar() {
                 tooltip="Playback Tests"
               >
                 <Link href="/playback-tests">
-                  <MonitorCheck />
+                  <PlayCircle />
                   <span>Playback Tests</span>
                 </Link>
               </SidebarMenuButton>
