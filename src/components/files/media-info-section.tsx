@@ -75,6 +75,8 @@ interface MediaInfoSectionProps {
   file: FileData;
   ffprobeAvailable: boolean;
   dateFormat: DateFormat;
+  /** Whether the current user is an admin (controls analyze button visibility) */
+  isAdmin?: boolean;
 }
 
 function LanguagePill({ code, name }: { code: string; name: string }) {
@@ -208,7 +210,7 @@ function formatBitrate(bitrate: number | null): string {
   return `${bitrate} bps`;
 }
 
-export function MediaInfoSection({ file, ffprobeAvailable, dateFormat }: MediaInfoSectionProps) {
+export function MediaInfoSection({ file, ffprobeAvailable, dateFormat, isAdmin = false }: MediaInfoSectionProps) {
   const hasFFprobeData = !!file.mediaInfoExtractedAt;
   const tracks = file.tracks || [];
 
@@ -238,7 +240,7 @@ export function MediaInfoSection({ file, ffprobeAvailable, dateFormat }: MediaIn
             </Badge>
           )}
         </div>
-        {file.fileExists && (
+        {isAdmin && file.fileExists && (
           <AnalyzeMediaButton
             fileId={file.id}
             filename={file.filename}

@@ -4,6 +4,7 @@ import { formatFileSize, formatDuration, formatDateWithFormat } from "@/lib/form
 import { computeEpisodeQuality } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
 import { isFFprobeAvailable } from "@/lib/ffprobe";
+import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, FileCheck, FileX, Clock, HardDrive } from "lucide-react";
@@ -24,12 +25,14 @@ interface Props {
 }
 
 export default async function EpisodeDetailPage({ params }: Props) {
-  const [{ id, episodeId }, settings, ffprobeAvailable] = await Promise.all([
+  const [{ id, episodeId }, settings, ffprobeAvailable, session] = await Promise.all([
     params,
     getSettings(),
     isFFprobeAvailable(),
+    getSession(),
   ]);
   const dateFormat = settings.dateFormat;
+  const isAdmin = !session || session.user.role === 'ADMIN';
   const showId = parseInt(id, 10);
   const episodeIdNum = parseInt(episodeId, 10);
 
@@ -207,6 +210,7 @@ export default async function EpisodeDetailPage({ params }: Props) {
                       }}
                       ffprobeAvailable={ffprobeAvailable}
                       dateFormat={dateFormat}
+                      isAdmin={isAdmin}
                     />
 
                     {/* Plex Integration */}
