@@ -40,9 +40,27 @@ import { NextResponse } from 'next/server';
 import { createPlexPin, isPlexConfigured } from '@/lib/plex/auth';
 import { getPlexAuthUrl } from '@/lib/plex/client';
 import { getAuthMode } from '@/lib/auth';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 
-export async function POST() {
+const pinRateLimiter = createRateLimiter('auth-pin', {
+  maxRequests: 10,
+  windowMs: 60 * 1000, // 10 requests per minute
+});
+
+export async function POST(request: Request) {
   try {
+    // Rate limit PIN creation to prevent abuse
+    const { allowed, retryAfterMs } = pinRateLimiter.check(getClientIp(request));
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil((retryAfterMs || 60000) / 1000)) },
+        }
+      );
+    }
+
     if (getAuthMode() !== 'plex') {
       return NextResponse.json(
         { error: 'Plex authentication is not enabled' },

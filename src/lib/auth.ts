@@ -15,6 +15,10 @@ const SESSION_COOKIE_NAME = 'session_token';
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const LOCAL_ADMIN_PLEX_ID = 'local';
 
+// Throttle session cleanup to run at most once per hour
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+let lastCleanupAt = 0;
+
 /**
  * Returns the configured authentication mode
  */
@@ -121,7 +125,28 @@ export async function createSession(userId: number): Promise<string> {
     },
   });
 
+  // Opportunistically clean up expired sessions (throttled to once per hour)
+  cleanupExpiredSessions().catch(() => {});
+
   return token;
+}
+
+/**
+ * Deletes expired sessions from the database.
+ * Throttled to run at most once per hour to avoid unnecessary DB writes.
+ */
+async function cleanupExpiredSessions(): Promise<void> {
+  const now = Date.now();
+  if (now - lastCleanupAt < CLEANUP_INTERVAL_MS) return;
+  lastCleanupAt = now;
+
+  const { count } = await prisma.session.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+
+  if (count > 0) {
+    console.log(`Cleaned up ${count} expired session(s)`);
+  }
 }
 
 /**

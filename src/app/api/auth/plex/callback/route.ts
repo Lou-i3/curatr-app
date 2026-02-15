@@ -79,9 +79,27 @@ import {
   validateServerAccess,
   isPlexConfigured,
 } from '@/lib/plex/auth';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
+
+const callbackRateLimiter = createRateLimiter('auth-callback', {
+  maxRequests: 30,
+  windowMs: 60 * 1000, // 30 requests per minute (client polls every 2s)
+});
 
 export async function POST(request: Request) {
   try {
+    // Rate limit callback polling to prevent brute-force PIN guessing
+    const { allowed, retryAfterMs } = callbackRateLimiter.check(getClientIp(request));
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil((retryAfterMs || 60000) / 1000)) },
+        }
+      );
+    }
+
     if (getAuthMode() !== 'plex') {
       return NextResponse.json(
         { error: 'Plex authentication is not enabled' },

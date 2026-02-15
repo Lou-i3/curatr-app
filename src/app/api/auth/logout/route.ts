@@ -25,9 +25,9 @@
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { deleteSession, getSessionCookieName } from '@/lib/auth';
+import { deleteSession, getSessionCookieName, isSecureRequest } from '@/lib/auth';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
     const cookieName = getSessionCookieName();
@@ -37,10 +37,10 @@ export async function POST() {
       await deleteSession(token);
     }
 
-    // Clear the cookie
+    // Clear the cookie — use isSecureRequest() for consistency with login
     cookieStore.set(cookieName, '', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecureRequest(request),
       sameSite: 'lax',
       maxAge: 0,
       path: '/',
