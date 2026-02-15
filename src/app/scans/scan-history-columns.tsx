@@ -20,7 +20,7 @@ export interface ScanHistoryRow {
   filesUpdated: number;
   filesDeleted: number;
   errors: string | null;
-  status: 'RUNNING' | 'COMPLETED' | 'FAILED';
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 }
 
 interface ColumnOptions {
@@ -86,23 +86,33 @@ export function getScanHistoryColumns({
       ),
       cell: ({ row }) => {
         const status = row.original.status;
-        let variant: 'success' | 'secondary' | 'destructive' = 'secondary';
-        if (status === 'COMPLETED') variant = 'success';
-        if (status === 'FAILED') variant = 'destructive';
+        const variantMap: Record<string, 'success' | 'secondary' | 'destructive' | 'outline'> = {
+          COMPLETED: 'success',
+          FAILED: 'destructive',
+          CANCELLED: 'outline',
+          RUNNING: 'secondary',
+        };
+        const labelMap: Record<string, string> = {
+          COMPLETED: 'Completed',
+          FAILED: 'Failed',
+          CANCELLED: 'Cancelled',
+          RUNNING: 'Running',
+        };
 
         return (
-          <Badge variant={variant}>
-            {status === 'COMPLETED' ? 'Completed' : status === 'RUNNING' ? 'Running' : 'Failed'}
+          <Badge variant={variantMap[status] || 'secondary'}>
+            {labelMap[status] || status}
           </Badge>
         );
       },
       sortingFn: (rowA, rowB) => {
         const priority: Record<string, number> = {
-          RUNNING: 2,
-          FAILED: 1,
+          RUNNING: 3,
+          FAILED: 2,
+          CANCELLED: 1,
           COMPLETED: 0,
         };
-        return priority[rowA.original.status] - priority[rowB.original.status];
+        return (priority[rowA.original.status] ?? 0) - (priority[rowB.original.status] ?? 0);
       },
     },
 

@@ -279,23 +279,26 @@ async function runScan(
       error instanceof Error ? error.message : String(error);
 
     // Mark tracker as cancelled or failed
-    if (cancelledScans.has(scanId)) {
+    const wasCancelled = cancelledScans.has(scanId);
+    if (wasCancelled) {
       tracker.cancel();
     } else {
       tracker.fail(errorMessage);
     }
 
     await updateScanHistory(scanId, {
-      status: ScanStatus.FAILED,
+      status: wasCancelled ? ScanStatus.CANCELLED : ScanStatus.FAILED,
       completedAt: new Date(),
       filesScanned: stats.filesScanned,
       filesAdded: stats.filesAdded,
       filesUpdated: stats.filesUpdated,
       filesDeleted: stats.filesDeleted,
-      errors: JSON.stringify([
-        ...errors,
-        { filepath: '', error: errorMessage, phase: 'fatal' as const },
-      ]),
+      errors: wasCancelled
+        ? (errors.length > 0 ? JSON.stringify(errors) : undefined)
+        : JSON.stringify([
+            ...errors,
+            { filepath: '', error: errorMessage, phase: 'fatal' as const },
+          ]),
     });
 
     return {

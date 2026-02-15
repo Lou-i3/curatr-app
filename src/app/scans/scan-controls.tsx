@@ -1,6 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+/**
+ * Scan controls — start scans, show progress, cancel
+ * Uses task context for scan state and router.refresh() for soft updates
+ */
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -24,6 +30,7 @@ interface ScanControlsProps {
 }
 
 export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
+  const router = useRouter();
   const { tasks, refresh: refreshTasks } = useTasks();
   const [mounted, setMounted] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -34,6 +41,10 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
 
   // Track if we started the scan (vs observing existing one)
   const startedByUsRef = useRef(false);
+  // Track if we've seen the task in the context (prevents race condition on start)
+  const hasSeenTaskRef = useRef(false);
+  // Track if cancel was requested (prevents task context from re-enabling scanning)
+  const cancelRequestedRef = useRef(false);
 
   // Track when component has mounted to prevent hydration mismatch
   useEffect(() => {
@@ -42,11 +53,16 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
 
   // Sync with task context for running scans
   useEffect(() => {
+    // Don't react to task changes if we just cancelled
+    if (cancelRequestedRef.current) return;
+
     const runningScan = tasks.find(
       (t) => t.type === 'scan' && (t.status === 'running' || t.status === 'pending')
     );
 
     if (runningScan && runningScan.scanId) {
+      hasSeenTaskRef.current = true;
+
       // There's a running scan - show its progress from task data
       if (!isScanning) {
         setIsScanning(true);
@@ -69,15 +85,16 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
           phase: 'saving',
         })),
       });
-    } else if (isScanning && !runningScan) {
-      // Scan completed - task context no longer has it as running
+    } else if (isScanning && !runningScan && hasSeenTaskRef.current) {
+      // Scan completed — only trigger when we've actually seen the task before
       setIsScanning(false);
       setProgress(null);
       startedByUsRef.current = false;
-      // Reload to show updated scan history
-      window.location.reload();
+      hasSeenTaskRef.current = false;
+      // Soft refresh to update scan history table
+      router.refresh();
     }
-  }, [tasks, isScanning]);
+  }, [tasks, isScanning, router]);
 
   // Cleanup event source on unmount
   useEffect(() => {
@@ -91,6 +108,7 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
     setIsScanning(true);
     setProgress(null);
     startedByUsRef.current = true;
+    cancelRequestedRef.current = false;
 
     try {
       const response = await fetch('/api/scan', {
@@ -134,8 +152,10 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
         eventSource.close();
         eventSourceRef.current = null;
         setIsScanning(false);
-        // Reload the page to show updated scan history
-        window.location.reload();
+        startedByUsRef.current = false;
+        hasSeenTaskRef.current = false;
+        // Soft refresh to update scan history table
+        router.refresh();
       }
     };
 
@@ -154,7 +174,9 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
 
       if (!data.isRunning) {
         setIsScanning(false);
-        window.location.reload();
+        startedByUsRef.current = false;
+        hasSeenTaskRef.current = false;
+        router.refresh();
       } else {
         setProgress(data);
         setTimeout(() => pollStatus(id), 1000);
@@ -164,17 +186,28 @@ export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
     }
   };
 
-  const cancelScan = async () => {
+  const cancelScan = useCallback(async () => {
     if (!scanId) return;
 
+    cancelRequestedRef.current = true;
     try {
       await fetch(`/api/scan/${scanId}/cancel`, { method: 'POST' });
+      // Close SSE if active
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
       setIsScanning(false);
       setProgress(null);
+      startedByUsRef.current = false;
+      hasSeenTaskRef.current = false;
+      // Refresh tasks to show cancelled status
+      await refreshTasks();
+      // Soft refresh to update scan history
+      router.refresh();
     } catch {
-      // Ignore cancel errors
+      // Reset cancel flag so task context can resume tracking
+      cancelRequestedRef.current = false;
     }
-  };
+  }, [scanId, refreshTasks, router]);
 
   const isIndeterminate = progress?.phase === 'discovering' || progress?.phase === 'cleanup';
   const progressPercent = progress && progress.totalFiles > 0

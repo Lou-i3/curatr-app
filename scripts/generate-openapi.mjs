@@ -95,7 +95,7 @@ const options = {
         },
         ScanStatus: {
           type: 'string',
-          enum: ['RUNNING', 'COMPLETED', 'FAILED'],
+          enum: ['RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'],
         },
         TrackType: {
           type: 'string',

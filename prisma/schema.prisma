@@ -55,6 +55,7 @@ enum ScanStatus {
   RUNNING
   COMPLETED
   FAILED
+  CANCELLED
 }
 
 /// Media track type (video, audio, or subtitle stream)
