@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tv, ScanSearch, Plug, Settings, ChevronRight, Film, ListTodo, Loader2, FileSearch, AlertTriangle, Shield, History } from 'lucide-react';
+import { Home, Tv, ScanSearch, Plug, Settings, ChevronRight, Film, ListTodo, Loader2, FileSearch, AlertTriangle, Shield, History, FileVideo, MonitorCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useTaskCounts } from '@/lib/contexts/task-context';
 import { useIssueCounts } from '@/lib/contexts/issue-context';
@@ -118,6 +118,38 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* Files - admin only */}
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/files'}
+                tooltip="Files"
+              >
+                <Link href="/files">
+                  <FileVideo />
+                  <span>Files</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+
+          {/* Playback Tests - admin only */}
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/playback-tests'}
+                tooltip="Playback Tests"
+              >
+                <Link href="/playback-tests">
+                  <MonitorCheck />
+                  <span>Playback Tests</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
 
           {/* Integrations with submenu - admin only */}
           {isAdmin && (
