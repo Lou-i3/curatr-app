@@ -531,14 +531,59 @@ const { user, isAdmin, isAuthenticated, authMode, loading, logout } = useAuth();
 - Passes through `/login`, `/api/auth/*`, static assets, and PWA assets (manifest, icons, screenshots)
 
 **API Route Protection**:
-- All mutation API routes (POST/PATCH/DELETE) use `requireAdmin()`
-- GET routes accessible to all authenticated users
-- Pattern: `const user = await requireAdmin(request);` as first line
+- All mutation API routes (POST/PATCH/DELETE) use `checkAdmin()`
+- All GET API routes use `checkAuth()` (validates session exists and is not expired)
+- Pattern for mutations: `const authError = await checkAdmin(); if (authError) return authError;`
+- Pattern for reads: `const authError = await checkAuth(); if (authError) return authError;`
+- Auth endpoints (`/api/auth/*`) are public — no auth checks
 
 **Layout Gotcha**:
 - `TaskProvider` and `IssueProvider` must be OUTSIDE the `showSidebar` conditional in root layout
 - Otherwise prerendering fails because children render without context providers
 - The sidebar conditional only controls `SidebarProvider` + `AppSidebar`, not the data contexts
+
+### Security Hardening
+- Full documentation: `docs/security.md`
+
+**Security Headers** (`next.config.ts`):
+- All responses include: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy`
+- CSP allows `image.tmdb.org` (posters), `plex.tv`/`app.plex.tv` (OAuth), `'unsafe-inline'` (Tailwind)
+- Dev mode adds `'unsafe-eval'` (React Fast Refresh) and `ws://localhost:*` (HMR)
+- **No HSTS** — self-hosted app, users configure at reverse proxy level
+- When modifying CSP, ensure new external domains are added to the appropriate directive
+
+**Rate Limiting** (`src/lib/rate-limit.ts`):
+- In-memory sliding-window rate limiter, no external dependencies
+- Applied to `/api/auth/plex/pin` (10 req/min) and `/api/auth/plex/callback` (30 req/min)
+- Uses `x-forwarded-for` → `x-real-ip` → `'unknown'` for client IP detection
+- Returns 429 with `Retry-After` header when limit exceeded
+- Auto-cleanup every 5 minutes to prevent memory leaks
+
+```typescript
+// Usage pattern for new rate-limited endpoints
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
+
+const limiter = createRateLimiter('endpoint-name', {
+  maxRequests: 10,
+  windowMs: 60 * 1000,
+});
+
+export async function POST(request: Request) {
+  const { allowed, retryAfterMs } = limiter.check(getClientIp(request));
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((retryAfterMs || 60000) / 1000)) } }
+    );
+  }
+  // ... handler logic
+}
+```
+
+**Session Cleanup** (`src/lib/auth.ts`):
+- `cleanupExpiredSessions()` deletes sessions past their `expiresAt`
+- Called opportunistically during `createSession()`, throttled to once per hour
+- Runs in background (fire-and-forget with `.catch(() => {})`)
 
 ### Issue Reporting System
 - Database models: `Issue` with `IssueType` and `IssueStatus` enums

@@ -364,12 +364,25 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 
 - 🔵 Multi-language support (FR/EN) for issues/requests/dashboard
 
+## Security
+
+Curatr includes security hardening out of the box:
+
+- **Security headers**: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- **Cookie security**: HttpOnly, SameSite=Lax, Secure (auto-detected via HTTPS)
+- **Rate limiting**: Auth endpoints are rate-limited to prevent brute-force attacks
+- **Session management**: Cryptographically secure tokens, server-side validation, automatic expired session cleanup
+- **Role-based access**: All mutation API routes require admin role
+
+For full details on the security model, HTTPS recommendations, and how to audit dependencies, see the [Security documentation](docs/security.md).
+
 ## Further Documentation
 
 - [Project Structure](docs/project-structure.md)
 - [Status System](docs/status-system.md)
 - [Database Schema](docs/database-schema.md)
 - [FFprobe Docker Setup](docs/ffprobe-docker-setup.md)
+- [Security](docs/security.md)
 
 ## License
 
