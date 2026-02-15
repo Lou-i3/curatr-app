@@ -81,9 +81,9 @@ RUN chmod +x ./docker-entrypoint.sh
 # Create directories for runtime
 RUN mkdir -p /app/data /app/logs
 
-# Health check (uses /api/auth/session which always returns 200 regardless of auth mode)
+# Health check (unauthenticated endpoint, returns 503 if DB is unreachable)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/auth/session', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Run with dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]

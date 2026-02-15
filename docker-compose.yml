@@ -6,7 +6,7 @@
 
 services:
   curatr-app:
-    image: curatr-app
+    image: ghcr.io/lou-i3/curatr-app:latest
     container_name: curatr-app
     ports:
       - "3000:3000"
@@ -18,22 +18,19 @@ services:
 
       # --- Timezone & Permissions ---
       - TZ=Europe/Paris
-      - PUID=1020
-      - PGID=100
+      - PUID=1000
+      - PGID=1000
 
       # --- Media Library Paths (at least one required) ---
       - TV_SHOWS_PATH=/media/TV Shows
-      - MOVIES_PATH=/media/Movies
+      # - MOVIES_PATH=/media/Movies
 
       # --- TMDB Integration ---
       # Get your API key at: https://www.themoviedb.org/settings/api
       # - TMDB_API_KEY=your-read-access-token
 
       # --- FFprobe Integration ---
-      # Requires extending the Docker image with ffmpeg:
-      #   FROM curatr:latest
-      #   RUN apk add --no-cache ffmpeg
-      # Then uncomment below:
+      # See docs/ffprobe-docker-setup.md for setup instructions
       # - FFPROBE_PATH=/usr/bin/ffprobe
       # - FFPROBE_TIMEOUT=30000
 
@@ -44,8 +41,10 @@ services:
       # --- Task System ---
       # - TASK_RETENTION_MS=3600000
 
-      # --- Plex Integration (Future Feature) ---
-      # - PLEX_DB_PATH=/plex-db
+      # --- Plex Authentication (optional) ---
+      # - AUTH_MODE=plex
+      # - PLEX_URL=http://your-plex-server:32400
+      # - PLEX_TOKEN=your-plex-token
 
     volumes:
       # Database persistence (required)
@@ -53,18 +52,15 @@ services:
 
       # Media library mounts (read-only recommended)
       - /path/to/tv-shows:/media/TV Shows:ro
-      - /path/to/movies:/media/Movies:ro
+      # - /path/to/movies:/media/Movies:ro
 
       # Optional: Plex database for future sync feature
       # - /path/to/plex/database:/plex-db:ro
 
-      # Optional: Log persistence
-      # - ./logs:/app/logs
-
     restart: unless-stopped
 
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/tv-shows"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
       interval: 30s
       timeout: 10s
       retries: 3
