@@ -23,6 +23,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { toast } from 'sonner';
 import { useTasks } from '@/lib/contexts/task-context';
 import { UpdateRulesHelpSection } from '@/components/scan-help-content';
 
@@ -72,7 +73,8 @@ export function ShowScanButton({ show }: ShowScanButtonProps) {
       // Refresh page after a delay to show updated data
       setTimeout(() => router.refresh(), 2000);
     } catch (error) {
-      console.error('Sync failed:', error);
+      setOpen(false);
+      toast.error(error instanceof Error ? error.message : 'Failed to start scan');
     } finally {
       setSyncing(false);
     }
