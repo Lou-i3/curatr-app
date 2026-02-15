@@ -326,11 +326,10 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - 🔴 Bulk FFprobe analyze (season, show, whole library)
 - 🟡 Library statistics page (quality distribution, codec breakdown, resolution spread, storage by show)
 - 🔵 Movies support
-- ✅ Files browser (card/table views, filters, inline editing, infinite scroll)
 - 🔵 Duplicate file detection (find duplicate episodes across the library)
-- ✅ Playback tests page (centralized view with status chips, search, platform filter, infinite scroll)
 - 🔵 Storage analytics (disk space usage breakdown by show/quality/codec)
 - 🔵 Media request system (users request new content)
+- Implement infinite scroll pagination on all list pages (TV Shows, Issues, Files, Playback Tests) for better performance with large libraries
 
 ### UI / UX
 
