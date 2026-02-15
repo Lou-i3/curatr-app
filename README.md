@@ -343,6 +343,7 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - 🔵 Persistent filters (remember filter/sort preferences per page)
 - 🔵 User setting: prefer table or cards view (with option to prefer table except for mobile)
 - 🔵 User setting: view active sessions and revoke all or single
+- Make sure all buttons have confirmation popins if they trigger a significant action (e.g., rescanning, analyzing, deleting data)
 
 ### Issue System
 
