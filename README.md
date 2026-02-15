@@ -330,6 +330,7 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - ✅ Playback tests page (centralized view with status chips, search, platform filter, infinite scroll)
 - 🔵 Storage analytics (disk space usage breakdown by show/quality/codec)
 - 🔵 Media request system (users request new content)
+- 🔴 Logic for deleting files
 
 ### UI / UX
 
