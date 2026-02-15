@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -72,6 +73,7 @@ export function BadgeSelector<T extends string>({
   className,
 }: BadgeSelectorProps<T>) {
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [cascadeDialogOpen, setCascadeDialogOpen] = useState(false);
@@ -161,6 +163,15 @@ export function BadgeSelector<T extends string>({
       performUpdate(pendingValue, cascade);
     }
   };
+
+  // Non-admin users see a static badge with no interactivity
+  if (!isAdmin) {
+    return (
+      <Badge variant={localVariant} className={className}>
+        {localLabel}
+      </Badge>
+    );
+  }
 
   return (
     <>
