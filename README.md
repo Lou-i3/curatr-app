@@ -331,7 +331,6 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - ✅ Playback tests page (centralized view with status chips, search, platform filter, infinite scroll)
 - 🔵 Storage analytics (disk space usage breakdown by show/quality/codec)
 - 🔵 Media request system (users request new content)
-- 🔴 Logic for deleting files
 
 ### UI / UX
 
@@ -340,7 +339,6 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - 🟡 Better logo/app icon for PWA
 - 🟡 Add comprehensive filters to DataTables
 - 🔵 Add light theme support
-- 🔵 Use data table for all tables
 - ⚪️ Keyboard shortcuts (power-user navigation)
 - 🔵 Persistent filters (remember filter/sort preferences per page)
 - 🔵 User setting: prefer table or cards view (with option to prefer table except for mobile)
