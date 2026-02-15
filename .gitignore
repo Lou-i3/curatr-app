@@ -57,6 +57,10 @@ prisma/dev.db*
 data/
 logs/
 
+# Security scan reports
+zap-report.html
+zap.yaml
+
 # Environment overrides
 .env.local
 .env.*.local
