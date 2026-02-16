@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { ChevronDown } from 'lucide-react';
 import { SeasonDialog } from './season-dialog';
+import { SeasonAnalyzeButton } from './season-analyze-button';
 import { createEpisodeColumns, type Episode } from './episode-columns';
 import { BadgeSelector } from '@/components/badge-selector';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -169,6 +170,7 @@ export function SeasonsList({ showId, showTitle, showTmdbId, seasons }: SeasonsL
 
                   {/* Right: Action buttons */}
                   <div className="flex items-center gap-2 md:flex-shrink-0">
+                    {isAdmin && <SeasonAnalyzeButton seasonId={season.id} showId={showId} showTitle={showTitle} seasonNumber={season.seasonNumber} />}
                     {isAdmin && <SeasonDialog season={season} />}
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">

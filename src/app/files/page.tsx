@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Search as SearchIcon,
   Loader2,
+  FileSearch,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { DataTable } from '@/components/ui/data-table';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useTasks } from '@/lib/contexts/task-context';
@@ -101,12 +113,19 @@ function CardSkeleton() {
 export default function FilesPage() {
   const searchParams = useSearchParams();
   const { isAdmin } = useAuth();
-  const { tasks } = useTasks();
+  const { tasks, refresh: refreshTasks } = useTasks();
 
   const isScanning = tasks.some(
     (t) =>
       (t.type === 'scan' || t.type === 'show-scan') &&
       (t.status === 'running' || t.status === 'pending')
+  );
+
+  const isBulkAnalyzing = tasks.some(
+    (t) =>
+      t.type === 'ffprobe-bulk-analyze' &&
+      (t.status === 'running' || t.status === 'pending') &&
+      !t.title
   );
 
   const currentView = searchParams.get('view') ?? 'cards';
@@ -116,6 +135,9 @@ export default function FilesPage() {
   const [tableInstance, setTableInstance] = useState<TableInstance<FileRow> | null>(null);
   const [analyzingId, setAnalyzingId] = useState<number | null>(null);
   const [rescanningId, setRescanningId] = useState<number | null>(null);
+  const [analyzeDialogOpen, setAnalyzeDialogOpen] = useState(false);
+  const [startingBulkAnalysis, setStartingBulkAnalysis] = useState(false);
+  const [reanalyze, setReanalyze] = useState(false);
 
   // Build query string from search params for API call
   const apiQuery = useMemo(() => {
@@ -282,6 +304,42 @@ export default function FilesPage() {
     }
   }, []);
 
+  // Bulk analyze handler
+  const handleBulkAnalyze = useCallback(async () => {
+    setStartingBulkAnalysis(true);
+    try {
+      const response = await fetch('/api/ffprobe/bulk-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'library', reanalyze }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start analysis');
+      }
+
+      setAnalyzeDialogOpen(false);
+      setReanalyze(false);
+
+      if (data.total === 0) {
+        toast.info('All files already analyzed');
+      } else if (data.status === 'pending') {
+        toast.success(`Analysis queued for ${data.total} files`);
+      } else {
+        toast.success(`Analyzing ${data.total} files...`);
+      }
+
+      await refreshTasks();
+    } catch (err) {
+      setAnalyzeDialogOpen(false);
+      toast.error(err instanceof Error ? err.message : 'Failed to start analysis');
+    } finally {
+      setStartingBulkAnalysis(false);
+    }
+  }, [refreshTasks]);
+
   // Build columns
   const columns = useMemo(
     () =>
@@ -315,19 +373,80 @@ export default function FilesPage() {
           breadcrumbs={[{ label: 'Files' }]}
           className="mb-0"
           action={isAdmin ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleScanLibrary}
-              disabled={isScanning}
-            >
-              {isScanning ? (
-                <Loader2 className="size-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="size-4 mr-2" />
-              )}
-              {isScanning ? 'Scanning...' : 'Scan Library'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Dialog open={analyzeDialogOpen} onOpenChange={(v) => { setAnalyzeDialogOpen(v); if (!v) setReanalyze(false); }}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isBulkAnalyzing}
+                  >
+                    {isBulkAnalyzing ? (
+                      <Loader2 className="size-4 animate-spin mr-2" />
+                    ) : (
+                      <FileSearch className="size-4 mr-2" />
+                    )}
+                    {isBulkAnalyzing ? 'Analyzing...' : 'Analyze All'}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Analyze All Files</DialogTitle>
+                    <DialogDescription>
+                      Run FFprobe analysis on files in your library.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4 space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      This will extract video, audio, and subtitle track information.
+                      You can monitor progress from the Tasks page.
+                    </p>
+
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <Label htmlFor="reanalyze-files" className="text-sm cursor-pointer">
+                        Re-analyze previously analyzed files
+                      </Label>
+                      <Switch
+                        id="reanalyze-files"
+                        checked={reanalyze}
+                        onCheckedChange={setReanalyze}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setAnalyzeDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleBulkAnalyze} disabled={startingBulkAnalysis}>
+                      {startingBulkAnalysis ? (
+                        <>
+                          <Loader2 className="size-4 mr-1 animate-spin" />
+                          Starting...
+                        </>
+                      ) : (
+                        <>
+                          <FileSearch className="size-4 mr-1" />
+                          Analyze All
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleScanLibrary}
+                disabled={isScanning}
+              >
+                {isScanning ? (
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="size-4 mr-2" />
+                )}
+                {isScanning ? 'Scanning...' : 'Scan Library'}
+              </Button>
+            </div>
           ) : undefined}
         />
 

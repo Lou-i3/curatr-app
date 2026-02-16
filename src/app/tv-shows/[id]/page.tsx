@@ -16,6 +16,7 @@ import { Star, Calendar, Tv, Film, HardDrive, Clock, FileX } from "lucide-react"
 import { TmdbSection } from "./tmdb-section";
 import { ShowEditButton } from "./show-edit-button";
 import { ShowScanButton } from "./show-scan-button";
+import { ShowAnalyzeButton } from "./show-analyze-button";
 import { ShowDetailStatusBadges } from "./show-detail-status-badges";
 import { SeasonsList } from "./seasons-list";
 import { PageContainer } from "@/components/layout";
@@ -156,6 +157,10 @@ export default async function ShowDetailPage({ params }: Props) {
                     id: show.id,
                     title: show.title,
                     folderName: show.folderName,
+                  }} />
+                  <ShowAnalyzeButton show={{
+                    id: show.id,
+                    title: show.title,
                   }} />
                   <ShowEditButton show={{
                     id: show.id,

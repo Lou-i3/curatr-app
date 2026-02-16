@@ -16,15 +16,28 @@ import {
   ExternalLink,
   Terminal,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { FfprobeHelpDialog } from './ffprobe-help-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageContainer } from '@/components/layout';
 import { PageHeader } from '@/components/page-header';
 import { AdminGuard } from '@/components/admin-guard';
+import { useTasks } from '@/lib/contexts/task-context';
 
 interface FFprobeStatus {
   configured: boolean;
@@ -41,10 +54,23 @@ interface FFprobeStatus {
 }
 
 export default function FfprobeIntegrationPage() {
+  const { tasks, refresh: refreshTasks } = useTasks();
   const [status, setStatus] = useState<FFprobeStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analyzeDialogOpen, setAnalyzeDialogOpen] = useState(false);
+  const [startingAnalysis, setStartingAnalysis] = useState(false);
+  const [reanalyze, setReanalyze] = useState(false);
+
+  // Check for active bulk analyze task (library-level has no title)
+  const activeBulkTask = tasks.find(
+    (t) =>
+      t.type === 'ffprobe-bulk-analyze' &&
+      (t.status === 'running' || t.status === 'pending') &&
+      !t.title
+  );
+  const isBulkActive = !!activeBulkTask;
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -63,6 +89,41 @@ export default function FfprobeIntegrationPage() {
       setRefreshing(false);
     }
   }, []);
+
+  const handleBulkAnalyze = useCallback(async () => {
+    setStartingAnalysis(true);
+    try {
+      const response = await fetch('/api/ffprobe/bulk-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'library', reanalyze }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start analysis');
+      }
+
+      setAnalyzeDialogOpen(false);
+      setReanalyze(false);
+
+      if (data.total === 0) {
+        toast.info('All files already analyzed');
+      } else if (data.status === 'pending') {
+        toast.success(`Analysis queued for ${data.total} files`);
+      } else {
+        toast.success(`Analyzing ${data.total} files...`);
+      }
+
+      await refreshTasks();
+    } catch (err) {
+      setAnalyzeDialogOpen(false);
+      toast.error(err instanceof Error ? err.message : 'Failed to start analysis');
+    } finally {
+      setStartingAnalysis(false);
+    }
+  }, [refreshTasks]);
 
   useEffect(() => {
     fetchData();
@@ -320,17 +381,81 @@ RUN apk add --no-cache ffmpeg`}
               </div>
             </div>
 
-            {/* Usage instructions */}
+            {/* Bulk analyze action */}
             <div className="rounded-lg border p-4 bg-muted/50">
               <div className="flex items-start gap-3">
-                <FileSearch className="size-5 text-muted-foreground mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium">How to analyze files</p>
+                <FileSearch className="size-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="text-sm flex-1">
+                  <p className="font-medium">Analyze files</p>
                   <p className="text-muted-foreground mt-1">
-                    Navigate to any episode page and click the &quot;Analyze&quot; button on a file to extract
-                    its media information. This includes video codec, resolution, HDR type, audio
-                    tracks, subtitles, and more.
+                    Analyze individual files from episode pages, or use the button below
+                    to analyze all pending files at once.
                   </p>
+                  <div className="mt-3">
+                    <Dialog open={analyzeDialogOpen} onOpenChange={(v) => { setAnalyzeDialogOpen(v); if (!v) setReanalyze(false); }}>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          disabled={(status.files.pending === 0 && !isBulkActive) || isBulkActive}
+                        >
+                          {isBulkActive ? (
+                            <Loader2 className="size-4 mr-2 animate-spin" />
+                          ) : (
+                            <FileSearch className="size-4 mr-2" />
+                          )}
+                          {isBulkActive
+                            ? 'Analyzing...'
+                            : status.files.pending === 0
+                              ? 'All Analyzed'
+                              : `Analyze All (${status.files.pending} pending)`}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Analyze Files</DialogTitle>
+                          <DialogDescription>
+                            Run FFprobe analysis on files across your library.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            This may take a while for large libraries. Each file will be
+                            analyzed sequentially. You can monitor progress from the Tasks page
+                            and cancel at any time.
+                          </p>
+
+                          <div className="flex items-center justify-between rounded-lg border p-3">
+                            <Label htmlFor="reanalyze-library" className="text-sm cursor-pointer">
+                              Re-analyze previously analyzed files
+                            </Label>
+                            <Switch
+                              id="reanalyze-library"
+                              checked={reanalyze}
+                              onCheckedChange={setReanalyze}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setAnalyzeDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleBulkAnalyze} disabled={startingAnalysis}>
+                            {startingAnalysis ? (
+                              <>
+                                <Loader2 className="size-4 mr-1 animate-spin" />
+                                Starting...
+                              </>
+                            ) : (
+                              <>
+                                <FileSearch className="size-4 mr-1" />
+                                Start Analysis
+                              </>
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </div>
             </div>

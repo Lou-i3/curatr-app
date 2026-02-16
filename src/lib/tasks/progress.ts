@@ -11,6 +11,7 @@ import type {
   ScanTaskProgress,
   TmdbTaskProgress,
   FfprobeTaskProgress,
+  FfprobeBulkTaskProgress,
   SerializedTaskProgress,
 } from './types';
 import { serializeProgress } from './types';
@@ -325,6 +326,33 @@ export function createFfprobeTask(
     errors: [],
     startedAt: new Date(),
     fileId,
+  };
+
+  const tracker = new TaskProgressTracker(progress);
+  activeTasks.set(progress.taskId, tracker as unknown as TaskProgressTracker<BaseTaskProgress>);
+  return tracker;
+}
+
+/**
+ * Create a bulk FFprobe analysis task
+ * @param title - Optional custom title for display (e.g., "FFprobe: Arrow")
+ */
+export function createBulkFfprobeTask(
+  title?: string
+): TaskProgressTracker<FfprobeBulkTaskProgress> {
+  const canRunNow = getRunningTaskCount() < getMaxParallelTasksValue();
+
+  const progress: FfprobeBulkTaskProgress = {
+    taskId: randomUUID(),
+    type: 'ffprobe-bulk-analyze',
+    title,
+    status: canRunNow ? 'running' : 'pending',
+    total: 0,
+    processed: 0,
+    succeeded: 0,
+    failed: 0,
+    errors: [],
+    startedAt: new Date(),
   };
 
   const tracker = new TaskProgressTracker(progress);

@@ -108,7 +108,9 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
   - Audio: codec, channels, sample rate, language per track
   - Subtitles: format, language, forced flag per track
   - Analyze button on episode file pages
-  - Dedicated integration page with setup instructions and statistics
+  - Bulk analysis at season, show, and library level with task manager integration
+  - Re-analyze toggle to refresh previously analyzed files
+  - Dedicated integration page with setup instructions, statistics, and bulk actions
   - User-configured via FFPROBE_PATH environment variable
 - **Plex Authentication** - Optional multi-user access with Plex account login
   - Two modes: `AUTH_MODE=none` (default, single-user) or `AUTH_MODE=plex` (multi-user)
@@ -131,7 +133,7 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
   - Card and table views with column visibility toggle
   - Filters: search, quality, action, file existence, analyzed status
   - Inline quality and action editing with badge selectors (admin)
-  - Analyze (FFprobe) and rescan actions per file (admin)
+  - Analyze (FFprobe) and rescan actions per file (admin), bulk analyze all files
   - Infinite scroll pagination (200 files per batch)
 - **Playback Testing** - Record and track playback compatibility across platforms
   - Configurable platforms (TV, Web Player, Mobile, custom)
@@ -323,7 +325,6 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 ### Core Features
 
 - 🔴 Bulk status operations
-- 🔴 Bulk FFprobe analyze (season, show, whole library)
 - 🟡 Library statistics page (quality distribution, codec breakdown, resolution spread, storage by show)
 - 🔵 Movies support
 - 🔵 Duplicate file detection (find duplicate episodes across the library)

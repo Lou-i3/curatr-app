@@ -13,7 +13,8 @@ export type TaskType =
   | 'tmdb-refresh-missing'
   | 'tmdb-bulk-refresh'
   | 'tmdb-import'
-  | 'ffprobe-analyze';
+  | 'ffprobe-analyze'
+  | 'ffprobe-bulk-analyze';
 
 /** Task execution status */
 export type TaskStatus =
@@ -75,8 +76,13 @@ export interface FfprobeTaskProgress extends BaseTaskProgress {
   fileId: number; // The file being analyzed
 }
 
+/** Bulk FFprobe analysis progress (uses base progress) */
+export interface FfprobeBulkTaskProgress extends BaseTaskProgress {
+  type: 'ffprobe-bulk-analyze';
+}
+
 /** Union of all task progress types */
-export type TaskProgress = ScanTaskProgress | TmdbTaskProgress | FfprobeTaskProgress;
+export type TaskProgress = ScanTaskProgress | TmdbTaskProgress | FfprobeTaskProgress | FfprobeBulkTaskProgress;
 
 /** Serializable version of task progress for API responses */
 export interface SerializedTaskProgress {
