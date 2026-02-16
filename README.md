@@ -325,26 +325,28 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 ### Core Features
 
 - 🔴 Bulk status operations
-- 🟡 Library statistics page (quality distribution, codec breakdown, resolution spread, storage by show)
-- 🔵 Movies support
+- 🔵 Library statistics page (quality distribution, codec breakdown, resolution spread, storage by show)
+- 🟡 Movies support
 - 🔵 Duplicate file detection (find duplicate episodes across the library)
 - 🔵 Storage analytics (disk space usage breakdown by show/quality/codec)
-- 🔵 Media request system (users request new content)
-- Implement infinite scroll pagination on all list pages (TV Shows, Issues, Files, Playback Tests) for better performance with large libraries
+- 🟡 Media request system (users request new content)
+- 🟡 Implement infinite scroll pagination on all list pages (TV Shows, Issues, Files, Playback Tests) for better performance with large libraries
+- 🟡 Activity/audit log (track who did what and when)
 
 ### UI / UX
 
 - 🔴 Rethink displayed info in UI
-- 🟡 Global search (search across shows, episodes, files, and issues)
+- 🔵 Global search (search across shows, episodes, files, and issues)
 - 🟡 Better logo/app icon for PWA
 - 🟡 Add comprehensive filters to DataTables
 - 🔵 Add light theme support
 - ⚪️ Keyboard shortcuts (power-user navigation)
-- 🔵 Persistent filters (remember filter/sort preferences per page)
-- 🔵 User setting: prefer table or cards view (with option to prefer table except for mobile)
-- 🔵 User setting: view active sessions and revoke all or single
-- Make sure all buttons have confirmation popins if they trigger a significant action (e.g., rescanning, analyzing, deleting data)
-- Enhance changelog to show "your version" and "latest version" tags
+- 🟡 Persistent filters (remember filter/sort preferences per page)
+- 🟡 User setting: prefer table or cards view (with option to prefer table except for mobile)
+- 🟡 User setting: view active sessions and revoke all or single
+- 🔴 Make sure all buttons have confirmation popins if they trigger a significant action (e.g., rescanning, analyzing, deleting data)
+- 🟡 Enhance changelog to show "your version" and "latest version" tags
+- 🔵 API key authentication (programmatic access for scripts/automation)
 
 ### Issue System
 
@@ -359,34 +361,32 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 - 🟡 Plex database sync (read-only metadata enrichment)
 - 🔵 Plex users sync button (fetch all users from server)
 - 🔵 Sonarr/Radarr integration
-- 🔵 Tautulli integration (import playback history to inform quality decisions)
-- 🔵 Jellyfin support (alternative media server)
+- ⚪️ Tautulli integration (import playback history to inform quality decisions)
+- ⚪️ Jellyfin support (alternative media server)
 - ⚪️ Webhook support (notify external services on events)
 
 ### Task System
 
-- 🔵 Dismissible task dialogs with "you can close this" message
-- 🔵 Task persistence in database (survive app restart)
+- 🟡 Task persistence in database (survive app restart)
 - ⚪️ Resume interrupted tasks after crash/restart
 - 🔵 Automated tasks (configurable schedule)
 
 ### Notifications
 
-- 🔵 In-app notifications for issues/requests
+- 🟡 In-app notifications for issues/requests
+- 🟡 In-app notifications for tasks (start, progress, completion, failure)
 - 🔵 Push notifications
 
 ### Infrastructure
 
-- 🟡 Database backup/restore (export and import from the UI)
-- 🟡 Health API endpoint (`/api/health` — app version, DB status, uptime)
-- 🔵 Library model (multiple media libraries per type, library-scoped scanning and stats)
-- 🔵 Multi-architecture Docker images (amd64 + arm64)
+- ⚪️ Database backup/restore (export and import from the UI)
+- 🔵 Database automated backup
+- ⚪️ Library model (multiple media libraries per type, library-scoped scanning and stats)
+- ⚪️ Multi-architecture Docker images (amd64 + arm64)
 - 🔵 Refactor Prisma client to default location
 - 🔵 Audit module utilization, remove unused (from package.json)
 - 🔵 Refactor DB documentation to DBML
 - 🔵 Create docs site
-- 🔵 Activity/audit log (track who did what and when)
-- 🔵 API key authentication (programmatic access for scripts/automation)
 
 ### Localization
 
