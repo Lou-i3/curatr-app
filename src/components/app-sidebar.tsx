@@ -9,9 +9,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tv, ScanSearch, Plug, Settings, ChevronRight, Film, ListTodo, Loader2, FileSearch, AlertTriangle, Shield, History, FileVideo, PlayCircle } from 'lucide-react';
+import { Home, Tv, ScanSearch, Plug, Settings, ChevronRight, Film, FileSearch, AlertTriangle, Shield, History, FileVideo, PlayCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useTaskCounts } from '@/lib/contexts/task-context';
 import { useIssueCounts } from '@/lib/contexts/issue-context';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { StatusIndicator } from '@/components/version-badge';
@@ -50,7 +49,6 @@ const integrationItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { state, setOpenMobile, isMobile } = useSidebar();
-  const taskCounts = useTaskCounts();
   const issueCounts = useIssueCounts();
   const { isAdmin } = useAuth();
   const version = useVersionCheck();
@@ -184,6 +182,7 @@ export function AppSidebar() {
                   open={integrationsOpen}
                   onOpenChange={setIntegrationsOpen}
                   className="group/collapsible"
+                  id="sidebar-integrations"
                 >
                   <SidebarMenuItem>
                     <div className="flex items-center">
@@ -223,30 +222,6 @@ export function AppSidebar() {
             </>
           )}
 
-          {/* Tasks with activity indicator - admin only */}
-          {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === '/tasks'}
-                tooltip={taskCounts.total > 0 ? `Tasks (${taskCounts.running} running, ${taskCounts.pending} queued)` : 'Tasks'}
-              >
-                <Link href="/tasks" className="relative">
-                  {taskCounts.running > 0 ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <ListTodo />
-                  )}
-                  <span>Tasks</span>
-                  {taskCounts.total > 0 && (
-                    <Badge variant="secondary" className="ml-auto h-5 min-w-5 px-1 text-xs">
-                      {taskCounts.total}
-                    </Badge>
-                  )}
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
 
         </SidebarMenu>
 

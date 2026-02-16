@@ -1,38 +1,31 @@
 'use client';
 
 /**
- * Tasks page - View and manage running background tasks
+ * TaskCard - Shared task display component used by the tasks sheet panel
  */
 
-import { useEffect, useState } from 'react';
-import { RefreshCw, Loader2, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
-import { useTasks, type TaskData } from '@/lib/contexts/task-context';
-import { PageHeader } from '@/components/page-header';
-import { PageContainer } from '@/components/layout';
-import { AdminGuard } from '@/components/admin-guard';
-
-// Re-use TaskData from context
-type TaskProgress = TaskData;
+import { type TaskData } from '@/lib/contexts/task-context';
 
 const TASK_TYPE_LABELS: Record<string, string> = {
   'scan': 'Library Scan',
+  'show-scan': 'Show Scan',
   'tmdb-bulk-match': 'TMDB Auto-Match',
   'tmdb-refresh-missing': 'TMDB Refresh Missing',
   'tmdb-bulk-refresh': 'TMDB Refresh Metadata',
   'tmdb-import': 'TMDB Import',
+  'ffprobe-analyze': 'FFprobe Analyze',
 };
 
-function getTaskLabel(type: string): string {
+export function getTaskLabel(type: string): string {
   return TASK_TYPE_LABELS[type] || type;
 }
 
-function getStatusBadge(status: TaskProgress['status']) {
+export function getStatusBadge(status: TaskData['status']) {
   switch (status) {
     case 'running':
       return (
@@ -72,150 +65,14 @@ function getStatusBadge(status: TaskProgress['status']) {
   }
 }
 
-export default function TasksPage() {
-  const { tasks, loading, refresh } = useTasks();
-  const [refreshing, setRefreshing] = useState(false);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
-
-  // Refresh tasks immediately when page loads and fetch settings
-  useEffect(() => {
-    refresh();
-    fetch('/api/settings')
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data?.dateFormat) setDateFormat(data.dateFormat);
-      })
-      .catch(() => {});
-  }, [refresh]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await refresh();
-    setRefreshing(false);
-  };
-
-  const handleCancel = async (taskId: string) => {
-    setCancellingId(taskId);
-    try {
-      await fetch(`/api/tasks/${taskId}/cancel`, { method: 'POST' });
-      await refresh();
-    } catch (error) {
-      console.error('Failed to cancel task:', error);
-    } finally {
-      setCancellingId(null);
-    }
-  };
-
-  // Separate tasks by status
-  const activeTasks = tasks.filter((t) => t.status === 'running' || t.status === 'pending');
-  const completedTasks = tasks.filter((t) => t.status === 'completed' || t.status === 'failed' || t.status === 'cancelled');
-
-  if (loading) {
-    return (
-      <AdminGuard>
-      <PageContainer maxWidth="wide">
-        <PageHeader
-          title="Tasks"
-          description="View and manage background tasks"
-          breadcrumbs={[{ label: 'Tasks' }]}
-        />
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </CardContent>
-        </Card>
-      </PageContainer>
-      </AdminGuard>
-    );
-  }
-
-  return (
-    <AdminGuard>
-    <PageContainer maxWidth="wide">
-      {/* Header */}
-      <PageHeader
-        title="Tasks"
-        description="View and manage background tasks"
-        breadcrumbs={[{ label: 'Tasks' }]}
-        action={
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            {refreshing ? (
-              <Loader2 className="size-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="size-4 mr-2" />
-            )}
-            Refresh
-          </Button>
-        }
-      />
-
-      {/* Active Tasks */}
-      <Card className="mb-6 md:mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Active Tasks
-            {activeTasks.length > 0 && (
-              <Badge variant="secondary">{activeTasks.length}</Badge>
-            )}
-          </CardTitle>
-          <CardDescription>Currently running and queued tasks</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {activeTasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No active tasks
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {activeTasks.map((task) => (
-                <TaskCard
-                  key={task.taskId}
-                  task={task}
-                  dateFormat={dateFormat}
-                  onCancel={() => handleCancel(task.taskId)}
-                  cancelling={cancellingId === task.taskId}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Completed Tasks */}
-      {completedTasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Recent Tasks
-              <Badge variant="outline">{completedTasks.length}</Badge>
-            </CardTitle>
-            <CardDescription>Recently completed tasks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {completedTasks.map((task) => (
-                <TaskCard key={task.taskId} task={task} dateFormat={dateFormat} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </PageContainer>
-    </AdminGuard>
-  );
-}
-
 interface TaskCardProps {
-  task: TaskProgress;
+  task: TaskData;
   dateFormat: DateFormat;
   onCancel?: () => void;
   cancelling?: boolean;
 }
 
-function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
+export function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
   const percent = task.total > 0 ? Math.round((task.processed / task.total) * 100) : 0;
   const isActive = task.status === 'running' || task.status === 'pending';
 
@@ -262,7 +119,7 @@ function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
       )}
 
       {/* Scan phase */}
-      {task.type === 'scan' && task.phase && task.status === 'running' && (
+      {(task.type === 'scan' || task.type === 'show-scan') && task.phase && task.status === 'running' && (
         <p className="text-sm text-muted-foreground">
           Phase: {task.phase}
         </p>
@@ -277,7 +134,7 @@ function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
           </Badge>
         )}
         {task.failed > 0 && (
-          <Badge variant="outline"  className="text-destructive-foreground">
+          <Badge variant="outline" className="text-destructive-foreground">
             <XCircle className="size-3 inline mr-1" />
             {task.failed} failed
           </Badge>
@@ -290,7 +147,7 @@ function TaskCard({ task, dateFormat, onCancel, cancelling }: TaskCardProps) {
       </div>
 
       {/* Scan-specific stats */}
-      {task.type === 'scan' && task.status === 'completed' && (
+      {(task.type === 'scan' || task.type === 'show-scan') && task.status === 'completed' && (
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
           {task.filesAdded !== undefined && task.filesAdded > 0 && (
             <span>{task.filesAdded} added</span>

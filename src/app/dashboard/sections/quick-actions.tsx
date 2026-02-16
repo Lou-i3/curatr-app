@@ -6,15 +6,17 @@
  */
 
 import Link from 'next/link';
-import { Tv, AlertTriangle, ListChecks, ScanSearch, ListTodo, Puzzle } from 'lucide-react';
+import { Tv, ListChecks, ScanSearch, ListTodo, Puzzle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { IssueReportSearchDialog } from '@/components/issues/issue-report-search-dialog';
 import { useIssueContext } from '@/lib/contexts/issue-context';
+import { useTasksPanel } from '@/components/tasks/tasks-panel';
 
 export function QuickActions() {
   const { isAdmin } = useAuth();
   const { refresh: refreshIssues } = useIssueContext();
+  const { setOpen: openTasksPanel } = useTasksPanel();
 
   return (
     <div className="mb-6 md:mb-8">
@@ -45,11 +47,9 @@ export function QuickActions() {
             </Link>
           </Button>
 
-          <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <Link href="/tasks">
-              <ListTodo className="size-4" />
-              View Tasks
-            </Link>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openTasksPanel(true)}>
+            <ListTodo className="size-4" />
+            View Tasks
           </Button>
 
           <Button asChild variant="outline" size="sm" className="gap-1.5">

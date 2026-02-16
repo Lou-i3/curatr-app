@@ -9,15 +9,21 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { History } from 'lucide-react';
+import { History, Loader2, ListTodo } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { UserMenu } from '@/components/user-menu';
 import { StatusIndicator } from '@/components/version-badge';
 import { useVersionCheck, getVersionTooltip } from '@/hooks/use-version-check';
+import { useTaskCounts } from '@/lib/contexts/task-context';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { useTasksPanel } from '@/components/tasks/tasks-panel';
 
 export function AppBar() {
   const version = useVersionCheck();
+  const { isAdmin } = useAuth();
+  const taskCounts = useTaskCounts();
+  const { setOpen: openTasksPanel } = useTasksPanel();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-12 items-center border-b bg-background pl-4 pr-4 md:pr-6 pointer-events-auto">
@@ -34,7 +40,7 @@ export function AppBar() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right: GitHub + version + user menu */}
+      {/* Right: GitHub + version + tasks indicator + user menu */}
       <div className="flex items-center gap-3">
         <a
           href="https://github.com/Lou-i3/curatr-app"
@@ -61,6 +67,30 @@ export function AppBar() {
         </Link>
 
         <Separator orientation="vertical" className="h-4 hidden md:block" />
+
+        {/* Task activity indicator - admin only, always visible */}
+        {isAdmin && (
+          <>
+            <Separator orientation="vertical" className="h-4 md:hidden" />
+            <button
+              onClick={() => openTasksPanel(true)}
+              className="relative flex items-center text-muted-foreground hover:text-foreground transition-colors"
+              title={taskCounts.total > 0 ? `${taskCounts.running} running, ${taskCounts.pending} queued` : 'Tasks'}
+            >
+              {taskCounts.total > 0 ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span className="absolute -top-1.5 -right-2 flex items-center justify-center h-3.5 min-w-3.5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium leading-none px-0.5">
+                    {taskCounts.total}
+                  </span>
+                </>
+              ) : (
+                <ListTodo className="size-4" />
+              )}
+            </button>
+            <Separator orientation="vertical" className="h-4" />
+          </>
+        )}
 
         <UserMenu />
       </div>

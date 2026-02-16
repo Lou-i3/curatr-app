@@ -5,7 +5,6 @@
  * Admin only. Uses existing task context for real-time polling.
  */
 
-import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Loader2, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useTasks } from '@/lib/contexts/task-context';
 import type { TaskData } from '@/lib/contexts/task-context';
+import { useTasksPanel } from '@/components/tasks/tasks-panel';
 
 function getTaskTitle(task: TaskData): string {
   if (task.title) return task.title;
@@ -51,6 +51,7 @@ function formatElapsed(startedAt: string): string {
 
 export function SystemOperations() {
   const { tasks, loading } = useTasks();
+  const { setOpen: openTasksPanel } = useTasksPanel();
 
   const activeTasks = tasks.filter((t) => t.status === 'running' || t.status === 'pending');
   const recentCompleted = tasks
@@ -67,11 +68,9 @@ export function SystemOperations() {
           </CardTitle>
           <CardDescription>Background tasks and system activity</CardDescription>
         </div>
-        <Button asChild variant="ghost" size="sm" className="gap-1">
-          <Link href="/tasks">
-            All Tasks
-            <ArrowRight className="size-3.5" />
-          </Link>
+        <Button variant="ghost" size="sm" className="gap-1" onClick={() => openTasksPanel(true)}>
+          All Tasks
+          <ArrowRight className="size-3.5" />
         </Button>
       </CardHeader>
       <CardContent>

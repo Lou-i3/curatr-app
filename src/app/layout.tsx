@@ -9,6 +9,7 @@ import { TaskProvider } from "@/lib/contexts/task-context";
 import { IssueProvider } from "@/lib/contexts/issue-context";
 import { AuthProvider } from "@/lib/contexts/auth-context";
 import { getSession, isAuthEnabled } from "@/lib/auth";
+import { TasksPanelProvider, TasksPanel } from "@/components/tasks/tasks-panel";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -54,6 +55,7 @@ export default async function RootLayout({
       >
         <AuthProvider>
           <TaskProvider>
+            <TasksPanelProvider>
             <IssueProvider>
               {showSidebar ? (
                 <SidebarProvider className="flex-col">
@@ -69,6 +71,8 @@ export default async function RootLayout({
                 children
               )}
             </IssueProvider>
+            <TasksPanel />
+            </TasksPanelProvider>
           </TaskProvider>
         </AuthProvider>
         <Toaster />
