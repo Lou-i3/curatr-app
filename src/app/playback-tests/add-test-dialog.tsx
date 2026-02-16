@@ -104,10 +104,10 @@ export function AddTestDialog({ onAdded }: AddTestDialogProps) {
     }
     setSearching(true);
     try {
-      const response = await fetch(`/api/files?q=${encodeURIComponent(q)}`);
+      const response = await fetch(`/api/files?q=${encodeURIComponent(q)}&limit=20`);
       if (!response.ok) throw new Error('Search failed');
-      const data = await response.json();
-      setFiles(data.slice(0, 20)); // Limit display results
+      const json = await response.json();
+      setFiles(json.data ?? []);
     } catch {
       // Silently fail
     } finally {
