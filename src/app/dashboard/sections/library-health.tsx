@@ -51,7 +51,7 @@ export function LibraryHealth({
         icon={HardDrive}
       />
       <StatCard
-        title="Library Health"
+        title="Verification State"
         value={fileCount > 0 ? `${healthPercent}%` : '—'}
         subtitle={fileCount > 0 ? healthLabel : 'No files to evaluate'}
         icon={HeartPulse}
