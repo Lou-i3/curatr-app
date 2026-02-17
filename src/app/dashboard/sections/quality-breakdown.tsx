@@ -21,10 +21,10 @@ interface QualityBreakdownProps {
 }
 
 const QUALITY_COLORS: Record<string, string> = {
-  OK: 'hsl(var(--success))',
-  VERIFIED: 'hsl(var(--success))',
-  UNVERIFIED: 'hsl(var(--warning))',
-  BROKEN: 'hsl(var(--destructive))',
+  OK: 'var(--success)',
+  VERIFIED: 'var(--success)',
+  UNVERIFIED: 'var(--warning)',
+  BROKEN: 'var(--destructive)',
 };
 
 export function QualityBreakdown({ qualityData, totalFiles }: QualityBreakdownProps) {
@@ -90,7 +90,7 @@ export function QualityBreakdown({ qualityData, totalFiles }: QualityBreakdownPr
                 innerRadius={60}
                 outerRadius={90}
                 strokeWidth={2}
-                stroke="hsl(var(--background))"
+                stroke="var(--background)"
               >
                 {chartData.map((entry) => (
                   <Cell key={entry.name} fill={entry.fill} />

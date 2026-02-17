@@ -22,10 +22,10 @@ interface ActionsNeededProps {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  REDOWNLOAD: 'hsl(var(--chart-1))',
-  CONVERT: 'hsl(var(--chart-2))',
-  ORGANIZE: 'hsl(var(--chart-3))',
-  REPAIR: 'hsl(var(--destructive))',
+  REDOWNLOAD: 'var(--chart-1)',
+  CONVERT: 'var(--chart-2)',
+  ORGANIZE: 'var(--chart-3)',
+  REPAIR: 'var(--destructive)',
 };
 
 export function ActionsNeeded({ actionData }: ActionsNeededProps) {
@@ -56,7 +56,7 @@ export function ActionsNeeded({ actionData }: ActionsNeededProps) {
     .map((g) => ({
       action: ACTION_LABELS[g.action as Action] || g.action,
       count: g.count,
-      fill: ACTION_COLORS[g.action] || 'hsl(var(--chart-4))',
+      fill: ACTION_COLORS[g.action] || 'var(--chart-4)',
     }));
 
   const chartConfig: ChartConfig = Object.fromEntries(
