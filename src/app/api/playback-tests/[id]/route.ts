@@ -206,7 +206,7 @@ import { PlaybackStatus } from '@/generated/prisma/client';
 import { recomputeFileQuality } from '@/lib/playback-status';
 import { checkAuth, checkAdmin } from '@/lib/auth';
 
-const VALID_STATUSES: PlaybackStatus[] = ['PASS', 'PARTIAL', 'FAIL'];
+const VALID_STATUSES: PlaybackStatus[] = ['PASS', 'FAIL'];
 
 export async function GET(
   request: Request,
@@ -288,7 +288,7 @@ export async function PATCH(
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status)) {
         return NextResponse.json(
-          { error: 'Invalid status (must be PASS, PARTIAL, or FAIL)' },
+          { error: 'Invalid status (must be PASS or FAIL)' },
           { status: 400 }
         );
       }

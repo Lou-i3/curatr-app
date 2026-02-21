@@ -31,7 +31,6 @@ type StatusFilter = PlaybackStatus | 'all';
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'PASS', label: 'Pass' },
-  { value: 'PARTIAL', label: 'Partial' },
   { value: 'FAIL', label: 'Fail' },
 ];
 

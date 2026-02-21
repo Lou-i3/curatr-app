@@ -214,7 +214,7 @@ export default function PlaybackTestsPage() {
   }, [deleteTestId, setTests]);
 
   // Default status counts fallback
-  const defaultCounts = { all: 0, PASS: 0, PARTIAL: 0, FAIL: 0 };
+  const defaultCounts = { all: 0, PASS: 0, FAIL: 0 };
 
   // Build columns
   const columns = useMemo(

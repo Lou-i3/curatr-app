@@ -164,7 +164,7 @@ import { PlaybackStatus } from '@/generated/prisma/client';
 import { recomputeFileQuality } from '@/lib/playback-status';
 import { checkAuth, checkAdmin } from '@/lib/auth';
 
-const VALID_STATUSES: PlaybackStatus[] = ['PASS', 'PARTIAL', 'FAIL'];
+const VALID_STATUSES: PlaybackStatus[] = ['PASS', 'FAIL'];
 
 export async function GET(request: Request) {
   try {
@@ -257,7 +257,7 @@ export async function GET(request: Request) {
     ]);
 
     // Build status counts
-    const counts: Record<string, number> = { all: 0, PASS: 0, PARTIAL: 0, FAIL: 0 };
+    const counts: Record<string, number> = { all: 0, PASS: 0, FAIL: 0 };
     for (const group of statusGroups) {
       counts[group.status] = group._count;
       counts.all += group._count;
@@ -298,7 +298,7 @@ export async function POST(request: Request) {
 
     if (!status || !VALID_STATUSES.includes(status)) {
       return NextResponse.json(
-        { error: 'Valid status is required (PASS, PARTIAL, FAIL)' },
+        { error: 'Valid status is required (PASS, FAIL)' },
         { status: 400 }
       );
     }

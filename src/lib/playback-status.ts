@@ -2,7 +2,7 @@
  * Playback Status Utilities
  *
  * Handles computation of file quality based on playback test results.
- * - VERIFIED: All required platforms have PASS or PARTIAL
+ * - VERIFIED: All required platforms have PASS
  * - BROKEN: Any required platform has FAIL
  * - UNVERIFIED: Missing tests or no required platforms configured
  */
@@ -52,7 +52,7 @@ export function computeFileQualityFromTests(
       hasAllRequired = false;
     } else if (status === 'FAIL') {
       hasAnyFail = true;
-    } else if (status !== 'PASS' && status !== 'PARTIAL') {
+    } else if (status !== 'PASS') {
       // Unknown status, treat as not tested
       hasAllRequired = false;
     }

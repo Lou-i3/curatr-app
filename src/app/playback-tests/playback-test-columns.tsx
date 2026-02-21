@@ -151,12 +151,11 @@ export function getPlaybackTestColumns({
       );
     },
     sortingFn: (rowA, rowB) => {
-      const priority: Record<PlaybackStatus, number> = {
-        FAIL: 2,
-        PARTIAL: 1,
+      const priority: Record<string, number> = {
+        FAIL: 1,
         PASS: 0,
       };
-      return priority[rowA.original.status] - priority[rowB.original.status];
+      return (priority[rowA.original.status] ?? 0) - (priority[rowB.original.status] ?? 0);
     },
   });
 

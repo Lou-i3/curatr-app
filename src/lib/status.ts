@@ -288,6 +288,5 @@ export const ACTION_OPTIONS: { value: Action; label: string }[] = [
 
 export const PLAYBACK_STATUS_OPTIONS: { value: PlaybackStatus; label: string }[] = [
   { value: 'PASS', label: 'Pass' },
-  { value: 'PARTIAL', label: 'Partial' },
   { value: 'FAIL', label: 'Fail' },
 ];

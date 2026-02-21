@@ -87,11 +87,57 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { FileQuality, Action } from '@/generated/prisma/client';
+import { FileQuality, Action, PlaybackStatus } from '@/generated/prisma/client';
 import { checkAuth } from '@/lib/auth';
+
+/** Compute an overall playback status from per-platform latest results.
+ *  Mixed PASS/FAIL across platforms → PARTIAL (computed, never stored on tests). */
+function computeOverallStatus(
+  platformTests: Record<string, { status: PlaybackStatus }>
+): PlaybackStatus | null {
+  const statuses = Object.values(platformTests).map((t) => t.status);
+  if (statuses.length === 0) return null;
+  const hasFail = statuses.some((s) => s === 'FAIL');
+  const hasPass = statuses.some((s) => s === 'PASS');
+  if (hasFail && hasPass) return 'PARTIAL';
+  if (hasFail) return 'FAIL';
+  return 'PASS';
+}
 
 const VALID_QUALITIES: FileQuality[] = ['UNVERIFIED', 'VERIFIED', 'OK', 'BROKEN'];
 const VALID_ACTIONS: Action[] = ['NOTHING', 'REDOWNLOAD', 'CONVERT', 'ORGANIZE', 'REPAIR'];
+const VALID_PLAYBACK: PlaybackStatus[] = ['PASS', 'PARTIAL', 'FAIL'];
+
+/**
+ * Pre-compute file IDs matching a playback status filter.
+ * Fetches all playback tests (lightweight — manually created, small dataset),
+ * groups by file → latest test per platform, computes overall status, returns matching IDs.
+ */
+async function getFileIdsByPlaybackStatus(
+  status: PlaybackStatus
+): Promise<number[]> {
+  const tests = await prisma.playbackTest.findMany({
+    orderBy: { testedAt: 'desc' },
+    select: { episodeFileId: true, platformId: true, status: true },
+  });
+
+  const fileTestMap = new Map<number, Record<string, { status: PlaybackStatus }>>();
+  for (const t of tests) {
+    if (!t.episodeFileId) continue;
+    const key = String(t.platformId);
+    if (!fileTestMap.has(t.episodeFileId)) {
+      fileTestMap.set(t.episodeFileId, {});
+    }
+    const ft = fileTestMap.get(t.episodeFileId)!;
+    if (!(key in ft)) ft[key] = { status: t.status };
+  }
+
+  const ids: number[] = [];
+  for (const [fileId, platformTests] of fileTestMap) {
+    if (computeOverallStatus(platformTests) === status) ids.push(fileId);
+  }
+  return ids;
+}
 
 export async function GET(request: Request) {
   try {
@@ -106,6 +152,7 @@ export async function GET(request: Request) {
     const analyzed = searchParams.get('analyzed');
     const codec = searchParams.get('codec');
     const hdr = searchParams.get('hdr');
+    const playback = searchParams.get('playback');
 
     // Build where clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -145,6 +192,14 @@ export async function GET(request: Request) {
       where.hdrType = null;
     }
 
+    // Playback status filter — requires pre-computation since it's derived from related tests
+    if (playback === 'untested') {
+      where.playbackTests = { none: {} };
+    } else if (playback && VALID_PLAYBACK.includes(playback as PlaybackStatus)) {
+      const matchingIds = await getFileIdsByPlaybackStatus(playback as PlaybackStatus);
+      where.id = { in: matchingIds };
+    }
+
     // Pagination
     const limitParam = searchParams.get('limit');
     const offsetParam = searchParams.get('offset');
@@ -179,48 +234,84 @@ export async function GET(request: Request) {
       prisma.episodeFile.count({ where }),
     ]);
 
-    // Get issue counts per episode (issues are on episodes, not files)
+    // Batch queries for related data
+    const fileIds = files.map((f) => f.id);
     const episodeIds = [...new Set(files.map((f) => f.episodeId))];
-    const issueCounts = episodeIds.length > 0
-      ? await prisma.issue.groupBy({
-          by: ['episodeId'],
-          where: { episodeId: { in: episodeIds } },
-          _count: true,
-        })
-      : [];
+
+    const [issueCounts, allTests, platforms] = await Promise.all([
+      episodeIds.length > 0
+        ? prisma.issue.groupBy({
+            by: ['episodeId'],
+            where: { episodeId: { in: episodeIds } },
+            _count: true,
+          })
+        : [],
+      fileIds.length > 0
+        ? prisma.playbackTest.findMany({
+            where: { episodeFileId: { in: fileIds } },
+            orderBy: { testedAt: 'desc' },
+            select: { id: true, episodeFileId: true, platformId: true, status: true, notes: true },
+          })
+        : [],
+      prisma.platform.findMany({
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, name: true, isRequired: true, sortOrder: true },
+      }),
+    ]);
+
     const issueCountMap = new Map(
       issueCounts.map((ic) => [ic.episodeId, ic._count])
     );
 
-    // Serialize response with BigInt conversion and merged counts
-    const result = files.map((file) => ({
-      id: file.id,
-      episodeId: file.episodeId,
-      filepath: file.filepath,
-      filename: file.filename,
-      fileSize: file.fileSize.toString(),
-      dateModified: file.dateModified.toISOString(),
-      fileExists: file.fileExists,
-      quality: file.quality,
-      action: file.action,
-      notes: file.notes,
-      codec: file.codec,
-      resolution: file.resolution,
-      bitrate: file.bitrate,
-      container: file.container,
-      audioFormat: file.audioFormat,
-      hdrType: file.hdrType,
-      duration: file.duration,
-      mediaInfoExtractedAt: file.mediaInfoExtractedAt?.toISOString() ?? null,
-      mediaInfoError: file.mediaInfoError,
-      plexMatched: file.plexMatched,
-      episode: file.episode,
-      testCount: file._count.playbackTests,
-      issueCount: issueCountMap.get(file.episodeId) ?? 0,
-      // [MOVIES FUTURE] Add movieFile support when movies are implemented
-    }));
+    // Build per-file test map: fileId -> { platformId -> { id, status, notes } }
+    // Tests are ordered by testedAt desc, so first occurrence per platform is latest
+    const testMap = new Map<number, Record<string, { id: number; status: PlaybackStatus; notes: string | null }>>();
+    for (const test of allTests) {
+      if (!test.episodeFileId) continue;
+      const key = String(test.platformId);
+      if (!testMap.has(test.episodeFileId)) {
+        testMap.set(test.episodeFileId, {});
+      }
+      const fileTests = testMap.get(test.episodeFileId)!;
+      if (!(key in fileTests)) {
+        fileTests[key] = { id: test.id, status: test.status, notes: test.notes };
+      }
+    }
 
-    return NextResponse.json({ data: result, total: totalCount });
+    // Serialize response with BigInt conversion and merged counts
+    const result = files.map((file) => {
+      const playbackTests = testMap.get(file.id) ?? {};
+      return {
+        id: file.id,
+        episodeId: file.episodeId,
+        filepath: file.filepath,
+        filename: file.filename,
+        fileSize: file.fileSize.toString(),
+        dateModified: file.dateModified.toISOString(),
+        fileExists: file.fileExists,
+        quality: file.quality,
+        action: file.action,
+        notes: file.notes,
+        codec: file.codec,
+        resolution: file.resolution,
+        bitrate: file.bitrate,
+        container: file.container,
+        audioFormat: file.audioFormat,
+        hdrType: file.hdrType,
+        duration: file.duration,
+        mediaInfoExtractedAt: file.mediaInfoExtractedAt?.toISOString() ?? null,
+        mediaInfoError: file.mediaInfoError,
+        plexMatched: file.plexMatched,
+        episode: file.episode,
+        testCount: file._count.playbackTests,
+        issueCount: issueCountMap.get(file.episodeId) ?? 0,
+        playbackTests,
+        overallPlaybackStatus: computeOverallStatus(playbackTests),
+        // [MOVIES FUTURE] Add movieFile support when movies are implemented
+      };
+    });
+
+    return NextResponse.json({ data: result, total: totalCount, platforms });
   } catch (error) {
     console.error('Failed to fetch files:', error);
     return NextResponse.json(
