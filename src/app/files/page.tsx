@@ -52,17 +52,20 @@ import {
   FILE_QUALITY_OPTIONS,
   ACTION_LABELS,
   ACTION_OPTIONS,
+  PLAYBACK_STATUS_LABELS,
+  PLAYBACK_STATUS_OPTIONS,
   getFileQualityVariant,
   getActionVariant,
+  getPlaybackStatusVariant,
 } from '@/lib/status';
 import {
   formatDateTimeWithFormat,
   formatFileSize,
 } from '@/lib/settings-shared';
 import type { DateFormat } from '@/lib/settings-shared';
-import type { FileQuality, Action } from '@/generated/prisma/client';
+import type { FileQuality, Action, PlaybackStatus } from '@/generated/prisma/client';
 import { BadgeSelector } from '@/components/badge-selector';
-import { getFileColumns, type FileRow } from './file-columns';
+import { getFileColumns, type FileRow, type PlatformInfo } from './file-columns';
 import { FilesToolbar } from './files-toolbar';
 import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
@@ -147,12 +150,14 @@ export default function FilesPage() {
     const action = searchParams.get('action');
     const fileExists = searchParams.get('fileExists');
     const analyzed = searchParams.get('analyzed');
+    const playback = searchParams.get('playback');
 
     if (q) params.set('q', q);
     if (quality && quality !== 'all') params.set('quality', quality);
     if (action && action !== 'all') params.set('action', action);
     if (fileExists && fileExists !== 'all') params.set('fileExists', fileExists);
     if (analyzed && analyzed !== 'all') params.set('analyzed', analyzed);
+    if (playback && playback !== 'all') params.set('playback', playback);
 
     return params.toString();
   }, [searchParams]);
@@ -165,11 +170,15 @@ export default function FilesPage() {
       .catch(() => {});
   }, []);
 
+  // Platforms for playback test columns
+  const [platforms, setPlatforms] = useState<PlatformInfo[]>([]);
+
   // Infinite scroll data fetching
   const parseFilesResponse = useCallback(
     (json: Record<string, unknown>) => ({
       data: json.data as FileRow[],
       total: json.total as number,
+      meta: { platforms: json.platforms as PlatformInfo[] },
     }),
     []
   );
@@ -182,6 +191,7 @@ export default function FilesPage() {
     loadingMore,
     hasMore,
     sentinelRef,
+    meta,
     refresh,
   } = useInfiniteScroll<FileRow>({
     apiUrl: '/api/files',
@@ -189,6 +199,13 @@ export default function FilesPage() {
     limit: 200,
     parseResponse: parseFilesResponse,
   });
+
+  // Extract platforms from API response (stable after first load)
+  useEffect(() => {
+    if (meta?.platforms) {
+      setPlatforms(meta.platforms as PlatformInfo[]);
+    }
+  }, [meta]);
 
   // Quality change handler
   const handleQualityChange = useCallback(async (fileId: number, quality: FileQuality) => {
@@ -227,6 +244,38 @@ export default function FilesPage() {
       prev.map((f) => (f.id === fileId ? { ...f, action } : f))
     );
   }, []);
+
+  // Playback status change handler (create or update)
+  const handlePlaybackStatusChange = useCallback(async (
+    fileId: number, platformId: number, testId: number | null, status: PlaybackStatus
+  ) => {
+    if (testId) {
+      // Update existing test
+      const response = await fetch(`/api/playback-tests/${testId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        toast.error('Failed to update playback test');
+        throw new Error('Failed to update');
+      }
+    } else {
+      // Create new test
+      const response = await fetch('/api/playback-tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ episodeFileId: fileId, platformId, status }),
+      });
+      if (!response.ok) {
+        toast.error('Failed to create playback test');
+        throw new Error('Failed to create');
+      }
+    }
+
+    // Refresh to get updated test data and recomputed quality
+    await refresh();
+  }, [refresh]);
 
   // Analyze handler
   const handleAnalyze = useCallback(async (fileId: number) => {
@@ -346,21 +395,26 @@ export default function FilesPage() {
       getFileColumns({
         isAdmin,
         dateFormat,
+        platforms,
         onQualityChange: handleQualityChange,
         onActionChange: handleActionChange,
+        onPlaybackStatusChange: handlePlaybackStatusChange,
         onAnalyze: handleAnalyze,
         onRescan: handleRescan,
         analyzingId,
         rescanningId,
       }),
-    [isAdmin, dateFormat, handleQualityChange, handleActionChange, handleAnalyze, handleRescan, analyzingId, rescanningId]
+    [isAdmin, dateFormat, platforms, handleQualityChange, handleActionChange, handlePlaybackStatusChange, handleAnalyze, handleRescan, analyzingId, rescanningId]
   );
 
-  // Initial column visibility — hide container by default
-  const initialColumnVisibility = useMemo(
-    () => ({ container: false }),
-    []
-  );
+  // Initial column visibility — hide container and per-platform columns by default
+  const initialColumnVisibility = useMemo(() => {
+    const visibility: Record<string, boolean> = { container: false };
+    for (const platform of platforms) {
+      visibility[`platform-${platform.id}`] = false;
+    }
+    return visibility;
+  }, [platforms]);
 
   return (
     <AdminGuard>
@@ -564,6 +618,11 @@ export default function FilesPage() {
                         {file.hdrType && (
                           <Badge variant="secondary">{file.hdrType}</Badge>
                         )}
+                        {file.overallPlaybackStatus && (
+                          <Badge variant={getPlaybackStatusVariant(file.overallPlaybackStatus)}>
+                            {PLAYBACK_STATUS_LABELS[file.overallPlaybackStatus]}
+                          </Badge>
+                        )}
                         {!file.fileExists && (
                           <Badge variant="destructive">Missing</Badge>
                         )}
@@ -643,6 +702,72 @@ export default function FilesPage() {
                       </div>
                     )}
 
+                    {/* Playback test status per platform */}
+                    {(isAdmin || Object.keys(file.playbackTests).length > 0) && platforms.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {platforms.map((p) => {
+                          const test = file.playbackTests[String(p.id)];
+                          if (!test && !isAdmin) return null;
+                          const pLabel = p.isRequired ? `${p.name} *` : p.name;
+                          if (isAdmin) {
+                            return (
+                              <span key={p.id} className="inline-flex items-center gap-1">
+                                <BadgeSelector
+                                  value={test?.status ?? ('' as PlaybackStatus)}
+                                  options={PLAYBACK_STATUS_OPTIONS}
+                                  displayLabel={test ? `${pLabel}: ${PLAYBACK_STATUS_LABELS[test.status]}` : `${pLabel}: —`}
+                                  variant={test ? getPlaybackStatusVariant(test.status) : 'outline'}
+                                  getVariant={getPlaybackStatusVariant}
+                                  className="text-xs"
+                                  onValueChange={async (v) => {
+                                    await handlePlaybackStatusChange(file.id, p.id, test?.id ?? null, v as PlaybackStatus);
+                                  }}
+                                />
+                                {test?.notes && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <span className="text-xs text-muted-foreground italic max-w-[120px] truncate">
+                                          {test.notes}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-sm">
+                                        <p className="text-xs">{test.notes}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span key={p.id} className="inline-flex items-center gap-1">
+                              <Badge
+                                variant={getPlaybackStatusVariant(test!.status)}
+                                className="text-xs"
+                              >
+                                {pLabel}: {PLAYBACK_STATUS_LABELS[test!.status]}
+                              </Badge>
+                              {test!.notes && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <span className="text-xs text-muted-foreground italic max-w-[120px] truncate">
+                                        {test!.notes}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-sm">
+                                      <p className="text-xs">{test!.notes}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {/* Footer: size + date + counts */}
                     <div className="flex items-center justify-between mt-3 pt-3 border-t">
                       <div className="flex items-center gap-3">
@@ -652,11 +777,6 @@ export default function FilesPage() {
                         {file.issueCount > 0 && (
                           <Badge variant="destructive" className="text-xs">
                             {file.issueCount} issue{file.issueCount !== 1 ? 's' : ''}
-                          </Badge>
-                        )}
-                        {file.testCount > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            {file.testCount} test{file.testCount !== 1 ? 's' : ''}
                           </Badge>
                         )}
                       </div>

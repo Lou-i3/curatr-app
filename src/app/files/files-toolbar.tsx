@@ -19,8 +19,8 @@ import { Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ColumnVisibilityToggle } from '@/components/column-visibility-toggle';
 import { ViewToggle } from '@/components/view-toggle';
-import { getFileQualityVariant, getActionVariant } from '@/lib/status';
-import type { FileQuality, Action } from '@/generated/prisma/client';
+import { getFileQualityVariant, getActionVariant, getPlaybackStatusVariant } from '@/lib/status';
+import type { FileQuality, Action, PlaybackStatus } from '@/generated/prisma/client';
 import type { FileRow } from './file-columns';
 
 const QUALITY_OPTIONS = [
@@ -52,6 +52,14 @@ const ANALYZED_OPTIONS = [
   { value: 'no', label: 'Not Analyzed' },
 ];
 
+const PLAYBACK_OPTIONS = [
+  { value: 'all', label: 'All Playback' },
+  { value: 'PASS', label: 'Pass' },
+  { value: 'PARTIAL', label: 'Partial' },
+  { value: 'FAIL', label: 'Fail' },
+  { value: 'untested', label: 'Untested' },
+];
+
 interface FilesToolbarProps {
   table: TableInstance<FileRow> | null;
 }
@@ -66,6 +74,7 @@ export function FilesToolbar({ table = null }: FilesToolbarProps) {
   const currentAction = searchParams.get('action') ?? 'all';
   const currentFileExists = searchParams.get('fileExists') ?? 'all';
   const currentAnalyzed = searchParams.get('analyzed') ?? 'all';
+  const currentPlayback = searchParams.get('playback') ?? 'all';
   const currentView = searchParams.get('view') ?? 'cards';
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -176,6 +185,28 @@ export function FilesToolbar({ table = null }: FilesToolbarProps) {
           {ANALYZED_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Playback Status Filter */}
+      <Select value={currentPlayback} onValueChange={(v) => updateParams('playback', v)}>
+        <SelectTrigger className="w-[150px]">
+          <SelectValue placeholder="All Playback" />
+        </SelectTrigger>
+        <SelectContent>
+          {PLAYBACK_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              <span className="flex items-center gap-2">
+                {opt.value !== 'all' && opt.value !== 'untested' && (
+                  <Badge
+                    variant={getPlaybackStatusVariant(opt.value as PlaybackStatus)}
+                    className="size-2 p-0 rounded-full"
+                  />
+                )}
+                {opt.label}
+              </span>
             </SelectItem>
           ))}
         </SelectContent>

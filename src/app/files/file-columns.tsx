@@ -17,11 +17,14 @@ import {
   FILE_QUALITY_OPTIONS,
   ACTION_LABELS,
   ACTION_OPTIONS,
+  PLAYBACK_STATUS_LABELS,
+  PLAYBACK_STATUS_OPTIONS,
   getFileQualityVariant,
   getActionVariant,
+  getPlaybackStatusVariant,
 } from '@/lib/status';
 import { formatDateTimeWithFormat, formatFileSize, type DateFormat } from '@/lib/settings-shared';
-import type { FileQuality, Action } from '@/generated/prisma/client';
+import type { FileQuality, Action, PlaybackStatus } from '@/generated/prisma/client';
 import {
   Check,
   X,
@@ -36,6 +39,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+
+export interface PlatformInfo {
+  id: number;
+  name: string;
+  isRequired: boolean;
+  sortOrder: number;
+}
 
 export interface FileRow {
   id: number;
@@ -60,6 +70,8 @@ export interface FileRow {
   plexMatched: boolean;
   testCount: number;
   issueCount: number;
+  playbackTests: Record<string, { id: number; status: PlaybackStatus; notes: string | null }>;
+  overallPlaybackStatus: PlaybackStatus | null;
   episode: {
     id: number;
     episodeNumber: number;
@@ -75,8 +87,10 @@ export interface FileRow {
 interface ColumnOptions {
   isAdmin: boolean;
   dateFormat: DateFormat;
+  platforms: PlatformInfo[];
   onQualityChange: (fileId: number, quality: FileQuality) => Promise<void>;
   onActionChange: (fileId: number, action: Action) => Promise<void>;
+  onPlaybackStatusChange: (fileId: number, platformId: number, testId: number | null, status: PlaybackStatus) => Promise<void>;
   onAnalyze: (fileId: number) => void;
   onRescan: (fileId: number) => void;
   analyzingId: number | null;
@@ -87,8 +101,10 @@ interface ColumnOptions {
 export function getFileColumns({
   isAdmin,
   dateFormat,
+  platforms,
   onQualityChange,
   onActionChange,
+  onPlaybackStatusChange,
   onAnalyze,
   onRescan,
   analyzingId,
@@ -341,21 +357,85 @@ export function getFileColumns({
     },
   });
 
-  // Tests count
+  // Overall playback status (aggregated across all platforms)
   columns.push({
-    accessorKey: 'testCount',
+    id: 'playbackOverall',
+    accessorFn: (row) => row.overallPlaybackStatus ?? '',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Tests" />
+      <DataTableColumnHeader column={column} title="Playback" />
     ),
+    meta: { displayName: 'Playback' },
     cell: ({ row }) => {
-      const count = row.original.testCount;
-      return count > 0 ? (
-        <Badge variant="secondary">{count}</Badge>
-      ) : (
-        <span className="text-sm text-muted-foreground">0</span>
+      const status = row.original.overallPlaybackStatus;
+      if (!status) {
+        return <span className="text-sm text-muted-foreground">—</span>;
+      }
+      return (
+        <Badge variant={getPlaybackStatusVariant(status)}>
+          {PLAYBACK_STATUS_LABELS[status]}
+        </Badge>
       );
     },
+    sortingFn: (rowA, rowB) => {
+      const priority: Record<string, number> = { FAIL: 3, PARTIAL: 2, PASS: 1 };
+      const a = priority[rowA.original.overallPlaybackStatus ?? ''] ?? 0;
+      const b = priority[rowB.original.overallPlaybackStatus ?? ''] ?? 0;
+      return a - b;
+    },
   });
+
+  // Per-platform playback test columns (hidden by default)
+  for (const platform of platforms) {
+    const platformLabel = platform.isRequired ? `${platform.name} *` : platform.name;
+    columns.push({
+      id: `platform-${platform.id}`,
+      accessorFn: (row) => row.playbackTests[String(platform.id)]?.status ?? '',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={platformLabel} />
+      ),
+      meta: { displayName: platformLabel },
+      cell: ({ row }) => {
+        const test = row.original.playbackTests[String(platform.id)];
+        if (!test) {
+          if (isAdmin) {
+            return (
+              <BadgeSelector
+                value={'' as PlaybackStatus}
+                options={PLAYBACK_STATUS_OPTIONS}
+                displayLabel="—"
+                variant="outline"
+                getVariant={getPlaybackStatusVariant}
+                onValueChange={async (newStatus) => {
+                  await onPlaybackStatusChange(row.original.id, platform.id, null, newStatus as PlaybackStatus);
+                }}
+              />
+            );
+          }
+          return <span className="text-sm text-muted-foreground">—</span>;
+        }
+        if (isAdmin) {
+          return (
+            <BadgeSelector
+              value={test.status}
+              options={PLAYBACK_STATUS_OPTIONS}
+              displayLabel={PLAYBACK_STATUS_LABELS[test.status]}
+              variant={getPlaybackStatusVariant(test.status)}
+              getVariant={getPlaybackStatusVariant}
+              onValueChange={async (newStatus) => {
+                await onPlaybackStatusChange(row.original.id, platform.id, test.id, newStatus as PlaybackStatus);
+              }}
+            />
+          );
+        }
+        return (
+          <Badge variant={getPlaybackStatusVariant(test.status)}>
+            {PLAYBACK_STATUS_LABELS[test.status]}
+          </Badge>
+        );
+      },
+      enableHiding: true,
+    });
+  }
 
   // On Disk
   columns.push({
@@ -379,7 +459,6 @@ export function getFileColumns({
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
         const file = row.original;
-        const ep = file.episode;
         return (
           <div className="flex justify-end gap-0.5">
             <TooltipProvider>

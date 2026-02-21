@@ -70,7 +70,7 @@ export function ColumnVisibilityToggle<TData>({
                 column.toggleVisibility(!!checked);
               }}
             >
-              {column.id}
+              {(column.columnDef.meta as { displayName?: string })?.displayName ?? column.id}
             </DropdownMenuCheckboxItem>
           ))}
       </DropdownMenuContent>
