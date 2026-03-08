@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { Tv, ListChecks, ScanSearch, ListTodo, Puzzle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { IssueReportSearchDialog } from '@/components/issues/issue-report-search-dialog';
+import { IssueReportDialog } from '@/components/issues/issue-report-dialog';
 import { useIssueContext } from '@/lib/contexts/issue-context';
 import { useTasksPanel } from '@/components/tasks/tasks-panel';
 
@@ -29,7 +29,7 @@ export function QuickActions() {
         </Link>
       </Button>
 
-      <IssueReportSearchDialog onSubmitted={refreshIssues} />
+      <IssueReportDialog onSubmitted={refreshIssues} />
 
       <Button asChild variant="outline" size="sm" className="gap-1.5">
         <Link href="/issues">

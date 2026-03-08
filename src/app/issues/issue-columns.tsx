@@ -16,13 +16,26 @@ import {
   ISSUE_TYPE_LABELS,
   ISSUE_STATUS_LABELS,
   ISSUE_STATUSES,
+  ISSUE_TYPE_ICONS,
+  ISSUE_STATUS_ICONS,
+  ISSUE_SUB_TYPE_LABELS,
   getIssueTypeVariant,
   getIssueStatusVariant,
+  type IssueSubType,
 } from '@/lib/issue-utils';
 import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 import type { IssueType, IssueStatus } from '@/generated/prisma/client';
-import { Pencil, Trash2, User } from 'lucide-react';
-import { IssueEditDialog } from '@/components/issues/issue-edit-dialog';
+import { ExternalLink, Trash2, User } from 'lucide-react';
+
+interface IssueEpisode {
+  id: number;
+  episodeNumber: number;
+  title: string | null;
+  season: {
+    seasonNumber: number;
+    tvShow: { id: number; title: string };
+  };
+}
 
 export interface IssueRow {
   id: number;
@@ -32,19 +45,11 @@ export interface IssueRow {
   platform: string | null;
   audioLang: string | null;
   subtitleLang: string | null;
-  resolution: string | null;
+  subType: string | null;
   createdAt: string;
   user: { id: number; username: string; thumbUrl: string | null; role: string } | null;
-  episode: {
-    id: number;
-    episodeNumber: number;
-    title: string | null;
-    season: {
-      seasonNumber: number;
-      tvShow: { id: number; title: string };
-    };
-  };
-  resolvedBy: { id: number; username: string } | null;
+  episodes: Array<{ episodeId: number; episode: IssueEpisode }>;
+  _count?: { comments: number };
 }
 
 interface ColumnOptions {
@@ -53,8 +58,19 @@ interface ColumnOptions {
   currentUserId: number | null;
   dateFormat: DateFormat;
   onStatusChange: (issueId: number, status: IssueStatus) => Promise<void>;
-  onIssueUpdated: (issueId: number, updated: { status: IssueStatus; resolution: string | null }) => void;
   onDelete: (issueId: number) => void;
+}
+
+/** Get the primary (first) episode from an issue's episodes array */
+function getPrimaryEpisode(episodes: IssueRow['episodes']): IssueEpisode | null {
+  if (episodes.length === 0) return null;
+  // Sort by season number then episode number to get the primary
+  const sorted = [...episodes].sort((a, b) => {
+    const sDiff = a.episode.season.seasonNumber - b.episode.season.seasonNumber;
+    if (sDiff !== 0) return sDiff;
+    return a.episode.episodeNumber - b.episode.episodeNumber;
+  });
+  return sorted[0].episode;
 }
 
 /** Build issue columns dynamically based on user role and auth mode */
@@ -64,7 +80,6 @@ export function getIssueColumns({
   currentUserId,
   dateFormat,
   onStatusChange,
-  onIssueUpdated,
   onDelete,
 }: ColumnOptions): ColumnDef<IssueRow>[] {
   const columns: ColumnDef<IssueRow>[] = [];
@@ -75,24 +90,40 @@ export function getIssueColumns({
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Type" />
     ),
-    cell: ({ row }) => (
-      <Badge variant={getIssueTypeVariant(row.original.type)}>
-        {ISSUE_TYPE_LABELS[row.original.type]}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const TypeIcon = ISSUE_TYPE_ICONS[row.original.type];
+      return (
+        <div className="flex items-center gap-1.5">
+          <Badge variant={getIssueTypeVariant(row.original.type)}>
+            <TypeIcon className="size-3 mr-1" />
+            {ISSUE_TYPE_LABELS[row.original.type]}
+          </Badge>
+          {row.original.subType && (
+            <span className="text-xs text-muted-foreground">
+              {ISSUE_SUB_TYPE_LABELS[row.original.subType as IssueSubType]}
+            </span>
+          )}
+        </div>
+      );
+    },
   });
 
   // Episode (show + season/episode)
   columns.push({
     id: 'episode',
-    accessorFn: (row) =>
-      `${row.episode.season.tvShow.title} S${String(row.episode.season.seasonNumber).padStart(2, '0')}E${String(row.episode.episodeNumber).padStart(2, '0')}`,
+    accessorFn: (row) => {
+      const ep = getPrimaryEpisode(row.episodes);
+      if (!ep) return '';
+      return `${ep.season.tvShow.title} S${String(ep.season.seasonNumber).padStart(2, '0')}E${String(ep.episodeNumber).padStart(2, '0')}`;
+    },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Episode" />
     ),
     cell: ({ row }) => {
-      const ep = row.original.episode;
+      const ep = getPrimaryEpisode(row.original.episodes);
+      if (!ep) return <span className="text-muted-foreground">No episodes</span>;
       const label = `S${String(ep.season.seasonNumber).padStart(2, '0')}E${String(ep.episodeNumber).padStart(2, '0')}`;
+      const extraCount = row.original.episodes.length - 1;
       return (
         <Link
           href={`/tv-shows/${ep.season.tvShow.id}/episodes/${ep.id}`}
@@ -102,6 +133,9 @@ export function getIssueColumns({
             <span className="font-medium text-sm">{ep.season.tvShow.title}</span>
             <span className="text-xs text-muted-foreground">
               {label}{ep.title ? ` — ${ep.title}` : ''}
+              {extraCount > 0 && (
+                <span className="ml-1 text-muted-foreground">+{extraCount} more</span>
+              )}
             </span>
           </div>
         </Link>
@@ -143,6 +177,7 @@ export function getIssueColumns({
     cell: ({ row }) => {
       const issue = row.original;
       if (isAdmin) {
+        const StatusIcon = ISSUE_STATUS_ICONS[issue.status];
         return (
           <BadgeSelector
             value={issue.status}
@@ -153,14 +188,21 @@ export function getIssueColumns({
             displayLabel={ISSUE_STATUS_LABELS[issue.status]}
             variant={getIssueStatusVariant(issue.status)}
             getVariant={getIssueStatusVariant}
+            getIcon={(s) => {
+              const Icon = ISSUE_STATUS_ICONS[s as IssueStatus];
+              return <Icon className="size-3 mr-1" />;
+            }}
             onValueChange={async (newStatus) => {
               await onStatusChange(issue.id, newStatus as IssueStatus);
             }}
+            icon={<StatusIcon className="size-3 mr-1" />}
           />
         );
       }
+      const StatusIcon = ISSUE_STATUS_ICONS[issue.status];
       return (
         <Badge variant={getIssueStatusVariant(issue.status)}>
+          <StatusIcon className="size-3 mr-1" />
           {ISSUE_STATUS_LABELS[issue.status]}
         </Badge>
       );
@@ -211,33 +253,19 @@ export function getIssueColumns({
       const issue = row.original;
       const isOwner = currentUserId !== null && issue.user?.id === currentUserId;
       const canDelete = isAdmin || (isOwner && issue.status === 'OPEN');
-      const canEdit = isAdmin || isOwner;
-
-      if (!canEdit && !canDelete) return null;
-
-      const ep = issue.episode;
-      const episodeLabel = `${ep.season.tvShow.title} — S${String(ep.season.seasonNumber).padStart(2, '0')}E${String(ep.episodeNumber).padStart(2, '0')}`;
 
       return (
         <div className="flex justify-end gap-0.5">
-          {canEdit && (
-            <IssueEditDialog
-              issue={issue}
-              episodeLabel={episodeLabel}
-              isAdmin={isAdmin}
-              isOwner={isOwner}
-              onUpdated={(updated) => onIssueUpdated(issue.id, updated)}
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7 text-muted-foreground hover:text-foreground"
-                >
-                  <Pencil className="size-3.5" />
-                </Button>
-              }
-            />
-          )}
+          <Link href={`/issues/${issue.id}`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-muted-foreground hover:text-foreground"
+              title="View details"
+            >
+              <ExternalLink className="size-3.5" />
+            </Button>
+          </Link>
           {canDelete && (
             <Button
               variant="ghost"

@@ -21,30 +21,30 @@ interface IssueData {
   platform: string | null;
   audioLang: string | null;
   subtitleLang: string | null;
-  resolution: string | null;
   createdAt: string | Date;
   user: { id: number; username: string; thumbUrl: string | null } | null;
-  resolvedBy: { id: number; username: string } | null;
 }
 
 interface EpisodeIssuesSectionProps {
   episodeId: number;
+  showId: number;
+  showTitle: string;
+  seasonNumber: number;
+  episodeNumber: number;
   episodeLabel: string;
   issues: IssueData[];
   dateFormat: string;
-  platforms: string[];
-  audioLanguages: string[];
-  subtitleLanguages: string[];
 }
 
 export function EpisodeIssuesSection({
   episodeId,
+  showId,
+  showTitle,
+  seasonNumber,
+  episodeNumber,
   episodeLabel,
   issues,
   dateFormat,
-  platforms,
-  audioLanguages,
-  subtitleLanguages,
 }: EpisodeIssuesSectionProps) {
   const router = useRouter();
   const { refresh: refreshCounts } = useIssueContext();
@@ -59,11 +59,14 @@ export function EpisodeIssuesSection({
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base md:text-lg font-bold">Issues ({issues.length})</h2>
         <IssueReportDialog
-          episodeId={episodeId}
-          episodeLabel={episodeLabel}
-          platforms={platforms}
-          audioLanguages={audioLanguages}
-          subtitleLanguages={subtitleLanguages}
+          initialEpisodes={[{
+            id: episodeId,
+            label: `S${String(seasonNumber).padStart(2, '0')}E${String(episodeNumber).padStart(2, '0')}`,
+            showId,
+            showTitle,
+            seasonNumber,
+            episodeNumber,
+          }]}
           onSubmitted={handleIssueSubmitted}
         />
       </div>
@@ -71,7 +74,6 @@ export function EpisodeIssuesSection({
         <EpisodeIssuesList
           issues={issues}
           dateFormat={dateFormat}
-          episodeLabel={episodeLabel}
         />
       ) : (
         <Card>

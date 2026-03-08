@@ -288,20 +288,9 @@ Every UI change inferred from the roadmap, organized by roadmap item then by pag
 
 ## Issue System
 
-### Issue Comments/Threads (🟡)
+### ~~Issue Comments/Threads~~ (✅ Done)
 
-**Issue Edit Dialog** (`src/components/issues/issue-edit-dialog.tsx`)
-- Expand to `max-w-2xl`
-- Add "Comments" section: chronological list (avatar, username, timestamp, text), "Add comment" textarea + submit
-- Scrollable within `max-h-[300px]`
-
-**Episode issues list** — comment count badge per issue
-
-**Issues page** — comment count in card view + table column
-
-**New model:** `IssueComment` in Prisma schema
-
-**New API:** `GET/POST /api/issues/[id]/comments`
+Implemented: `IssueComment` model, comment/activity threads on issue detail page (`src/app/issues/[id]/`), `GET/POST/DELETE /api/issues/[id]/comments` API, activity logging on status changes.
 
 ---
 
@@ -337,7 +326,7 @@ Every UI change inferred from the roadmap, organized by roadmap item then by pag
 
 ### Transform Issues to Playback Tests (🟡)
 
-**Issue Edit Dialog** — "Create Playback Test" button (admin, PLAYBACK type only), pre-populates test from issue data
+**Issue detail page** — "Create Playback Test" button (admin, PLAYBACK type only), pre-populates test from issue data
 
 **Episode issues list** — "Create Test" action per playback issue (admin)
 
@@ -347,7 +336,7 @@ Every UI change inferred from the roadmap, organized by roadmap item then by pag
 
 ### Issue Data Enhancement by Admin (🟡)
 
-**Issue Edit Dialog** — make fields editable for admins:
+**Issue detail page** — make fields editable for admins:
 - Type: re-classify via selector
 - Platform, audio language, subtitle language: editable
 - Description: editable textarea
@@ -627,7 +616,7 @@ Every UI change inferred from the roadmap, organized by roadmap item then by pag
 | `src/app/layout.tsx` | 3 new context providers, global components |
 | `src/app/dashboard/dashboard-client.tsx` | New sections for movies, issue analytics, requests |
 | `src/app/settings/settings-form.tsx` | Theme, DB backup, API keys, notifications, language, reset filters |
-| `src/components/issues/issue-edit-dialog.tsx` | Comments, enhancement, create test, admin editing |
+| `src/app/issues/[id]/issue-detail-client.tsx` | Enhancement, create test, admin editing |
 | `src/app/tv-shows/[id]/seasons-list.tsx` | Bulk select, analyze button, quality bars |
 | `src/app/integrations/page.tsx` | Activate coming-soon items, add new cards |
 | `prisma/schema.prisma` | Movie, IssueComment, Task, Notification, Request, AuditLog, ApiKey, Webhook models |

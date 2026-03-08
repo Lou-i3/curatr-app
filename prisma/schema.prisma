@@ -90,6 +90,12 @@ enum IssueStatus {
   CLOSED
 }
 
+/// Issue comment type (user comment vs system activity)
+enum IssueCommentType {
+  COMMENT
+  ACTIVITY
+}
+
 // TV Show Models
 model TVShow {
   id            Int           @id @default(autoincrement())
@@ -166,7 +172,7 @@ model Episode {
   voteAverage   Float?
 
   files         EpisodeFile[]
-  issues        Issue[]
+  issueEpisodes IssueEpisode[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -322,7 +328,7 @@ model User {
 
   sessions       Session[]
   reportedIssues Issue[]   @relation("reporter")
-  resolvedIssues Issue[]   @relation("resolver")
+  issueComments  IssueComment[] @relation("commentAuthor")
 }
 
 /// Session for cookie-based authentication
@@ -336,13 +342,11 @@ model Session {
   @@index([userId])
 }
 
-/// User-reported issue on an episode
+/// User-reported issue (can span multiple episodes)
 model Issue {
   id           Int         @id @default(autoincrement())
   userId       Int
   user         User        @relation("reporter", fields: [userId], references: [id])
-  episodeId    Int
-  episode      Episode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
   type         IssueType
   status       IssueStatus @default(OPEN)
@@ -350,16 +354,43 @@ model Issue {
   platform     String?                   // Device/platform name
   audioLang    String?                   // Audio language user was using
   subtitleLang String?                   // Subtitle language user was using
+  subType      String?                   // Sub-category for AUDIO/SUBTITLE issues
 
-  resolvedById Int?
-  resolvedBy   User?       @relation("resolver", fields: [resolvedById], references: [id])
-  resolution   String?                   // Admin notes on how it was resolved
+  episodes     IssueEpisode[]
+  comments     IssueComment[]
 
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  resolvedAt   DateTime?
 
-  @@index([episodeId])
   @@index([userId])
   @@index([status])
+}
+
+/// Join table linking issues to multiple episodes
+model IssueEpisode {
+  id        Int      @id @default(autoincrement())
+  issueId   Int
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  episodeId Int
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([issueId, episodeId])
+  @@index([issueId])
+  @@index([episodeId])
+}
+
+/// Comment or activity entry on an issue
+model IssueComment {
+  id        Int              @id @default(autoincrement())
+  issueId   Int
+  issue     Issue            @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User             @relation("commentAuthor", fields: [userId], references: [id])
+  type      IssueCommentType
+  content   String
+  createdAt DateTime         @default(now())
+
+  @@index([issueId])
+  @@index([userId])
 }

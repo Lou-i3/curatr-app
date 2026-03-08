@@ -123,10 +123,13 @@ We are not liable for any data loss, corruption, or unexpected behavior. Pull re
   - Integration page at `/integrations/plex` with setup guide and connectivity status
 - **Issue Reporting** - Track and manage quality issues across your library
   - Quick report from episode pages or from the issues page via show search
+  - Issues can span multiple episodes (many-to-many linking)
   - Issue types: Playback, Quality, Audio, Subtitle, Content, Other
+  - Sub-types for Audio/Subtitle issues: Wrong Language, Out of Sync, Missing, Bad Quality
   - Status workflow: Open → Acknowledged → In Progress → Resolved / Closed
   - Optional context: device platform, audio/subtitle language, description
-  - Admin inline status changes, resolution notes, and issue editing
+  - Admin inline status changes with per-status icons
+  - Comment threads with activity tracking on each issue
   - Sidebar badge shows active issue count with polling
   - Works in both auth modes (no-auth: issues attributed to built-in admin user)
 - **Files Browser** - Browse and manage all episode files across the library
@@ -350,11 +353,9 @@ Pre-releases are marked as such on GitHub and get their own Docker tag.
 
 ### Issue System
 
-- 🟡 Issue comments/threads
 - 🟡 Issue deduplication (group reports on same episode)
 - 🟡 Issue analytics on dashboard
 - 🟡 Transform issues to playback tests
-- 🟡 Issue data enhancement by admin
 
 ### Integrations
 

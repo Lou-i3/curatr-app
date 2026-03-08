@@ -113,6 +113,10 @@ const options = {
           type: 'string',
           enum: ['OPEN', 'ACKNOWLEDGED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
         },
+        IssueCommentType: {
+          type: 'string',
+          enum: ['COMMENT', 'ACTIVITY'],
+        },
         TaskStatus: {
           type: 'string',
           enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],

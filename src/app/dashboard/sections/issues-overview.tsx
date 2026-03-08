@@ -16,18 +16,25 @@ import { useIssueCounts } from '@/lib/contexts/issue-context';
 import { getIssueStatusVariant, ISSUE_STATUS_LABELS } from '@/lib/issue-utils';
 import type { IssueType, IssueStatus } from '@/generated/prisma/client';
 
-interface RecentIssue {
-  id: number;
-  type: IssueType;
-  status: IssueStatus;
-  createdAt: string;
+interface EpisodeInfo {
+  episodeId: number;
   episode: {
+    id: number;
     episodeNumber: number;
+    title: string | null;
     season: {
       seasonNumber: number;
       tvShow: { id: number; title: string };
     };
   };
+}
+
+interface RecentIssue {
+  id: number;
+  type: IssueType;
+  status: IssueStatus;
+  createdAt: string;
+  episodes: EpisodeInfo[];
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -42,6 +49,17 @@ function formatTimeAgo(dateStr: string): string {
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}d ago`;
   return `${Math.floor(days / 30)}mo ago`;
+}
+
+/** Get the primary (first) episode from an issue's episodes array */
+function getPrimaryEpisode(episodes: EpisodeInfo[]) {
+  if (episodes.length === 0) return null;
+  const sorted = [...episodes].sort((a, b) => {
+    const sDiff = a.episode.season.seasonNumber - b.episode.season.seasonNumber;
+    if (sDiff !== 0) return sDiff;
+    return a.episode.episodeNumber - b.episode.episodeNumber;
+  });
+  return sorted[0].episode;
 }
 
 /** Status filters shown as clickable badges */
@@ -138,15 +156,33 @@ export function IssuesOverview() {
         ) : (
           <ul className="space-y-2">
             {displayedIssues.map((issue) => {
-              const ep = issue.episode;
+              const ep = getPrimaryEpisode(issue.episodes);
+              if (!ep) {
+                return (
+                  <li key={issue.id} className="flex items-center gap-2 text-sm">
+                    <Link href={`/issues/${issue.id}`} className="truncate hover:underline text-muted-foreground">
+                      No linked episodes
+                    </Link>
+                    <Badge variant={getIssueStatusVariant(issue.status)} className="text-xs shrink-0 ml-auto">
+                      {ISSUE_STATUS_LABELS[issue.status]}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {formatTimeAgo(issue.createdAt)}
+                    </span>
+                  </li>
+                );
+              }
               const code = `S${String(ep.season.seasonNumber).padStart(2, '0')}E${String(ep.episodeNumber).padStart(2, '0')}`;
               return (
                 <li key={issue.id} className="flex items-center gap-2 text-sm">
                   <Link
-                    href={`/tv-shows/${ep.season.tvShow.id}`}
+                    href={`/issues/${issue.id}`}
                     className="truncate hover:underline"
                   >
                     {ep.season.tvShow.title} {code}
+                    {issue.episodes.length > 1 && (
+                      <span className="text-muted-foreground ml-1">+{issue.episodes.length - 1}</span>
+                    )}
                   </Link>
                   <Badge variant={getIssueStatusVariant(issue.status)} className="text-xs shrink-0 ml-auto">
                     {ISSUE_STATUS_LABELS[issue.status]}

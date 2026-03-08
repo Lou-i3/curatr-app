@@ -9,11 +9,21 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Pencil, Trash2, User } from 'lucide-react';
+import { Pencil, Trash2, User, Volume2, Captions } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -23,22 +33,35 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { DataTable } from '@/components/ui/data-table';
+import { BadgeSelector } from '@/components/badge-selector';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useIssueContext } from '@/lib/contexts/issue-context';
 import {
   ISSUE_TYPE_LABELS,
   ISSUE_STATUS_LABELS,
   ISSUE_STATUSES,
+  ISSUE_TYPE_ICONS,
+  ISSUE_STATUS_ICONS,
+  ISSUE_SUB_TYPE_LABELS,
+  PLATFORM_ICON,
   getIssueTypeVariant,
   getIssueStatusVariant,
+  type IssueSubType,
 } from '@/lib/issue-utils';
 import { formatDateTimeWithFormat } from '@/lib/settings-shared';
 import type { IssueStatus } from '@/generated/prisma/client';
 import type { DateFormat } from '@/lib/settings-shared';
 import { getIssueColumns, type IssueRow } from './issue-columns';
 import { ViewToggle } from '@/components/view-toggle';
-import { IssueReportSearchDialog } from '@/components/issues/issue-report-search-dialog';
-import { IssueEditDialog } from '@/components/issues/issue-edit-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { IssueReportDialog } from '@/components/issues/issue-report-dialog';
+import { IssueEditForm } from './[id]/issue-edit-form';
 import { PageHeader } from '@/components/page-header';
 import { PageContainer } from '@/components/layout';
 
@@ -85,6 +108,17 @@ function CardSkeleton() {
   );
 }
 
+/** Get the primary (first) episode from an issue's episodes array */
+function getPrimaryEpisode(episodes: IssueRow['episodes']) {
+  if (episodes.length === 0) return null;
+  const sorted = [...episodes].sort((a, b) => {
+    const sDiff = a.episode.season.seasonNumber - b.episode.season.seasonNumber;
+    if (sDiff !== 0) return sDiff;
+    return a.episode.episodeNumber - b.episode.episodeNumber;
+  });
+  return sorted[0].episode;
+}
+
 export default function IssuesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -97,6 +131,9 @@ export default function IssuesPage() {
   const [loading, setLoading] = useState(true);
   const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editingIssue, setEditingIssue] = useState<IssueRow | null>(null);
 
   const updateView = useCallback((view: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -174,20 +211,17 @@ export default function IssuesPage() {
     refreshCounts();
   }, [refreshCounts]);
 
-  // Issue updated handler (from edit dialog)
-  const handleIssueUpdated = useCallback((issueId: number, updated: { status: IssueStatus; resolution: string | null }) => {
-    setIssues((prev) =>
-      prev.map((i) =>
-        i.id === issueId ? { ...i, ...updated } : i
-      )
-    );
-    refreshCounts();
-  }, [refreshCounts]);
+  // Delete: open confirmation dialog
+  const handleDelete = useCallback((issueId: number) => {
+    setDeleteConfirmId(issueId);
+  }, []);
 
-  // Delete handler
-  const handleDelete = useCallback(async (issueId: number) => {
+  // Delete: confirmed
+  const confirmDelete = useCallback(async () => {
+    if (deleteConfirmId === null) return;
+    setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/issues/${issueId}`, {
+      const response = await fetch(`/api/issues/${deleteConfirmId}`, {
         method: 'DELETE',
       });
 
@@ -196,13 +230,16 @@ export default function IssuesPage() {
         throw new Error(data.error || 'Failed to delete issue');
       }
 
-      setIssues((prev) => prev.filter((i) => i.id !== issueId));
+      setIssues((prev) => prev.filter((i) => i.id !== deleteConfirmId));
       toast.success('Issue deleted');
       refreshCounts();
+      setDeleteConfirmId(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete issue');
+    } finally {
+      setDeleteLoading(false);
     }
-  }, [refreshCounts]);
+  }, [deleteConfirmId, refreshCounts]);
 
   // Build columns
   const columns = useMemo(
@@ -213,10 +250,9 @@ export default function IssuesPage() {
         currentUserId: user?.id ?? null,
         dateFormat,
         onStatusChange: handleStatusChange,
-        onIssueUpdated: handleIssueUpdated,
         onDelete: handleDelete,
       }),
-    [isAdmin, authMode, user?.id, dateFormat, handleStatusChange, handleIssueUpdated, handleDelete]
+    [isAdmin, authMode, user?.id, dateFormat, handleStatusChange, handleDelete]
   );
 
   // Count by status for filter badges
@@ -243,12 +279,12 @@ export default function IssuesPage() {
           title={`Issues ${!loading ? `(${filteredIssues.length})` : ''}`}
           description="Track and manage reported issues across your library"
           breadcrumbs={[{ label: 'Issues' }]}
-          action={<IssueReportSearchDialog onSubmitted={fetchIssues} />}
+          action={<IssueReportDialog onSubmitted={fetchIssues} />}
           className="mb-0"
         />
 
         {/* Status Filter Chips + View Toggle */}
-        <div className="flex items-center gap-3 mt-4">
+        <div className="flex items-center gap-1.5 md:gap-3 mt-4">
           <div className="flex gap-2 flex-1 overflow-x-auto scrollbar-none md:flex-wrap">
             {STATUS_FILTERS.map((filter) => {
               const isActive = statusFilter === filter.value;
@@ -349,108 +385,155 @@ export default function IssuesPage() {
           </Card>
         ) : (
           /* Card View */
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-2">
             {filteredIssues.map((issue) => {
-              const ep = issue.episode;
-              const epLabel = `S${String(ep.season.seasonNumber).padStart(2, '0')}E${String(ep.episodeNumber).padStart(2, '0')}`;
-              const fullLabel = `${ep.season.tvShow.title} — ${epLabel}`;
+              const ep = getPrimaryEpisode(issue.episodes);
               const isOwner = user?.id !== undefined && issue.user?.id === user.id;
-              const canEdit = isAdmin || isOwner;
+              const canEdit = isOwner && issue.status === 'OPEN';
               const canDelete = isAdmin || (isOwner && issue.status === 'OPEN');
+              const TypeIcon = ISSUE_TYPE_ICONS[issue.type];
 
               return (
-                <Card key={issue.id} className='p-0'>
-                  <CardContent className="p-4 md:p-6">
-                    {/* Top row: badges + actions */}
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant={getIssueStatusVariant(issue.status)}>
-                          {ISSUE_STATUS_LABELS[issue.status]}
-                        </Badge>
-                        <Badge variant={getIssueTypeVariant(issue.type)}>
-                          {ISSUE_TYPE_LABELS[issue.type]}
-                        </Badge>
-                      </div>
-                      {(canEdit || canDelete) && (
-                        <div className="flex gap-0.5 flex-shrink-0">
-                          {canEdit && (
-                            <IssueEditDialog
-                              issue={issue}
-                              episodeLabel={fullLabel}
-                              isAdmin={isAdmin}
-                              isOwner={isOwner}
-                              onUpdated={(updated) => handleIssueUpdated(issue.id, updated)}
-                              trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-7 text-muted-foreground hover:text-foreground"
-                                >
-                                  <Pencil className="size-3.5" />
-                                </Button>
-                              }
-                            />
-                          )}
-                          {canDelete && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-7 text-muted-foreground hover:text-destructive-foreground"
-                              onClick={() => handleDelete(issue.id)}
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
+                <Card key={issue.id} className="p-0">
+                  <CardContent className="px-4 py-3">
+                    {/* Row 1: Issue # + episode info + status + actions */}
+                    <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-x-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {/* Issue number */}
+                        <Link
+                          href={`/issues/${issue.id}`}
+                          className="text-sm font-bold text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                        >
+                          #{issue.id}
+                        </Link>
+
+                        {/* Episode / show info + type badges */}
+                        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                          <Link
+                            href={`/issues/${issue.id}`}
+                            className="hover:text-primary transition-colors min-w-0"
+                          >
+                            {ep ? (
+                              <div className="flex items-baseline gap-1.5 min-w-0">
+                                <span className="text-sm font-medium truncate">{ep.season.tvShow.title}</span>
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  S{String(ep.season.seasonNumber).padStart(2, '0')}E{String(ep.episodeNumber).padStart(2, '0')}
+                                  {issue.episodes.length > 1 && ` +${issue.episodes.length - 1}`}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">No linked episodes</span>
+                            )}
+                          </Link>
+                          <Badge variant={getIssueTypeVariant(issue.type)}>
+                            <TypeIcon className="size-3 mr-0.5" />
+                            {ISSUE_TYPE_LABELS[issue.type]}
+                          </Badge>
+                          {issue.subType && (
+                            <Badge variant="outline">
+                              {ISSUE_SUB_TYPE_LABELS[issue.subType as IssueSubType]}
+                            </Badge>
                           )}
                         </div>
-                      )}
+                      </div>
+
+                      {/* Status + actions — right side */}
+                      <div className="flex items-center gap-1.5 shrink-0 pl-6 md:pl-0">
+                        {isAdmin ? (() => {
+                          const StatusIcon = ISSUE_STATUS_ICONS[issue.status];
+                          return (
+                            <BadgeSelector
+                              value={issue.status}
+                              options={ISSUE_STATUSES.map((s) => ({
+                                value: s,
+                                label: ISSUE_STATUS_LABELS[s],
+                              }))}
+                              displayLabel={ISSUE_STATUS_LABELS[issue.status]}
+                              variant={getIssueStatusVariant(issue.status)}
+                              getVariant={getIssueStatusVariant}
+                              getIcon={(s) => {
+                                const Icon = ISSUE_STATUS_ICONS[s as IssueStatus];
+                                return <Icon className="size-3 mr-0.5" />;
+                              }}
+                              onValueChange={async (newStatus) => {
+                                await handleStatusChange(issue.id, newStatus as IssueStatus);
+                              }}
+                              icon={<StatusIcon className="size-3 mr-0.5" />}
+                            />
+                          );
+                        })() : (() => {
+                          const StatusIcon = ISSUE_STATUS_ICONS[issue.status];
+                          return (
+                            <Badge variant={getIssueStatusVariant(issue.status)}>
+                              <StatusIcon className="size-3 mr-0.5" />
+                              {ISSUE_STATUS_LABELS[issue.status]}
+                            </Badge>
+                          );
+                        })()}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-muted-foreground hover:text-foreground"
+                            onClick={() => setEditingIssue(issue)}
+                          >
+                            <Pencil className="size-3" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-muted-foreground hover:text-destructive-foreground"
+                            onClick={() => handleDelete(issue.id)}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Episode info */}
-                    <Link
-                      href={`/tv-shows/${ep.season.tvShow.id}/episodes/${ep.id}`}
-                      className="hover:underline"
-                    >
-                      <p className="font-medium text-sm">{ep.season.tvShow.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {epLabel}{ep.title ? ` — ${ep.title}` : ''}
-                      </p>
-                    </Link>
+                    {/* Row 2: Context badges (optional) */}
+                    {(issue.platform || issue.audioLang || issue.subtitleLang) && (
+                      <div className="flex items-center gap-1 mt-1.5 pl-6 md:pl-9">
+                        {issue.platform && (
+                          <Badge variant="outline">
+                            {issue.platform}
+                          </Badge>
+                        )}
+                        {issue.audioLang && (
+                          <Badge variant="outline">
+                            <Volume2 className="size-3 mr-0.5" />
+                            {issue.audioLang}
+                          </Badge>
+                        )}
+                        {issue.subtitleLang && (
+                          <Badge variant="outline">
+                            <Captions className="size-3 mr-0.5" />
+                            {issue.subtitleLang}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
 
-                    {/* Description */}
+                    {/* Row 3: Description (optional) */}
                     {issue.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                      <p className="text-xs text-muted-foreground truncate mt-1 pl-6 md:pl-9">
                         {issue.description}
                       </p>
                     )}
 
-                    {/* Context: platform, audio, subtitle */}
-                    {(issue.platform || issue.audioLang || issue.subtitleLang) && (
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {issue.platform && (
-                          <Badge variant="outline" className="text-xs">{issue.platform}</Badge>
-                        )}
-                        {issue.audioLang && (
-                          <Badge variant="outline" className="text-xs">Audio: {issue.audioLang}</Badge>
-                        )}
-                        {issue.subtitleLang && (
-                          <Badge variant="outline" className="text-xs">Sub: {issue.subtitleLang}</Badge>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Footer: reporter + date */}
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                      {authMode === 'plex' && issue.user ? (
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {/* Row 4: Reporter + date (compact) */}
+                    <div className="flex items-center gap-2 mt-1.5 pl-6 md:pl-9">
+                      {authMode === 'plex' && issue.user && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           {issue.user.thumbUrl ? (
-                            <img src={issue.user.thumbUrl} alt="" className="size-4 rounded-full" />
+                            <img src={issue.user.thumbUrl} alt="" className="size-3.5 rounded-full" />
                           ) : (
-                            <User className="size-3.5" />
+                            <User className="size-3" />
                           )}
                           {issue.user.username}
                         </span>
-                      ) : (
-                        <span />
                       )}
                       <span className="text-xs text-muted-foreground">
                         {formatDateTimeWithFormat(new Date(issue.createdAt), dateFormat)}
@@ -463,6 +546,57 @@ export default function IssuesPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Issue #{deleteConfirmId}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this issue and all its comments. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Issue Dialog */}
+      <Dialog open={editingIssue !== null} onOpenChange={(open) => { if (!open) setEditingIssue(null); }}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Issue #{editingIssue?.id}</DialogTitle>
+            <DialogDescription>Update the issue details.</DialogDescription>
+          </DialogHeader>
+          {editingIssue && (
+            <IssueEditForm
+              issue={{
+                id: editingIssue.id,
+                type: editingIssue.type,
+                description: editingIssue.description,
+                platform: editingIssue.platform,
+                audioLang: editingIssue.audioLang,
+                subtitleLang: editingIssue.subtitleLang,
+                subType: editingIssue.subType,
+                episodes: editingIssue.episodes.map((e) => ({ episodeId: e.episodeId })),
+              }}
+              onSaved={() => {
+                setEditingIssue(null);
+                fetchIssues();
+              }}
+              onCancel={() => setEditingIssue(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

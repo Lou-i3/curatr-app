@@ -273,35 +273,33 @@ export async function GET(request: NextRequest) {
     // Build where clause based on tmdbStatus
     let where: Record<string, unknown> = {};
 
+    // Apply search filter to all query branches
+    if (q) {
+      where.title = { contains: q };
+    }
+
     // Legacy support for unmatched param
     if (unmatched) {
-      where = { tmdbId: null };
+      where.tmdbId = null;
     } else {
       switch (tmdbStatus) {
         case 'unmatched':
-          where = { tmdbId: null };
+          where.tmdbId = null;
           break;
         case 'needs-sync':
-          where = {
-            tmdbId: { not: null },
+          where.tmdbId = { not: null };
+          where.OR = [
+            { seasons: { some: { tmdbSeasonId: null } } },
+            { seasons: { some: { episodes: { some: { tmdbEpisodeId: null } } } } },
+          ];
+          break;
+        case 'fully-synced':
+          where.tmdbId = { not: null };
+          where.NOT = {
             OR: [
               { seasons: { some: { tmdbSeasonId: null } } },
               { seasons: { some: { episodes: { some: { tmdbEpisodeId: null } } } } },
             ],
-          };
-          break;
-        case 'fully-synced':
-          // Shows that are matched AND have no seasons without tmdbSeasonId
-          // AND no episodes without tmdbEpisodeId
-          // This is tricky - we need to filter out shows that have any unsynced children
-          where = {
-            tmdbId: { not: null },
-            NOT: {
-              OR: [
-                { seasons: { some: { tmdbSeasonId: null } } },
-                { seasons: { some: { episodes: { some: { tmdbEpisodeId: null } } } } },
-              ],
-            },
           };
           break;
         default:
@@ -394,6 +392,7 @@ export async function GET(request: NextRequest) {
         title: true,
         year: true,
         tmdbId: true,
+        posterPath: true,
         monitorStatus: true,
       },
     });

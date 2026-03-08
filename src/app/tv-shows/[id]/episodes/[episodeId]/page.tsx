@@ -39,44 +39,43 @@ export default async function EpisodeDetailPage({ params }: Props) {
     notFound();
   }
 
-  const [episode, platforms] = await Promise.all([
-    prisma.episode.findUnique({
-      where: { id: episodeIdNum },
-      include: {
-        season: {
-          include: {
-            tvShow: true,
-          },
+  const episode = await prisma.episode.findUnique({
+    where: { id: episodeIdNum },
+    include: {
+      season: {
+        include: {
+          tvShow: true,
         },
-        files: {
-          include: {
-            playbackTests: {
-              include: {
-                platform: true,
-              },
-              orderBy: {
-                testedAt: 'desc',
-              },
+      },
+      files: {
+        include: {
+          playbackTests: {
+            include: {
+              platform: true,
             },
-            tracks: {
-              orderBy: [
-                { trackType: 'asc' },
-                { trackIndex: 'asc' },
-              ],
+            orderBy: {
+              testedAt: 'desc',
             },
           },
-        },
-        issues: {
-          orderBy: { createdAt: 'desc' },
-          include: {
-            user: { select: { id: true, username: true, thumbUrl: true } },
-            resolvedBy: { select: { id: true, username: true } },
+          tracks: {
+            orderBy: [
+              { trackType: 'asc' },
+              { trackIndex: 'asc' },
+            ],
           },
         },
       },
-    }),
-    prisma.platform.findMany({ orderBy: { sortOrder: 'asc' } }),
-  ]);
+      issueEpisodes: {
+        include: {
+          issue: {
+            include: {
+              user: { select: { id: true, username: true, thumbUrl: true } },
+            },
+          },
+        },
+      },
+    },
+  });
 
   if (!episode || episode.season.tvShow.id !== showId) {
     notFound();
@@ -266,35 +265,17 @@ export default async function EpisodeDetailPage({ params }: Props) {
         {/* Issues Section (right sidebar) */}
         <EpisodeIssuesSection
           episodeId={episode.id}
+          showId={showId}
+          showTitle={episode.season.tvShow.title}
+          seasonNumber={episode.season.seasonNumber}
+          episodeNumber={episode.episodeNumber}
           episodeLabel={`${episode.season.tvShow.title} — S${String(episode.season.seasonNumber).padStart(2, "0")}E${String(episode.episodeNumber).padStart(2, "0")}`}
-          issues={episode.issues}
+          issues={episode.issueEpisodes
+            .map((ie) => ie.issue)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
           dateFormat={dateFormat}
-          platforms={platforms.map((p) => p.name)}
-          audioLanguages={collectLanguages(episode.files, 'audioLanguages')}
-          subtitleLanguages={collectLanguages(episode.files, 'subtitleLanguages')}
         />
       </div>
     </PageContainer>
   );
-}
-
-/** Collect unique languages from episode files */
-function collectLanguages(
-  files: Array<{ audioLanguages: string | null; subtitleLanguages: string | null }>,
-  field: 'audioLanguages' | 'subtitleLanguages'
-): string[] {
-  const langs = new Set<string>();
-  for (const file of files) {
-    const value = file[field];
-    if (value) {
-      // Languages are stored as comma-separated or JSON
-      try {
-        const parsed = JSON.parse(value);
-        if (Array.isArray(parsed)) parsed.forEach((l: string) => langs.add(l));
-      } catch {
-        value.split(',').map((l) => l.trim()).filter(Boolean).forEach((l) => langs.add(l));
-      }
-    }
-  }
-  return Array.from(langs);
 }

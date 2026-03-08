@@ -54,10 +54,14 @@ interface BadgeSelectorProps<T extends string> {
   variant: BadgeVariant;
   onValueChange: (value: T) => void | Promise<void>;
   getVariant?: (value: T) => BadgeVariant;
+  /** Returns an icon node for a given option value (rendered in dropdown items) */
+  getIcon?: (value: T) => React.ReactNode;
   cascadeOptions?: CascadeOptions;
   onUpdate?: () => void;
   disabled?: boolean;
   className?: string;
+  /** Optional icon to render before the label */
+  icon?: React.ReactNode;
 }
 
 export function BadgeSelector<T extends string>({
@@ -67,10 +71,12 @@ export function BadgeSelector<T extends string>({
   variant,
   onValueChange,
   getVariant,
+  getIcon,
   cascadeOptions,
   onUpdate,
   disabled = false,
   className,
+  icon,
 }: BadgeSelectorProps<T>) {
   const router = useRouter();
   const { isAdmin } = useAuth();
@@ -168,7 +174,7 @@ export function BadgeSelector<T extends string>({
   if (!isAdmin) {
     return (
       <Badge variant={localVariant} className={className}>
-        {localLabel}
+        {getIcon ? getIcon(localValue) : icon}{localLabel}
       </Badge>
     );
   }
@@ -190,7 +196,7 @@ export function BadgeSelector<T extends string>({
               {loading ? (
                 <Loader2 className="size-3 animate-spin" />
               ) : (
-                localLabel
+                <>{getIcon ? getIcon(localValue) : icon}{localLabel}</>
               )}
             </Badge>
           </span>
@@ -202,8 +208,8 @@ export function BadgeSelector<T extends string>({
               onClick={() => handleSelect(option.value)}
               className={option.value === localValue ? 'bg-accent' : ''}
             >
-              <Badge variant={getVariant?.(option.value) ?? 'outline'} className="mr-2">
-                {option.label}
+              <Badge variant={getVariant?.(option.value) ?? 'outline'} className="mr-2 [&>svg]:!text-current">
+                {getIcon?.(option.value)}{option.label}
               </Badge>
               {option.value === localValue && (
                 <span className="ml-auto text-xs text-muted-foreground">Current</span>

@@ -139,6 +139,35 @@ export function getLanguageName(code: string): string {
 }
 
 /**
+ * Collect unique language codes from episode file records
+ * @param files - Array of objects with audioLanguages/subtitleLanguages JSON fields
+ * @param field - Which field to collect from
+ * @returns Deduplicated array of language codes
+ */
+export function collectLanguages(
+  files: Array<{ audioLanguages: string | null; subtitleLanguages: string | null }>,
+  field: 'audioLanguages' | 'subtitleLanguages'
+): string[] {
+  const langs = new Set<string>();
+  for (const file of files) {
+    const value = file[field];
+    if (value) {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) parsed.forEach((l: string) => langs.add(l));
+      } catch {
+        value
+          .split(',')
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .forEach((l) => langs.add(l));
+      }
+    }
+  }
+  return Array.from(langs);
+}
+
+/**
  * Parse a JSON array of language codes and return display-ready format
  * @param jsonString - JSON array string like '["eng","jpn"]'
  * @returns Array of { code, name } objects

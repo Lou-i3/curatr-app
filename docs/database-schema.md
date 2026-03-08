@@ -15,7 +15,9 @@
 | `Settings` | `dateFormat`, `maxParallelTasks` | Application settings |
 | `User` | `plexId`, `username`, `role`, `isActive` | User accounts (Plex or local admin) |
 | `Session` | `userId`, `expiresAt` | Login sessions (cookie-backed) |
-| `Issue` | `episodeId`, `userId`, `type`, `status`, `description` | Reported quality issues |
+| `Issue` | `userId`, `type`, `status`, `subType`, `description`, `platform`, `audioLang`, `subtitleLang` | Reported quality issues |
+| `IssueEpisode` | `issueId`, `episodeId` | Many-to-many join table linking issues to episodes |
+| `IssueComment` | `issueId`, `userId`, `type`, `content` | Issue comments and activity log entries |
 
 ## Enums
 
@@ -27,6 +29,7 @@ enum PlaybackStatus { PASS, PARTIAL, FAIL }
 enum UserRole { ADMIN, USER }
 enum IssueType { PLAYBACK, QUALITY, AUDIO, SUBTITLE, CONTENT, OTHER }
 enum IssueStatus { OPEN, ACKNOWLEDGED, IN_PROGRESS, RESOLVED, CLOSED }
+enum IssueCommentType { COMMENT, ACTIVITY }
 ```
 
 The full schema is defined in `prisma/schema.prisma`.

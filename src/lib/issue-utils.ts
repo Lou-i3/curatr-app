@@ -5,6 +5,43 @@
 
 import type { IssueType, IssueStatus } from '@/generated/prisma/client';
 import type { BadgeVariant } from '@/lib/status';
+import {
+  PlayCircle,
+  Eye,
+  Volume2,
+  Captions,
+  FileWarning,
+  CircleHelp,
+  Circle,
+  CircleDot,
+  Loader,
+  CheckCircle2,
+  XCircle,
+  Monitor,
+  type LucideIcon,
+} from 'lucide-react';
+
+/** Icon for each issue type */
+export const ISSUE_TYPE_ICONS: Record<IssueType, LucideIcon> = {
+  PLAYBACK: PlayCircle,
+  QUALITY: Eye,
+  AUDIO: Volume2,
+  SUBTITLE: Captions,
+  CONTENT: FileWarning,
+  OTHER: CircleHelp,
+};
+
+/** Icon for each issue status */
+export const ISSUE_STATUS_ICONS: Record<IssueStatus, LucideIcon> = {
+  OPEN: Circle,
+  ACKNOWLEDGED: CircleDot,
+  IN_PROGRESS: Loader,
+  RESOLVED: CheckCircle2,
+  CLOSED: XCircle,
+};
+
+/** Icon for platform context */
+export const PLATFORM_ICON = Monitor;
 
 /** Human-readable labels for issue types */
 export const ISSUE_TYPE_LABELS: Record<IssueType, string> = {
@@ -53,3 +90,17 @@ export const ISSUE_TYPES: IssueType[] = ['PLAYBACK', 'QUALITY', 'AUDIO', 'SUBTIT
 
 /** All issue statuses */
 export const ISSUE_STATUSES: IssueStatus[] = ['OPEN', 'ACKNOWLEDGED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+
+/** Sub-types for AUDIO and SUBTITLE issues */
+export const ISSUE_SUB_TYPES = ['WRONG_LANGUAGE', 'OUT_OF_SYNC', 'MISSING', 'BAD_QUALITY'] as const;
+export type IssueSubType = (typeof ISSUE_SUB_TYPES)[number];
+
+export const ISSUE_SUB_TYPE_LABELS: Record<IssueSubType, string> = {
+  WRONG_LANGUAGE: 'Wrong Language',
+  OUT_OF_SYNC: 'Out of Sync',
+  MISSING: 'Missing',
+  BAD_QUALITY: 'Bad Quality',
+};
+
+/** Types that support sub-type selection */
+export const TYPES_WITH_SUB_TYPE: IssueType[] = ['AUDIO', 'SUBTITLE'];

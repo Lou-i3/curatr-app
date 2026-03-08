@@ -47,7 +47,7 @@
  *               $ref: '#/components/schemas/Error'
  *   post:
  *     summary: Create an issue
- *     description: Creates a new issue for an episode. Requires authentication.
+ *     description: Creates a new issue for one or more episodes. Requires authentication.
  *     tags: [Issues]
  *     security:
  *       - cookieAuth: []
@@ -57,11 +57,13 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [episodeId, type]
+ *             required: [episodeIds, type]
  *             properties:
- *               episodeId:
- *                 type: integer
- *                 description: ID of the episode this issue relates to
+ *               episodeIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: IDs of the episodes this issue relates to
  *               type:
  *                 $ref: '#/components/schemas/IssueType'
  *               description:
@@ -113,9 +115,35 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, checkAuth } from '@/lib/auth';
 import { IssueType, IssueStatus } from '@/generated/prisma/client';
+import { ISSUE_SUB_TYPES, TYPES_WITH_SUB_TYPE } from '@/lib/issue-utils';
 
 const VALID_TYPES: IssueType[] = ['PLAYBACK', 'QUALITY', 'AUDIO', 'SUBTITLE', 'CONTENT', 'OTHER'];
 const VALID_STATUSES: IssueStatus[] = ['OPEN', 'ACKNOWLEDGED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+
+/** Shared include for issue episodes with full chain */
+const episodesInclude = {
+  episodes: {
+    include: {
+      episode: {
+        select: {
+          id: true,
+          episodeNumber: true,
+          title: true,
+          season: {
+            select: {
+              seasonNumber: true,
+              tvShow: { select: { id: true, title: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [
+      { episode: { season: { seasonNumber: 'asc' as const } } },
+      { episode: { episodeNumber: 'asc' as const } },
+    ],
+  },
+};
 
 export async function GET(request: Request) {
   try {
@@ -140,13 +168,17 @@ export async function GET(request: Request) {
 
     if (episodeId) {
       const parsed = parseInt(episodeId, 10);
-      if (!isNaN(parsed)) where.episodeId = parsed;
+      if (!isNaN(parsed)) {
+        where.episodes = { some: { episodeId: parsed } };
+      }
     }
 
     if (showId) {
       const parsed = parseInt(showId, 10);
       if (!isNaN(parsed)) {
-        where.episode = { season: { tvShowId: parsed } };
+        where.episodes = {
+          some: { episode: { season: { tvShowId: parsed } } },
+        };
       }
     }
 
@@ -155,20 +187,8 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, username: true, thumbUrl: true, role: true } },
-        episode: {
-          select: {
-            id: true,
-            episodeNumber: true,
-            title: true,
-            season: {
-              select: {
-                seasonNumber: true,
-                tvShow: { select: { id: true, title: true } },
-              },
-            },
-          },
-        },
-        resolvedBy: { select: { id: true, username: true } },
+        ...episodesInclude,
+        _count: { select: { comments: true } },
       },
     });
 
@@ -193,11 +213,20 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { episodeId, type, description, platform, audioLang, subtitleLang } = body;
+    const { episodeIds, type, description, platform, audioLang, subtitleLang, subType } = body;
 
     // Validate required fields
-    if (!episodeId || typeof episodeId !== 'number') {
-      return NextResponse.json({ error: 'Episode ID is required' }, { status: 400 });
+    if (!Array.isArray(episodeIds) || episodeIds.length === 0) {
+      return NextResponse.json({ error: 'At least one episode ID is required' }, { status: 400 });
+    }
+
+    // Validate all IDs are numbers
+    const parsedIds = episodeIds.map((id: unknown) => {
+      if (typeof id !== 'number' || isNaN(id)) return null;
+      return id;
+    });
+    if (parsedIds.some((id: number | null) => id === null)) {
+      return NextResponse.json({ error: 'All episode IDs must be valid numbers' }, { status: 400 });
     }
 
     if (!type || !VALID_TYPES.includes(type)) {
@@ -207,38 +236,43 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify episode exists
-    const episode = await prisma.episode.findUnique({ where: { id: episodeId } });
-    if (!episode) {
-      return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
+    // Validate subType if provided
+    const validatedSubType = subType && TYPES_WITH_SUB_TYPE.includes(type)
+      ? (ISSUE_SUB_TYPES as readonly string[]).includes(subType) ? subType : null
+      : null;
+
+    // Verify all episodes exist
+    const episodes = await prisma.episode.findMany({
+      where: { id: { in: parsedIds as number[] } },
+      select: { id: true },
+    });
+    if (episodes.length !== parsedIds.length) {
+      return NextResponse.json({ error: 'One or more episodes not found' }, { status: 404 });
     }
 
-    const issue = await prisma.issue.create({
-      data: {
-        userId: session.user.id,
-        episodeId,
-        type,
-        description: description || null,
-        platform: platform || null,
-        audioLang: audioLang || null,
-        subtitleLang: subtitleLang || null,
-      },
-      include: {
-        user: { select: { id: true, username: true, thumbUrl: true } },
-        episode: {
-          select: {
-            id: true,
-            episodeNumber: true,
-            title: true,
-            season: {
-              select: {
-                seasonNumber: true,
-                tvShow: { select: { id: true, title: true } },
-              },
-            },
+    // Create issue with episode links in a transaction
+    const issue = await prisma.$transaction(async (tx) => {
+      const created = await tx.issue.create({
+        data: {
+          userId: session.user.id,
+          type,
+          description: description || null,
+          platform: platform || null,
+          audioLang: audioLang || null,
+          subtitleLang: subtitleLang || null,
+          subType: validatedSubType,
+          episodes: {
+            create: (parsedIds as number[]).map((episodeId) => ({
+              episodeId,
+            })),
           },
         },
-      },
+        include: {
+          user: { select: { id: true, username: true, thumbUrl: true } },
+          ...episodesInclude,
+        },
+      });
+      return created;
     });
 
     return NextResponse.json(issue, { status: 201 });

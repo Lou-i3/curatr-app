@@ -240,7 +240,7 @@ export async function GET(request: Request) {
 
     const [issueCounts, allTests, platforms] = await Promise.all([
       episodeIds.length > 0
-        ? prisma.issue.groupBy({
+        ? prisma.issueEpisode.groupBy({
             by: ['episodeId'],
             where: { episodeId: { in: episodeIds } },
             _count: true,

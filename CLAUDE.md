@@ -246,7 +246,7 @@ text-xs md:text-sm                 // Metadata, timestamps, captions
   - Column definitions in separate files (e.g., `tv-show-columns.tsx`)
   - `onTableReady` callback exposes table instance for advanced features
 - **DataTableColumnHeader** (`src/components/ui/data-table-column-header.tsx`): Sortable headers — unsorted (↕), ascending (↑), descending (↓)
-- **BadgeSelector** (`src/components/badge-selector.tsx`): Status badge selection with optimistic updates, optional cascade confirmation
+- **BadgeSelector** (`src/components/badge-selector.tsx`): Status badge selection with optimistic updates, optional cascade confirmation, optional `getIcon` callback for per-value icons (e.g., status icons in issue badges)
 
 #### 7. Mobile Navigation & Visibility
 
@@ -614,7 +614,10 @@ export async function POST(request: Request) {
 - Runs in background (fire-and-forget with `.catch(() => {})`)
 
 ### Issue Reporting System
-- Database models: `Issue` with `IssueType` and `IssueStatus` enums
+- Database models: `Issue` with `IssueType`, `IssueStatus` enums; `IssueEpisode` join table (many-to-many); `IssueComment` with `IssueCommentType` enum
+- Issues link to episodes via `IssueEpisode` join table — one issue can span multiple episodes
+- Comments/activity tracked via `IssueComment` model (types: `COMMENT`, `ACTIVITY`)
+- Sub-types for AUDIO/SUBTITLE issues: `WRONG_LANGUAGE`, `OUT_OF_SYNC`, `MISSING`, `BAD_QUALITY`
 - Works in both auth modes (no-auth: issues attributed to Local Admin user)
 - `userId` on Issue is non-nullable — every issue always has a reporter
 
@@ -627,13 +630,17 @@ import { useIssueContext } from '@/lib/contexts/issue-context';
 const { counts, refresh } = useIssueContext(); // For pages that modify issues
 ```
 
-**Issue Components** (`src/components/issues/`):
-- `IssueReportDialog` — report from episode page (knows episode context)
-- `IssueReportSearchDialog` — report from anywhere (search show → pick episode → report)
-- `IssueEditDialog` — view/edit issue details, change status (admin), add resolution
+**Issue Components**:
+- `src/components/issues/issue-report-dialog.tsx` — unified report dialog (works from episode pages with pre-filled episodes, or from issues page with show search + episode picker)
+- `src/app/issues/[id]/issue-detail-client.tsx` — issue detail page with status management, edit dialog, comments
+- `src/app/issues/[id]/issue-edit-form.tsx` — edit form rendered inside a dialog
+- `src/app/issues/[id]/issue-comment-form.tsx` — comment submission form
+- `src/app/issues/[id]/issue-comment-thread.tsx` — threaded comment/activity display
 
 **Issue Utilities** (`src/lib/issue-utils.ts`):
 - `ISSUE_TYPE_LABELS`, `ISSUE_STATUS_LABELS` — display mappings
+- `ISSUE_TYPE_ICONS`, `ISSUE_STATUS_ICONS` — Lucide icon mappings per type/status
+- `ISSUE_SUB_TYPE_LABELS`, `TYPES_WITH_SUB_TYPE` — sub-type support for AUDIO/SUBTITLE
 - `getIssueTypeVariant()`, `getIssueStatusVariant()` — Badge variant helpers
 
 ### Dashboard

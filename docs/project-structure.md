@@ -31,7 +31,13 @@ src/
 │   │   └── page.tsx                # Background tasks management
 │   ├── issues/
 │   │   ├── page.tsx                # Issues list with filters & admin actions
-│   │   └── issue-columns.tsx       # DataTable column definitions
+│   │   ├── issue-columns.tsx       # DataTable column definitions
+│   │   └── [id]/
+│   │       ├── page.tsx                  # Issue detail server component
+│   │       ├── issue-detail-client.tsx   # Issue detail client (status, edit, comments)
+│   │       ├── issue-edit-form.tsx       # Issue edit form (rendered in dialog)
+│   │       ├── issue-comment-form.tsx    # Comment submission form
+│   │       └── issue-comment-thread.tsx  # Threaded comment/activity display
 │   ├── settings/
 │   │   ├── page.tsx                # Settings page
 │   │   ├── platform-settings.tsx   # Platform management component
@@ -65,7 +71,8 @@ src/
 │   │               ├── page.tsx              # Episode detail (files + issues)
 │   │               ├── episode-detail-status-badges.tsx  # Status controls
 │   │               ├── episode-playback-tests.tsx # Inline playback test management
-│   │               ├── episode-issues-list.tsx # Issue sidebar component
+│   │               ├── episode-issues-section.tsx # Issue sidebar wrapper
+│   │               ├── episode-issues-list.tsx # Issue list with status badges
 │   │               ├── file-rescan-button.tsx # Re-check file on disk button
 │   │               └── file-status-badges.tsx # File quality/action badges
 │   └── api/
@@ -181,9 +188,7 @@ src/
 │   ├── playback-tests/
 │   │   └── edit-test-dialog.tsx    # Shared edit playback test dialog
 │   ├── issues/                     # Issue reporting components
-│   │   ├── issue-report-dialog.tsx       # Report from episode page
-│   │   ├── issue-report-search-dialog.tsx # Report via show search
-│   │   └── issue-edit-dialog.tsx         # View/edit issue details
+│   │   └── issue-report-dialog.tsx       # Unified report dialog (episode page or show search)
 │   └── ui/                         # shadcn/ui components
 └── generated/
     └── prisma/                     # Generated Prisma types
