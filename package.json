@@ -1,6 +1,6 @@
 {
   "name": "curatr-app",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "description": "Track media file quality, playback compatibility, and maintenance status for Plex libraries",
   "author": "Lou-i3",
   "license": "MIT",
