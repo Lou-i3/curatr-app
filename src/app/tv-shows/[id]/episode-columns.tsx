@@ -61,8 +61,14 @@ function EpisodeActions({
   return (
     <div className="flex items-center justify-end gap-1">
       <IssueReportDialog
-        episodeId={episode.id}
-        episodeLabel={`${showTitle} — S${String(seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`}
+        initialEpisodes={[{
+          id: episode.id,
+          label: `S${String(seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`,
+          showId,
+          showTitle,
+          seasonNumber,
+          episodeNumber: episode.episodeNumber,
+        }]}
         trigger={
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Report issue">
             <AlertTriangle className="h-4 w-4" />

@@ -106,7 +106,7 @@ export function IssueReportDialog({
   const [audioLanguages, setAudioLanguages] = useState<string[]>([]);
   const [subtitleLanguages, setSubtitleLanguages] = useState<string[]>([]);
 
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const reset = useCallback(() => {
     setStep(initialEpisodes?.length ? 'details' : 'search');
@@ -407,7 +407,7 @@ export function IssueReportDialog({
                   >
                     {show.posterPath ? (
                       <img
-                        src={getPosterUrl(show.posterPath, 'w92')}
+                        src={getPosterUrl(show.posterPath!, 'w92')!}
                         alt=""
                         className="w-8 h-12 rounded object-cover shrink-0"
                       />
